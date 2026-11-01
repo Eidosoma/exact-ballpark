@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Eidosoma
+# The conformance kit's configuration. fetch_upstream.py clones the pinned upstream repositories into these folders
+# and builds the harnesses here; the tests read the same paths (tests/kit.py). A relative path is relative to this
+# file's folder. To use other locations, copy this file and point EXACT_BALLPARK_KIT at the copy.
+[paths]
+destiny = "upstream/destiny"
+math = "upstream/math"
+directxmath = "upstream/DirectXMath"
+directxmath_manifest = "upstream/MANIFEST_DirectXMath_f5d82574.sha256"
+harness_core = "harness/core/harness"
+harness_modes = "harness/modes/harness"
+harness_space = "harness/space/harness"
+harness_full = "harness/full/harness"

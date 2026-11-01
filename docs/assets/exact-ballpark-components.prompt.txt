@@ -1,0 +1,78 @@
+EXACT BALLPARK component infographic
+
+Generated with the built-in image_gen tool, using exact-ballpark-hero.webp as the visual style reference.
+Component names, captions, and the validation chain come from the repository README, sections "What's inside" and "How it all comes together".
+The wireframe diagrams are illustrative, not measured output, runtime traces, or benchmark evidence.
+
+Delivery: exact-ballpark-components.webp, 1664 x 936 pixels (16:9).
+The generated PNG was 1672 x 941 pixels. A centered crop removes the outermost 8 columns and 5 rows. ImageMagick encodes the result as WebP at quality 79, method 6, with metadata stripped.
+
+Final generation prompt:
+
+Use case: infographic-diagram.
+Create one exceptional, accurate component infographic for EXACT BALLPARK, a space-physics engine. This is a companion illustration to the provided logo artwork. Use the provided image ONLY as a visual style and palette reference: same near-black starfield background, fine luminous amber/gold wireframe lettering, electric cyan wireframe spacecraft and geometry, restrained magenta trajectories, subtle perspective grid near the lower edge. Make an original informative layout, not another large spacecraft poster.
+
+Canvas: full-bleed landscape 16:9, ideally 3840 x 2160, opaque background. Large readable typography, precise geometry, controlled phosphor glow, sophisticated 1981–1984 vector arcade / scientific workstation look. Crisp and polished, not pixelated. This must work as a high-quality README component overview.
+
+LAYOUT:
+A compact header across the top, followed by TWO rows of FOUR component modules in a disciplined spacious editorial grid. These are elegant open wireframe diagram areas with fine corner marks and a shared alignment, not opaque UI boxes. A slim footer shows the validation chain. Main art is inside each component module, with its title and short description. Maintain ample black breathing room and clear gutters so no labels overlap. Avoid connecting all eight modules in a false runtime sequence. Each module gets a distinctive small-to-medium cyan wireframe illustration with tiny amber construction lines and occasional magenta activity traces. Use large amber uppercase headings, clean ivory-cyan monospaced captions, and dark backgrounds. All captions must be typeset cleanly and correctly; prioritize legibility over ornament.
+
+HEADER text exactly:
+"EXACT BALLPARK"
+"COMPONENT MAP"
+The name uses the same custom golden extruded outline lettering as the reference, but compact enough to leave most of the canvas for the infographic. A small delta spacecraft silhouette near the title subtly ties it to the original branding.
+
+TOP ROW, left to right, exactly four distinct components:
+
+1. Heading: "C++ ORACLE"
+Caption line 1: "Compiled destiny"
+Caption line 2: "Pinned source of truth"
+Illustration: a precise cyan wireframe source-code slab / outlined code brackets enclosing a small geometric spaceship, like a blueprint from which the engine is checked. No additional illegible code text.
+
+2. Heading: "PYTHON REFERENCE"
+Caption line 1: "One world at a time"
+Caption line 2: "Readable scalar semantics"
+Illustration: one delicate cyan coordinate cage containing a single delta ship and a magenta curved trajectory; a sparse amber tick scale.
+
+3. Heading: "PYTORCH PARKS"
+Caption line 1: "Orientation · flight modes"
+Caption line 2: "Collisions · combat · composed"
+Illustration: a small ordered three-dimensional array of separate cyan wireframe world cubes, each containing tiny ships, spheres, or trajectories; independent worlds in parallel. Distinct individual cubes, not one tangled object.
+
+4. Heading: "CUDA KERNELS"
+Caption line 1: "Fused batched ticks"
+Caption line 2: "Checked after compilation"
+Illustration: a beautiful isometric cyan wireframe processor with many orderly luminous parallel lanes running across it; an amber check mark drawn as a clean vector symbol. Do not invent GPU branding or benchmarks.
+
+BOTTOM ROW, left to right, exactly four distinct components:
+
+5. Heading: "EXACT MATHS"
+Caption line 1: "sin · cos · exp · log · pow"
+Caption line 2: "Same CPU / GPU arithmetic"
+Illustration: two perfectly matching cyan and magenta function curves on fine amber mathematical axes, with a simple equal sign between two small geometric computing units. A clear small scientific waveform, not a jumble of equations.
+
+6. Heading: "SPACE LAYER"
+Caption line 1: "Bubbles · proximity sensors"
+Caption line 2: "Visibility · range queries"
+Illustration: several translucent outlined spherical wireframe spatial bubbles, with small ships, subtle detection arcs, and a dotted magenta query line. Distinct sphere boundaries, coherent geometry.
+
+7. Heading: "SERVER LAYERS"
+Caption line 1: "Ticks · action queues"
+Caption line 2: "Global balls · client views"
+Illustration: a wireframe timing ring joined to a short orderly queue of boxes, branching into three small client-view frames. Thin gold and cyan connectors. Show orchestration clearly without a dense dashboard.
+
+8. Heading: "CUDA GRAPHS"
+Caption line 1: "Capture once"
+Caption line 2: "Replay the tick"
+Illustration: a clean cyan directed graph of about six geometric nodes linked by crisp edges and a magenta replay loop surrounding it; an amber replay arrow.
+
+FOOTER:
+A fine gold rule and an intentionally labeled comparison chain, not a runtime dataflow. Text:
+"BIT-FOR-BIT VALIDATION"
+"C++  ↔  PYTHON  ↔  PYTORCH  ↔  CUDA  ↔  GRAPHS"
+The connecting symbols are double-headed comparison arrows. Readable, evenly spaced and beautifully aligned. These arrows mean each implementation is checked against the adjacent one. No timing or performance claims.
+
+Stylistic requirements: exactly the reference's deep black, amber gold, electric cyan and selective magenta; subtle tiny stars, fine plotted lines and understated glow. Titles and captions must be clean, correctly spelled, and readable. Balanced professional infographic composition with attractive original wireframe technical icons and depth. Title should occupy at most about one sixth of height; use the space for the eight components. No giant dominant ship covering the diagrams. Preserve safe margins around everything.
+
+Avoid: extra components, repeated or missing modules, typos, made-up metrics, fake benchmark numbers, paragraphs, tiny dense text, random symbols, extra explanatory labels beyond those requested, white backgrounds, solid filled cards, modern glossy dashboard UI, photorealism, chrome surfaces, heavy bloom, blurry lines, monitors, mockup frames, watermarks, third-party logos. Deliver only the completed infographic.
+

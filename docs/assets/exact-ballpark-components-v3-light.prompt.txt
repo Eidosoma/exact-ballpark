@@ -1,0 +1,38 @@
+EXACT BALLPARK component infographic, lighter variant
+
+Generated with the built-in image_gen tool, editing exact-ballpark-components-v2.webp.
+Requested change: a slightly lighter version, interpreted as a charcoal-blue background and gentler tonal contrast while retaining the smaller captions, colors and wireframe style.
+Earlier infographic versions are preserved separately.
+
+Delivery: exact-ballpark-components-v3-light.webp, 1664 x 936 pixels (16:9).
+The generated PNG was 1672 x 941 pixels. A centered crop removes the outermost 8 columns and 5 rows. ImageMagick encodes the result as WebP at quality 79, method 6, with metadata stripped.
+
+Final editing prompt:
+
+Use case: precise-object-edit.
+Create a new slightly LIGHTER version of the supplied EXACT BALLPARK component infographic. The reference is the smaller-caption version; preserve that smaller caption typography.
+
+Make a restrained tonal adjustment: lift the near-black background into a deep charcoal-blue, approximately #111b25, with very subtle brighter midnight-blue atmosphere behind the diagrams. It should look visibly a little lighter and gentler, while remaining a dark early-1980s vector-display graphic. Keep plenty of dark negative space. Retain the electric cyan wireframes, warm amber/gold titles and frame lines, and magenta highlights. Give cyan text a slightly paler, cleaner color and amber lines a slightly softer golden tone. Reduce the sense of harsh glow just a little, retaining crisp line cores, fine geometry and excellent text contrast. The goal is a lighter, less visually heavy sibling of the same design, not a new design.
+
+STRICTLY PRESERVE:
+- Exact 16:9 landscape composition, ideally 1664 x 936 pixels.
+- The top "EXACT BALLPARK" golden outline logo, "COMPONENT MAP", and small header spacecraft.
+- All eight component panels in the same two-row/four-column layout, their dimensions, positions and diagram subjects.
+- The component headings exactly: "C++ ORACLE", "PYTHON REFERENCE", "PYTORCH PARKS", "CUDA KERNELS", "EXACT MATHS", "SPACE LAYER", "SERVER LAYERS", "CUDA GRAPHS".
+- All existing caption wording, line breaks and positions, and especially the slightly smaller caption size of this reference.
+- The exact footer "BIT-FOR-BIT VALIDATION" and the comparison chain "C++ ↔ PYTHON ↔ PYTORCH ↔ CUDA ↔ GRAPHS".
+- The wireframe illustrations, tiny stars, thin golden panel outlines, subtle perspective grid, and restrained retro scientific-workstation style.
+- Crisp readable lettering with no misspellings or changed words.
+
+Caption wording, unchanged:
+"Compiled destiny" / "Pinned source of truth"
+"One world at a time" / "Readable scalar semantics"
+"Orientation · flight modes" / "Collisions · combat · composed"
+"Fused batched ticks" / "Checked after compilation"
+"sin · cos · exp · log · pow" / "Same CPU / GPU arithmetic"
+"Bubbles · proximity sensors" / "Visibility · range queries"
+"Ticks · action queues" / "Global balls · client views"
+"Capture once" / "Replay the tick"
+
+Change only the tonal/color treatment described above. Do not change layout, add elements, enlarge text, remove components, crop borders or redraw the infographic into another style. Do not make it white, pale gray, pastel, washed out, blurry, foggy or flat. Opaque background. Deliver the finished image alone.
+

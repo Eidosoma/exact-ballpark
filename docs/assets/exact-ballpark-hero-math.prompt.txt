@@ -1,0 +1,33 @@
+EXACT BALLPARK mathematics variant
+
+Generated with the built-in image_gen tool, using exact-ballpark-hero.webp as the visual reference.
+This is a separate iteration; the original artwork is preserved as exact-ballpark-hero.webp.
+
+Delivery: exact-ballpark-hero-math.webp, 1664 x 936 pixels (16:9).
+The generated PNG was 1672 x 941 pixels. A centered crop removes the outermost 8 columns and 5 rows. ImageMagick encodes the result as WebP at quality 83, method 6, with metadata stripped.
+
+The equations describe motion under constant force and linear drag, with positive mass and drag coefficient. The geometric annotations and plot are illustrative artwork, not measured simulator output.
+
+Final generation prompt:
+
+Use case: logo-brand.
+Create a second, mathematics-rich iteration of the attached EXACT BALLPARK README hero, preserving its distinctive early-1980s vector arcade identity. The attached image is the visual reference and starting composition, not an image to embed in a mockup. Output one finished full-bleed landscape 16:9 image, ideally 3840 x 2160. Opaque near-black background.
+
+Preserve the beautiful two-line wordmark "EXACT" above "BALLPARK": very large amber/gold outlined geometric capitals, subtle three-dimensional wireframe extrusion, black interiors and delicate horizontal scanlines. Preserve exact spelling and legibility. Keep the cyan wireframe delta spacecraft with its strong pointed silhouette and coherent faceted geometry, magenta flight trails, gold orbital coordinate cage, sparse stars and luminous fine vector linework. Keep the original's disciplined palette, crisp line cores, restrained phosphor glow and dramatic depth. The result must clearly belong to the same identity as the reference.
+
+The new creative direction: SPACE FLIGHT AS BEAUTIFUL MATHEMATICS. Make the physics visibly part of the world, as though this is a 1982 vector-graphics scientific workstation showing the equations that animate the ship. Add meaningful mathematics, exquisitely integrated into the black negative space and geometry. Give the equations generous spacing; the equations should be clearly readable secondary elements, not tiny dense HUD filler. Rebalance the layout to make room if needed: wordmark across upper half, hero spacecraft across lower-right, a clean mathematical area across lower-left.
+
+Use these three real, internally consistent mathematical statements, typeset carefully in luminous pale cyan, with elegant mathematical italics, correct subscripts and superscripts:
+1. "ẋ = v"
+2. "m v̇ = F − k v"
+3. "v(t) = v∞ + (v₀ − v∞) e^(−t/τ)"
+In a smaller supporting line under equation 3: "τ = m/k     v∞ = F/k"
+Render e^(−t/τ) as e with a raised −t/τ exponent, NOT literal caret notation.
+These are the equations for motion with constant force and linear drag. Do not substitute inverse-square gravitational orbit equations.
+
+Make the mathematics geometric as well as typographic: elegant x, y, z coordinate axes placed through the existing orbital cage; a clearly drawn tangent velocity arrow labeled "v(t)" alongside a curved magenta trajectory; a faint dashed position vector labeled "r(t)"; a measured angle arc labeled "θ". A small restrained plotted exponential relaxation curve in the lower-left technical region can visually connect the equations to the geometry. Fine dotted projection lines and regular axis ticks feel hand-designed and purposeful. Align the formula block with a subtle amber baseline or measurement rule, letting the trail curve past it without obscuring any text.
+
+Visual hierarchy: first the bold EXACT BALLPARK logo, then the striking cyan spacecraft, then the readable equations and geometric annotations. Every addition should feel like luminous vector mathematics that belongs in this scene. Keep about half the image dark, avoid clutter, retain visual breathing room. Equations must stay clear of the logo and ship. Use gold for coordinate construction, cyan for physics and spacecraft, magenta for motion. Optional minute red distant contact as in the reference. Real depth and dimensional wireframe precision, no painted surfaces.
+
+Do not add slogans, explanatory prose, fake numbers, large interface panels, screenshots, buttons, a photo of a monitor, additional brands, watermarks, unrelated equations, chalkboard texture, dense random symbols, chrome filled text, neon sunsets, planets or opaque solid spacecraft. It should remain a really cool finished logo cover, with math as an elegant second layer, suitable for an open-source space-physics engine README.
+

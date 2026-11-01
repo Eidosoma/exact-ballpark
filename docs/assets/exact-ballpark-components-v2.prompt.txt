@@ -1,0 +1,54 @@
+EXACT BALLPARK component infographic, smaller-caption variant
+
+Generated with the built-in image_gen tool, editing exact-ballpark-components.webp.
+Requested change: make the descriptive captions at the bottom of all eight boxes approximately 1-2 pixels smaller at the delivered display size. The typography change is generative and approximate.
+The original infographic remains preserved separately.
+
+Delivery: exact-ballpark-components-v2.webp, 1664 x 936 pixels (16:9).
+The generated PNG was 1672 x 941 pixels. A centered crop removes the outermost 8 columns and 5 rows. ImageMagick encodes the result as WebP at quality 82, method 6, with metadata stripped.
+
+Final editing prompt:
+
+Use case: precise-object-edit.
+Edit the supplied EXACT BALLPARK component infographic with one very small typography adjustment only.
+
+CHANGE ONLY the cyan descriptive captions at the BOTTOM INSIDE each of the eight component boxes. Make those captions approximately 1–2 pixels smaller at the reference image's 1664 x 936 display size: about a 7–9% reduction in font size. This should be a subtle adjustment that adds a little horizontal breathing room. Keep the same monospaced typeface, cyan color, weight, two-line structure, alignment and centered positions. Keep the spacing between each pair of lines comfortable. Do not shrink the component headings or the footer.
+
+Preserve EVERY word exactly. The eight caption blocks are:
+
+C++ ORACLE:
+"Compiled destiny"
+"Pinned source of truth"
+
+PYTHON REFERENCE:
+"One world at a time"
+"Readable scalar semantics"
+
+PYTORCH PARKS:
+"Orientation · flight modes"
+"Collisions · combat · composed"
+
+CUDA KERNELS:
+"Fused batched ticks"
+"Checked after compilation"
+
+EXACT MATHS:
+"sin · cos · exp · log · pow"
+"Same CPU / GPU arithmetic"
+
+SPACE LAYER:
+"Bubbles · proximity sensors"
+"Visibility · range queries"
+
+SERVER LAYERS:
+"Ticks · action queues"
+"Global balls · client views"
+
+CUDA GRAPHS:
+"Capture once"
+"Replay the tick"
+
+STRICT INVARIANTS: retain the exact overall layout, all eight boxes in their original positions and dimensions, their gold borders, all eight gold component headings at their existing sizes, the top EXACT BALLPARK logo, COMPONENT MAP title, the small header spaceship, every wireframe diagram, the black starfield background, gold/cyan/magenta colors, the bottom perspective grid, and the complete BIT-FOR-BIT VALIDATION footer at its original size. Do not redesign, rearrange, embellish, simplify, crop away edges or change any other text. Keep the existing artwork as faithfully unchanged as possible; only replace the sixteen lines of bottom captions with the same captions at the slightly smaller size.
+
+Output the edited infographic alone, opaque background, exact 16:9 landscape aspect ratio, ideally the same 1664 x 936 pixels as the input. Crisp, high quality typography and linework.
+

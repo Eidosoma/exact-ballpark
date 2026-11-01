@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "exact-ballpark"
+version = "0.1.0.dev0"
+description = "CCP Games' destiny movement engine, bit for bit, on the CPU and on NVIDIA GPUs (an unofficial port)"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT AND LGPL-2.1-or-later"
+license-files = ["LICENSE", "LICENSES/*", "THIRD_PARTY_NOTICES.md"]
+authors = [{ name = "Eidosoma" }]
+dependencies = ["torch"]            # the tested versions are pinned with the first release
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Games/Entertainment :: Simulation",
+]
+
+[project.urls]
+Repository = "https://github.com/Eidosoma/exact-ballpark"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+exact_ballpark = ["*.cu", "*.cuh"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "cpu: the reference and the batched parks on the CPU",
+    "oracle: destiny compiled from source against the reference (needs the conformance kit)",
+    "gpu: the CUDA kernels against the batched parks (needs a CUDA GPU)",
+]

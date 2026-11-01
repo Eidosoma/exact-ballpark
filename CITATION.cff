@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "exact-ballpark: CCP Games' destiny movement engine, bit for bit, on the CPU and on NVIDIA GPUs"
+authors:
+  - name: "Eidosoma"
+license:
+  - MIT
+  - LGPL-2.1-or-later
+repository-code: "https://github.com/Eidosoma/exact-ballpark"
+version: "0.1.0.dev0"
+keywords:
+  - physics simulation
+  - GPU
+  - CUDA
+  - bit-exact
+  - reproducibility

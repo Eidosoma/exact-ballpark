@@ -1,0 +1,27 @@
+EXACT BALLPARK README artwork
+
+Generated with the built-in image_gen tool.
+The attached gameplay screenshot informed the visual direction; the artwork is an original generated composition.
+
+Delivery: exact-ballpark-hero.webp, 1664 x 936 pixels (16:9).
+The generated PNG was 1672 x 941 pixels. A centered crop removes only the outermost 8 columns and 5 rows; ImageMagick encodes the result as WebP at quality 85, method 6, with metadata stripped.
+
+Final generation prompt:
+
+Use case: logo-brand.
+Create one exceptional, finished README hero and logo image for the open-source space-physics simulator EXACT BALLPARK.
+Canvas: landscape, EXACT 16:9 aspect ratio, ideally 3840 x 2160 pixels. Full-bleed opaque near-black background. High resolution, immaculate edges.
+
+Art direction: authentic early-1980s vector-display space arcade art, elevated into a sophisticated graphic identity. Think fine luminous plotted linework, mathematically precise wireframe geometry, deep black negative space, controlled phosphor glow. A cinematic piece of original vector science-fiction art with the discipline of an expertly designed logo. The visual inspiration is an old black-screen space-flight game with cyan outlined wedge spacecraft, amber radar rings and typography, magenta flight traces, and tiny red threats. Reinterpret that visual language into an original polished composition, not a screenshot or a game interface.
+
+Typography is the primary focal point. The ONLY words in the image must read exactly:
+"EXACT"
+"BALLPARK"
+Use two balanced lines of very large bespoke geometric uppercase lettering, EXACT above BALLPARK, making a single strong wordmark. Custom angular extended letterforms inspired by 1981–1984 computer graphics and arcade cabinet marquees; precise cut corners, beautiful spacing, clear open counters. Warm luminous amber/gold front outlines with delicate dimensional wireframe extrusion, black interiors and a few extremely fine horizontal vector striations. A subtle ivory-yellow highlight at key edges. Keep the letters highly legible and visually coherent, with sufficient stroke weight to read in a GitHub README thumbnail. No warped or misspelled letters. Do not place linework through the words. Make the wordmark occupy most of the upper-left and center portion of the composition, with generous safe margins.
+
+Illustration: a striking original angular delta spacecraft, seen in dramatic three-quarter perspective, flying diagonally across the lower-right portion of the frame, rendered exclusively as beautifully structured cyan and ice-blue wireframe outlines. Elegant low-polygon form, coherent facets, a layered cockpit, tapered pointed nose and articulated wings; sophisticated detail but a strong simple silhouette. Thin magenta and amber curved flight trajectories wrap through depth around and behind the ship. One large restrained elliptical orbital wireframe cage / radar coordinate ring defines the surrounding space, as an abstract suggestion of a physics ballpark. A very small distant wireframe craft can suggest depth. A sparse field of tiny stars, a few restrained geometric targeting ticks, and delicate distant coordinate lines support the scene. A faint cyan perspective lattice occupies only the lower edge and fades into black.
+
+Composition: strong intentional visual hierarchy, bold legible logo first, one beautifully drawn ship second, orbital geometry third. Design the left wordmark and right ship as one balanced cover rather than disconnected elements. Depth from line weight and restrained glow, not from surfaces or fog. Keep substantial clean dark negative space. Crisp bright vector cores with a soft halo, subtle fine CRT texture only on close inspection. Palette limited to amber/gold, electric cyan, a little magenta and minute red accents, against black. Restrained and assured, technically beautiful, exciting and cool.
+
+Avoid: baseball, stadiums, balls used in sports, planets with painted surfaces, photorealistic or filled shiny metal spacecraft, chrome solid text, generic neon sunset, mountains, palm trees, 1990s cyberpunk, pixelated screenshot lettering, heavy bloom, blurry edges, dense dashboard panels, UI buttons, gameplay stats, extra text, tagline, credits, logos of other brands, watermarks, mockup borders. Deliver the image itself, not an image inside a screen.
+
