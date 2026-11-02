@@ -4,12 +4,14 @@
 
 **Space physics at GPU scale, bit for bit.**
 
-exact-ballpark is an unofficial, independent port of [`destiny`](https://github.com/carbonengine/destiny), the
-MIT-licensed space-movement engine published by CCP Games, to Python, PyTorch and CUDA. It steps thousands of
-independent worlds at once on one GPU, and every one of them reproduces destiny's own arithmetic, bit for bit.
+exact-ballpark is an unofficial, independent port of [`destiny`](https://github.com/carbonengine/destiny) to Python,
+PyTorch and CUDA. destiny is EVE Online's space-movement engine, which CCP Games has published under the MIT licence.
+exact-ballpark steps thousands of independent worlds at once on one GPU, and every one of them reproduces destiny's own
+arithmetic, bit for bit.
 
-> **Status: pre-release.** This tree is being prepared for a first public release. The package sources are not in it
-> yet.
+> **Status: alpha.** The package, its tests and the conformance kit are all here, and every exactness claim below is
+> a test you can run. Interfaces may still change. The first speed measurements are in
+> [Benchmarks](#benchmarks).
 
 ## Why we built it
 
@@ -34,13 +36,24 @@ Speed usually costs exactness. exact-ballpark is our bet that, with enough care,
 
 ## Benchmarks
 
-> **Coming with the first release.** World-ticks per second at several world counts, measured on an otherwise idle
-> NVIDIA GH200, for each layer:
-> - the scalar reference;
-> - the batched parks on the CPU and on the GPU;
-> - the CUDA kernels, stepped eagerly and replayed as CUDA graphs.
->
-> Until those runs exist, this repository quotes no speed: every timing so far comes from a shared GPU.
+The first measurements: 269 of them on one otherwise idle NVIDIA GH200, each the median of its timed windows, all
+clean (no other process on the GPU). The top numbers, one row a workload, on the fastest path measured:
+
+| Workload | Fastest path | Worlds | World-ticks a second | Against the scalar reference |
+|---|---|---:|---:|---:|
+| The combat park: missiles and formations (4 ships, 4 missiles) | CUDA graph | 65,536 | 23.2 million | 34,900x |
+| The composed park: modes, missiles and collisions (6 ships, 2 missiles) | CUDA graph | 65,536 | 14.8 million | 24,800x |
+| Collisions with static collidables (4 ships, 4 spheres, 8 statics) | CUDA kernel | 65,536 | 13.6 million | 1,620x |
+| Flight modes (follow, orbit, warp) with turning | CUDA kernel | 262,144 | 75.2 million |  |
+| Turning: dynamical orientation | CUDA graph | 262,144 | 94.1 million |  |
+| The server layer over the flight-modes park | CUDA graph | 65,536 | 179 million |  |
+| Bubbles, proximity sensors and the partition | CUDA graph | 65,536 | 174 million |  |
+| The server layer over the partition (4 ships) | CUDA graph | 65,536 | 68.7 million |  |
+
+A world-tick is one world stepped one tick, one second of game time. The scalar reference is pure Python, one park a
+world, on one CPU core: its ratios compare these implementations with each other, not with an optimised CPU engine,
+and speed is not exactness (the conformance tests are). Every measurement, with its spread, the CPU tensor paths, the
+smaller world counts and the environment, is in [docs/benchmarks.md](docs/benchmarks.md).
 
 **How busy the GPU stays in our own training runs.** We train agents on four-GPU NVIDIA GH200 nodes: this engine steps
 the worlds, and the learners share the same GPUs. Two of our best readings so far:
@@ -222,7 +235,7 @@ are in [`docs/exactness.md`](docs/exactness.md).
   A world that leaves a park's domain is flagged and refused, never approximated.
 - **Six of the 105 rules are not held to destiny,** each for a stated reason. Space junk and a client's display
   interpolation are not ported.
-- **No speeds yet** (see [Benchmarks](#benchmarks)).
+- **Speeds from one GPU model so far:** every measurement comes from one NVIDIA GH200 (see [Benchmarks](#benchmarks)).
 
 The full list, park by park, is in [`docs/limits.md`](docs/limits.md). Every document is listed in
 [`docs/README.md`](docs/README.md).
@@ -254,8 +267,8 @@ headers. `THIRD_PARTY_NOTICES.md` holds the notices of CCP Games, Microsoft, the
 
 ## Not affiliated
 
-exact-ballpark is not affiliated with, or endorsed by, CCP Games. CCP Games is a trademark of CCP ehf. Nothing in this
-project grants any rights to CCP Games' trademarks or game content.
+exact-ballpark is not affiliated with, or endorsed by, CCP Games. CCP Games and EVE Online are trademarks of CCP ehf.
+Nothing in this project grants any rights to CCP Games' trademarks or game content.
 
 ## Citing
 
