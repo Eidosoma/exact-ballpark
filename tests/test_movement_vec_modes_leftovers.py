@@ -247,7 +247,7 @@ def test_the_kernels_sincos_is_the_ypr_kernels_copy():
 
 # ================================================================================================ on the card
 
-def _run(seed: int, lib=None, park_hook=None, kinds: tuple = ()) -> tuple:
+def _run(seed: int, lib=None, park_hook=None, kinds: tuple = (), device: str = "cuda") -> tuple:
     """(row differences, query differences, rows, stale entries) of the park against the reference on a seed's
     scenarios (only the families in `kinds`, when given)."""
     cs, rows, queries, stale, undefined = reference(seed)
@@ -257,8 +257,17 @@ def _run(seed: int, lib=None, park_hook=None, kinds: tuple = ()) -> tuple:
         keep = {c["id"] for c in cs}
         rows = {k: v for k, v in rows.items() if k[0] in keep}
         queries = {k: v for k, v in queries.items() if k[0] in keep}
-    got, gq = lb.batched(cs, lib=lib, park_hook=park_hook)
+    got, gq = lb.batched(cs, device=device, lib=lib, park_hook=park_hook)
     return fc_differences(rows, got), lb.query_differences(queries, gq), len(rows), stale
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3], ids=["development", "held_out_2", "held_out_3"])
+def test_the_tensor_tick_matches_fullballpark_on_the_leftovers_on_the_cpu(seed):
+    """VecModesPark's tick on tensors (`evolve` on the CPU) on the leftovers."""
+    bad, qbad, n, stale = _run(seed, device="cpu")
+    assert n > 20000 and stale > 0
+    assert not bad, (len(bad), bad[:8])
+    assert not qbad, (len(qbad), qbad[:8])
 
 
 @needs_cuda

@@ -23,6 +23,9 @@ Each link of the chain is a separate set of tests.
 
 Some tests also skip a link: kernels run directly against destiny's compiled code, with no reference in between.
 
+Link 2 on the CPU for the flight-mode, combat and composed parks, a check of the GPU paths against the CPU path, and
+the space layer's two host compilers are in `devices.md`, section 4.
+
 **The comparison rule is the same everywhere:**
 - `double` and `float` values are compared by their bits;
 - two NaNs count as equal;
@@ -116,7 +119,8 @@ The tests record how large each fault is. For example, on the collision kernel's
 
 A tick captured as a CUDA graph and replayed must give the same bits as the same tick run eagerly, and as the torch
 path. The commands, setters, launches, cloaks and warps between ticks are applied between replays and copied into the
-graph's buffers. Each park with a kernel has such a test:
+graph's buffers. The combat park's replay holds its kernels but not its eager tick's domain watch, which the caller
+runs around it (`limits.md`, section 7). Each park with a kernel has such a test:
 
 | Park | What was replayed |
 |---|---|

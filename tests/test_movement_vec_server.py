@@ -35,9 +35,10 @@ from exact_ballpark import vec_server as VS
 CUDA = pytest.mark.skipif(not torch.cuda.is_available(), reason="no visible GPU")
 logging.getLogger("exact_ballpark.server").setLevel(logging.CRITICAL)   # the batcher's stamp check logs every tick
 
-# (park, dynamical orientation, evolve) on the CPU: VecModesPark's tick is a CUDA kernel, so its pre-tick alone
+# (park, dynamical orientation, evolve) on the CPU: VecModesPark's whole tick too (its tick on tensors)
 CPU_RUNS = [("orient", False, True), ("orient", True, True), ("orient", False, False), ("modes", False, False),
-            ("modes", True, False), ("collide", False, True), ("collide", False, False)]
+            ("modes", True, False), ("modes", False, True), ("modes", True, True), ("collide", False, True),
+            ("collide", False, False)]
 GPU_RUNS = [("modes", False, True), ("modes", True, True), ("orient", False, True), ("orient", True, True),
             ("collide", False, True)]
 

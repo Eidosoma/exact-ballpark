@@ -39,18 +39,21 @@ Speed usually costs exactness. exact-ballpark is our bet that, with enough care,
 The first measurements: 269 of them on one otherwise idle NVIDIA GH200, each the median of its timed windows, all
 clean (no other process on the GPU). The top numbers, one row a workload, on the fastest path measured:
 
-| Workload | Fastest path | Worlds | World-ticks a second | Against the scalar reference |
-|---|---|---:|---:|---:|
-| The combat park: missiles and formations (4 ships, 4 missiles) | CUDA graph | 65,536 | 23.2 million | 34,900x |
-| The composed park: modes, missiles and collisions (6 ships, 2 missiles) | CUDA graph | 65,536 | 14.8 million | 24,800x |
-| Collisions with static collidables (4 ships, 4 spheres, 8 statics) | CUDA kernel | 65,536 | 13.6 million | 1,620x |
-| Flight modes (follow, orbit, warp) with turning | CUDA kernel | 262,144 | 75.2 million |  |
-| Turning: dynamical orientation | CUDA graph | 262,144 | 94.1 million |  |
-| The server layer over the flight-modes park | CUDA graph | 65,536 | 179 million |  |
-| Bubbles, proximity sensors and the partition | CUDA graph | 65,536 | 174 million |  |
-| The server layer over the partition (4 ships) | CUDA graph | 65,536 | 68.7 million |  |
+| Workload | Fastest path | Worlds | Ships | World-ticks a second | Ship-ticks a second | ms a batch tick | Against the scalar reference |
+|---|---|---:|---:|---:|---:|---:|---:|
+| The combat park: missiles and formations (4 ships, 4 missiles) | CUDA graph | 65,536 | 262,144 | 23.2 million | 92.7 million | 2.83 | 34,900x |
+| The composed park: modes, missiles and collisions (6 ships, 2 missiles) | CUDA graph | 65,536 | 393,216 | 14.8 million | 89 million | 4.42 | 24,800x |
+| Collisions with static collidables (4 ships, 4 spheres, 8 statics) | CUDA kernel | 65,536 | 262,144 | 13.6 million | 54.3 million | 4.83 | 1,620x |
+| Flight modes (follow, orbit, warp) with turning | CUDA kernel | 65,536 | 262,144 | 18.8 million | 75.2 million | 3.49 |  |
+| Turning: dynamical orientation | CUDA graph | 262,144 | 262,144 | 94.1 million | 94.1 million | 2.79 |  |
+| The server layer over the flight-modes park | CUDA graph | 65,536 | 262,144 | 179 million | 716 million | 0.366 |  |
+| Bubbles and the partition, proximity sensors off | CUDA graph | 65,536 | 262,144 | 174 million | 696 million | 0.377 |  |
+| Bubbles, proximity sensors and the partition | CUDA graph | 65,536 | 262,144 | 80.4 million | 322 million | 0.815 |  |
+| The server layer over the partition (4 ships) | CUDA graph | 65,536 | 262,144 | 68.7 million | 275 million | 0.954 |  |
 
-A world-tick is one world stepped one tick, one second of game time. The scalar reference is pure Python, one park a
+A world-tick is one world stepped one tick, one second of game time, and a ship-tick is one ship stepped one tick; a
+batch tick steps every world of the batch once. The ratio against the scalar reference compares world-ticks with
+world-ticks of the same configuration, so it is the same in ship-ticks. The scalar reference is pure Python, one park a
 world, on one CPU core: its ratios compare these implementations with each other, not with an optimised CPU engine,
 and speed is not exactness (the conformance tests are). Every measurement, with its spread, the CPU tensor paths, the
 smaller world counts and the environment, is in [docs/benchmarks.md](docs/benchmarks.md).
@@ -116,7 +119,14 @@ Above the parks sit two layers:
   - global balls;
   - each client's view of the server.
 
-Every park and layer runs on the CPU or the GPU, with the same results on both.
+Every park and layer runs on the CPU or the GPU, with the same results on both:
+- **On the CPU,** the parks and the server layers tick through their PyTorch paths. The space layer runs its host
+  code, compiled by `nvcc` or, where `nvcc` is absent, by `g++`.
+- **On the GPU,** they tick through the same PyTorch paths or through the fused kernels below.
+- **The kernels and the CUDA graphs** run on the GPU only, and refuse a park on the CPU before anything is built.
+
+[`docs/devices.md`](docs/devices.md) gives the paths of every park and layer, what each path needs, and the evidence
+that they agree.
 
 ### Fused CUDA kernels
 
@@ -229,10 +239,16 @@ are in [`docs/exactness.md`](docs/exactness.md).
     CUDA graph.
   - The space server's kernel still ticks every world on one clock (its PyTorch path keeps each world's own), and a
     server layer's per-world tick is not yet captured as a CUDA graph.
-  - In the combat and composed parks, a graph replay leaves out the eager tick's domain check, so run the check
-    between replays.
+  - The combat park's CUDA graph replays its kernels only. Its eager tick also runs the park's domain watch,
+    `watch()`, at the start and the end of every tick, and `check()` raises only on flags already set. Around each
+    replay, run `park.watch()`, `graph.tick()`, `park.watch()`, then `park.check()`
+    ([`docs/limits.md`](docs/limits.md), section 7). The composed park's graph leaves nothing out, but, as after an
+    eager tick, a flagged world raises only at `park.check()`.
 
   A world that leaves a park's domain is flagged and refused, never approximated.
+- **Not every path on every device.** The fused kernels and the CUDA graphs need an NVIDIA GPU and `nvcc`. On the CPU,
+  every park ticks through its PyTorch path, which is exact but slower. With collisions off, the composed park has no
+  CUDA graph. The paths of every park and layer, and what each needs, are in [`docs/devices.md`](docs/devices.md).
 - **Six of the 105 rules are not held to destiny,** each for a stated reason. Space junk and a client's display
   interpolation are not ported.
 - **Speeds from one GPU model so far:** every measurement comes from one NVIDIA GH200 (see [Benchmarks](#benchmarks)).
@@ -246,6 +262,8 @@ The full list, park by park, is in [`docs/limits.md`](docs/limits.md). Every doc
 - PyTorch. Qualified: 2.9.1 with CUDA 12.8.
 - pytest, for the tests.
 - For the GPU: the CUDA toolkit's `nvcc` and `cuobjdump`, and an NVIDIA GPU. Qualified: nvcc 13.0 on sm_90.
+- For the space layer on the CPU: `nvcc` (with `cuobjdump`), or else `g++` (or the compiler named by
+  `EXACT_BALLPARK_CXX`), and binutils' `objdump`. No GPU is needed.
 - For the conformance kit: `git` and `g++`, and binutils' `nm` and `objdump`.
 
 ```bash

@@ -4,7 +4,8 @@
 tick as four CUDA launches in exact_ballpark.vec_combat_cuda, and on tensors in evolve_torch) against the scalar reference
 (exact_ballpark.full.FullBallpark), bit for bit, every field the batch holds of every ball at every step, which balls
 exist, the ReserveFormationSlot answers and the DoCollision events, on generated scenarios (tests/
-destiny_combat_cases.py): on the CPU (the tensor tick, for the worlds it holds: no warp) and, when a CUDA device is
+destiny_combat_cases.py): on the CPU (the tensor tick, every world: the FOLLOW, ORBIT and WARP too) and,
+when a CUDA device is
 visible, on the GPU (the kernels for every world, a CUDA graph against eager ticks, the tensor tick against the
 kernels). The reference is held to Destiny's compiled code by tests/test_movement_full_oracle.py, so this is exact
 against Destiny. Development scenarios are seed 1, held-out seed 2 (first compared after the generator was frozen).
@@ -163,6 +164,32 @@ def test_the_domain_is_refused_not_guessed():
     assert all(f & vc.FLAG_MASSIVE for f in p.world_flags())
     with pytest.raises(RuntimeError, match="two massive balls"):
         p.check()
+
+
+def test_on_the_cpu_evolve_is_the_tensor_tick_and_the_kernels_refuse_before_any_build(monkeypatch):
+    """on the CPU `evolve` is `evolve_torch` bit for bit (a world with follows, orbits and warps:
+    the tensor tick holds them now), a kernel library is refused, and the kernels' tick, their fifth launch and
+    CombatGraph refuse a CPU park at once, before any library is loaded or built."""
+    monkeypatch.setattr(KC, "load_library", lambda *a, **k: pytest.fail("the library was loaded for a CPU park"))
+    cfg = next(c for c in dc.batches(1, 12, 12) if any(rec[1] == "warp" for w in c["worlds"]
+                                                         for rec in w["records"]))
+    warps = [w for w in cfg["worlds"] if any(rec[1] == "warp" for rec in w["records"])]
+    cfg = {**cfg, "worlds": warps + [w for w in cfg["worlds"] if w not in warps][:3]}
+    a, pa = dc.batched(cfg, "cpu", path="torch")
+    b, pb = dc.batched(cfg, "cpu", path="kernel")                 # `evolve`, on the CPU: the tensor tick
+    assert all(not dc.differences(x, y) for x, y in zip(a, b))
+    for name in pa.row_tensors():
+        x, y = getattr(pa, name), getattr(pb, name)
+        assert torch.equal(x.view(torch.int64) if x.dtype == torch.float64 else x,
+                           y.view(torch.int64) if y.dtype == torch.float64 else y), name
+    with pytest.raises(ValueError, match="kernel library"):
+        pb.evolve(lib={})
+    for fn in (KC.tick, KC.after):
+        with pytest.raises(ValueError, match="CUDA device.*evolve_torch"):
+            fn(pb)
+    pb.dynamical_orientation = True
+    with pytest.raises(ValueError, match="CUDA device"):
+        KC.CombatGraph(pb)
 
 
 # ---- planted faults on the tensor tick: each must change the development comparison ----

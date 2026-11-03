@@ -184,6 +184,14 @@ def test_matches_the_reference_on_vec_modes_park():
                            "stamp_moved": 10}, 150)
 
 
+def test_matches_the_reference_on_vec_modes_park_on_the_cpu():
+    """the same worlds, VecModesPark's tick on tensors on the CPU."""
+    for seed in (1, HELD_OUT):
+        res = run(seed, 150, "modes", 16, "cpu")
+        assert_exact(res, {"remove.delayed": 200, "remove.now": 50, "remove.buffer": 50, "limit_binds": 3,
+                           "stamp_moved": 10}, 150)
+
+
 @CUDA
 def test_matches_the_reference_on_vec_orient_park_on_the_card():
     assert_exact(run(1, 200, "orient", 16, "cuda"), MINIMUM)

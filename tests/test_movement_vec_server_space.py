@@ -274,6 +274,15 @@ def test_the_server_layer_over_vec_modes_park_matches_the_reference():
         assert res["coverage"]["follower_clean_up_stops"] > 0
 
 
+def test_the_server_layer_over_vec_modes_park_matches_the_reference_on_the_cpu():
+    """the same, VecModesPark's tick on tensors and the layer's host path on the CPU."""
+    for seed in (1, HELD_OUT):
+        res = run(seed, 200, "modes", 16, "cpu")
+        assert_exact(res, {"narrow:FollowBall": 50, "narrow:Orbit": 50, "narrow:WarpTo": 20,
+                           "single:RemoveBalls (own lists)": 20}, worlds=100)
+        assert res["coverage"]["follower_clean_up_stops"] > 0
+
+
 def _no_cleanup(self, kind, a=None, b=None, f=None):
     out, outf = _ORIGINAL_QUERY(self, kind, a, b, f)
     if kind == "REMOTE_FOLLOWERS":

@@ -65,9 +65,9 @@ def _check_orient(seed: int, device: str = "cpu", **kw) -> tuple:
     return seen, hits
 
 
-def _check_modes(seed: int, graph: bool = False) -> tuple:
+def _check_modes(seed: int, graph: bool = False, device: str = "cuda") -> tuple:
     cs, want, wclk, hits = _full_refs("flight", seed, 40)
-    got, gclk, seen = T.batched_modes(cs, "cuda", graph=graph)
+    got, gclk, seen = T.batched_modes(cs, device, graph=graph)
     bad = mb.differences(want, got, mb.FIELDS_FULL)
     assert not bad, bad[:5]
     cbad = [k for k in wclk if wclk[k] != gclk[k]]
@@ -89,6 +89,12 @@ def test_worlds_on_tick_match_fullballpark_cpu(family, seed):
     c = _check_worlds(family, seed, "cpu")
     if family != "leftovers":
         assert c.get("tick.resync", 0) > 0, c                     # the master's batches resynchronise
+
+
+@pytest.mark.parametrize("seed", [1, 7, 19], ids=["development_1", "development_7", "held_out_19"])
+def test_modes_on_tick_matches_fullballpark_on_the_cpu(seed):
+    """VecModesPark's masked tick on tensors (OnTick's per-world mask) on the CPU."""
+    _check_modes(seed, device="cpu")
 
 
 @pytest.mark.parametrize("family", ("orient",) + T.FAMILIES)

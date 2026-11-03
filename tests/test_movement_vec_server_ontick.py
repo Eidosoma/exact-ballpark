@@ -26,7 +26,8 @@ need_cuda = pytest.mark.skipif(not CUDA, reason="needs a CUDA GPU")
 DEV_SEEDS = (1, 7)
 HELD_OUT = 31                                    # (19 ran before the freeze by a slip: now development)
 N, CALLS = 16, 14
-PARKS_CPU = [("orient", False), ("orient", True), ("collide", False)]
+PARKS_CPU = [("orient", False), ("orient", True), ("collide", False), ("modes", False), ("modes", True)]
+#            VecModesPark on the CPU (its tick on tensors), as the card's torch-path cases
 
 
 def _clean(r: dict) -> None:
@@ -56,6 +57,12 @@ def test_on_tick_matches_the_scalar_server_layer_on_the_cpu(seed, park, do):
 @pytest.mark.parametrize("seed", DEV_SEEDS, ids=[f"development_{s}" for s in DEV_SEEDS])
 def test_the_combat_server_on_tick_matches_the_scalar_server_layer_on_the_cpu(seed):
     _clean(O.run(O.combat_cases(seed, N, "cpu", CALLS), "combat", "cpu"))
+
+
+@pytest.mark.parametrize("seed", DEV_SEEDS, ids=[f"development_{s}" for s in DEV_SEEDS])
+def test_the_combat_server_on_tick_with_follows_and_orbits_on_the_cpu(seed):
+    """the card's combat worlds (FollowBall and Orbit of ships too) on the CPU tensor tick."""
+    _clean(O.run(O.combat_cases(seed, N, "cuda", CALLS), "combat", "cpu"))
 
 
 @pytest.mark.parametrize("park,do", PARKS_CPU + [("combat", False)])
@@ -406,6 +413,12 @@ def test_the_space_server_on_tick_over_the_modes_park_on_the_gpu(seed):
     """SpaceServer.on_tick over VecModesPark (vec_space's masked tick: VecModesPark.evolve(active) on the worlds' rows
     inside the dead bubbles' moribund flags) against the scalar server layer: follows, orbits and warps too."""
     _clean_space(O.run_space(O.space_cases(seed, N, "modes", CALLS), "modes", "cuda"))
+
+
+@pytest.mark.parametrize("seed", list(DEV_SEEDS) + [HELD_OUT], ids=[f"seed_{s}" for s in list(DEV_SEEDS) + [HELD_OUT]])
+def test_the_space_server_on_tick_over_the_modes_park_on_the_cpu(seed):
+    """the same over VecModesPark's tick on tensors and the layer's host path, on the CPU."""
+    _clean_space(O.run_space(O.space_cases(seed, N, "modes", CALLS), "modes", "cpu"))
 
 
 @need_cuda

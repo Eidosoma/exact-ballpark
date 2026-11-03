@@ -442,9 +442,9 @@ def in_domain(want: dict) -> bool:
 
 
 def torch_domain(w: dict) -> bool:
-    """A world VecCombatPark.evolve_torch holds (GOTO, STOP, MISSILE, FORMATION and the inert modes: no warp, follow
-    or orbit)."""
-    return not any(rec[1] in ("warp", "follow", "orbit") for rec in w["records"])
+    """A world VecCombatPark.evolve_torch holds: every world (the tensor tick holds
+    FOLLOW, ORBIT and WARP too; it held GOTO, STOP, MISSILE, FORMATION and the inert modes before)."""
+    return True
 
 
 # ---- the same worlds on Destiny's own code (the conformance kit's compiled full harness: tests/full_cases.py) ----

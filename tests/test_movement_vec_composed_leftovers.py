@@ -151,7 +151,8 @@ def test_the_scenarios_reach_every_branch(monkeypatch):
 
 # ---- planted faults on the torch path (each must change the comparison) ----
 
-_REAL = {"powf": vp._C_POWF, "file": vp.VecComposedPark._file, "turns": vp.VecComposedPark._release_turns}
+_REAL = {"powf": vc._C_POWF, "file": vp.VecComposedPark._file, "turns": vp.VecComposedPark._release_turns}
+#        the tick on tensors (and its powf) is vec_combat's since the move
 
 
 def _f_powf(x, y):
@@ -166,7 +167,7 @@ def _f_turns(self, hit, ts):
     return _REAL["turns"](self, hit & self._following(), ts)      # phase 1's members by the follow modes
 
 
-TORCH_FAULTS = {"growth_exponent": (vp, "_C_POWF", _f_powf),
+TORCH_FAULTS = {"growth_exponent": (vc, "_C_POWF", _f_powf),
                 "growth_not_refiled": (vp.VecComposedPark, "_file", _f_file),
                 "fixed_not_refiled": (vp.VecComposedPark, "set_free", vc.VecCombatPark.set_free),
                 "phase1_members_by_follow_modes": (vp.VecComposedPark, "_release_turns", _f_turns)}

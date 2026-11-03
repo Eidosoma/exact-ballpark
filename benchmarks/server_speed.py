@@ -18,6 +18,11 @@ kernel with contact_slots) and width, the modes:
 Each: a warm-up, then ticks for about `--seconds`, timed between device syncs; ms a tick and ship-ticks a second;
 torch's peak allocation.
 
+The units. A width is a number of ships, in worlds of four (K): n ships are n / 4 worlds. Each row reports `ships`,
+`worlds` (the server's own count), `world_ticks_per_s` (worlds x ticks / wall), `ship_ticks_per_s` (ships x ticks /
+wall; `mships_per_s` is the same in millions) and `ms_per_tick` (the wall time of one batch tick, every world stepped
+once).
+
     python3 benchmarks/server_speed.py OUT.json --widths 1024,8192,65536,262144 --seconds 3
 """
 
@@ -130,22 +135,26 @@ def run_mode(park_kind: str, mode: str, n: int, seconds: float, dev) -> dict:
 
         def tick():
             g.tick()
+    cuda = torch.device(dev).type == "cuda"
+    sync = (lambda: torch.cuda.synchronize(dev)) if cuda else (lambda: None)
     for _ in range(3):
         tick()
-    torch.cuda.synchronize(dev)
-    torch.cuda.reset_peak_memory_stats(dev)
+    sync()
+    if cuda:
+        torch.cuda.reset_peak_memory_stats(dev)
     ticks, t0 = 0, time.perf_counter()
     while True:
         for _ in range(5):
             tick()
         ticks += 5
-        torch.cuda.synchronize(dev)
+        sync()
         el = time.perf_counter() - t0
         if el >= seconds:
             break
     return {"park": park_kind, "mode": mode, "ships": n, "worlds": server.W, "ticks": ticks, "seconds": el,
-            "ms_per_tick": 1e3 * el / ticks, "mships_per_s": n * ticks / el / 1e6,
-            "peak_mib": torch.cuda.max_memory_allocated(dev) / 2 ** 20}
+            "ms_per_tick": 1e3 * el / ticks, "world_ticks_per_s": server.W * ticks / el,
+            "ship_ticks_per_s": n * ticks / el, "mships_per_s": n * ticks / el / 1e6,
+            "peak_mib": torch.cuda.max_memory_allocated(dev) / 2 ** 20 if cuda else None}
 
 
 def card() -> str:
@@ -176,8 +185,9 @@ def main() -> None:
                 row["mode"] = mode
                 row.update(card_before=before, utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
                 rows.append(row)
-                print(f"{park_kind:8s} {mode:13s} {n:7d} ships {row['ms_per_tick']:8.3f} ms/tick "
-                      f"{row['mships_per_s']:8.2f} M ship-ticks/s peak {row['peak_mib']:7.1f} MiB", flush=True)
+                print(f"{park_kind:8s} {mode:13s} {row['worlds']:7d} worlds {n:7d} ships {row['ms_per_tick']:8.3f} "
+                      f"ms/tick {row['world_ticks_per_s'] / 1e6:8.2f} M world-ticks/s {row['mships_per_s']:8.2f} M "
+                      f"ship-ticks/s peak {row['peak_mib']:7.1f} MiB", flush=True)
                 torch.cuda.empty_cache()
     json.dump(rows, open(args.out, "w"), indent=1)
 

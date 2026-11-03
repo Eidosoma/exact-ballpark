@@ -19,7 +19,11 @@ block sizes, and the GPU-only planted fault.
 
 from __future__ import annotations
 
+import ctypes
 import math
+import os
+import re
+import shutil
 
 import pytest
 import torch
@@ -29,6 +33,7 @@ from exact_ballpark import vec_space as V
 from exact_ballpark.space import LEVEL_GRID, LEVEL_WIDTH, NUM_LEVELS
 
 CUDA = pytest.mark.skipif(not torch.cuda.is_available(), reason="no visible GPU")
+NVCC = pytest.mark.skipif(not (V._K.NVCC.exists() or shutil.which("nvcc")), reason="nvcc not found")
 TOP = LEVEL_WIDTH[0]
 _RUNS: dict = {}
 
@@ -79,10 +84,11 @@ def test_the_source_calls_no_cuda_math():
     assert any(name == "sqrt" for name, _ in K.scan_source(planted))
 
 
+@NVCC
 def test_the_build_pins_every_rounding():
     """The library builds with the pinned flags: its PTX passes the check (every add, sub, mul, div, sqrt and rcp
     rounded to nearest; no mad, flush or approximation) and its host code has no fused instruction; the kernels'
-    resources recorded."""
+    resources recorded. (Without nvcc the build is g++'s host functions: the host-build tests below.)"""
     m = V.build()
     assert m["ptx_check"]["ok"] and not m["source_scan"], m["ptx_check"]
     assert m["host_check"]["ok"] and m["host_check"]["functions"] > 0, m["host_check"]
@@ -97,6 +103,147 @@ def test_the_host_check_flags_a_fused_instruction():
             "0000000000003000 <other>:\n    3000:\tfmadd\td0, d1, d2, d3\n")
     out = V._host_fused(text)
     assert out == {"functions": 2, "fused": {"xbps_tape_host": 1}}
+
+
+# ---- the host functions built by g++ where nvcc is absent ----
+
+CUDA_WORDS = ("__global__", "__device__", "__host__", "__constant__", "__shared__", "__managed__", "__launch_bounds__",
+              "__forceinline__", "__noinline__", "__grid_constant__")
+
+
+def _as_without_cuda(text: str) -> str:
+    """The source as a compiler without CUDA reads it, comments left out: each `#ifdef __CUDACC__` or
+    `#ifdef __CUDA_ARCH__` block dropped up to its #else (whose part is kept) or its #endif, nested #if's counted."""
+    out, state, depth = [], None, 0
+    for line in text.splitlines():
+        s = line.strip()
+        if state is None and s in ("#ifdef __CUDACC__", "#ifdef __CUDA_ARCH__"):
+            state, depth = "cuda", 0
+            continue
+        if state is not None and s.startswith("#if"):
+            depth += 1
+        elif state is not None and s.startswith("#endif"):
+            if depth == 0:
+                state = None
+                continue
+            depth -= 1
+        elif state == "cuda" and depth == 0 and s.startswith("#else"):
+            state = "host"
+            continue
+        if state != "cuda":
+            out.append(re.sub(r"//.*", "", line))
+    return "\n".join(out)
+
+
+def test_the_cuda_words_g_plus_plus_meets_are_the_host_defines():
+    """The source's kernels and launchers are behind its own __CUDACC__ guards and its device arithmetic behind
+    __CUDA_ARCH__; outside them the only CUDA qualifiers are HD's __host__ and __device__ and the device tables'
+    __constant__, the three `HOST_DEFINES` define empty for g++ (so the source itself is unchanged). Every CUDA word
+    g++ meets is one of them; a copy of the source with a clean-room region may meet fewer of them."""
+    text = _as_without_cuda(V.SOURCE.read_text())
+    words = set(re.findall(r"__[a-z_]+__", text)) & set(CUDA_WORDS)
+    defined = {d[2:].split("=")[0] for d in V.HOST_DEFINES}
+    assert defined == {"__host__", "__device__", "__constant__"}, defined
+    assert words <= defined and {"__host__", "__device__"} <= words, words
+    assert all(d.endswith("=") for d in V.HOST_DEFINES)
+    assert "<<<" not in text and "cudaStream_t" not in text and "blockIdx" not in text
+
+
+def test_the_host_flags_are_those_nvcc_gives_its_host_compiler():
+    """nvcc hands its host compiler -O3, -std=c++17 and the -Xcompiler list of vec_orient_cuda.FLAGS (`nvcc --dryrun`:
+    gcc -std=c++17 ... -fPIC -ffp-contract=off -fno-fast-math -O3); HOST_FLAGS are those and -shared, nothing else, so
+    the floating point is pinned alike: no contraction into a fused multiply-add, no fast math."""
+    F = V._K.FLAGS
+    xc = F[F.index("-Xcompiler") + 1].split(",")
+    assert "-O3" in F and "-std=c++17" in F and "-shared" in F
+    assert V.HOST_FLAGS == ["-O3", "-std=c++17", *xc, "-shared"]
+    assert "-ffp-contract=off" in xc and "-fno-fast-math" in xc
+
+
+def _hide_nvcc(monkeypatch, tmp_path) -> None:
+    """No nvcc at vec_orient_cuda's path nor on PATH (as on a machine without the CUDA toolkit)."""
+    monkeypatch.setattr(V._K, "NVCC", tmp_path / "no_nvcc")
+    keep = [p for p in os.environ.get("PATH", "").split(os.pathsep)
+            if p and not os.path.exists(os.path.join(p, "nvcc"))]
+    monkeypatch.setenv("PATH", os.pathsep.join(keep))
+    with pytest.raises(RuntimeError, match="nvcc not found"):
+        V._K._nvcc()
+
+
+def test_without_nvcc_the_host_functions_are_built_by_g_plus_plus(tmp_path, monkeypatch):
+    """With nvcc hidden, `build` compiles the host functions alone with g++ (`build_host`): the source as it is,
+    nvcc's host flags, the host check passed; built once (a second build reuses it). The library holds the four host
+    entry points and no kernel's; `load_library` types those only, and the kernels' paths refuse it with a reason."""
+    _hide_nvcc(monkeypatch, tmp_path)
+    out = tmp_path / "lib"
+    m = V.build(out)
+    assert m["host_only"] and m["variant"] == "host" and m["library"].startswith("vec_space_host_"), m
+    assert m["host_check"]["ok"] and m["host_check"]["functions"] > 0 and not m["source_scan"], m["host_check"]
+    assert m["flags"] == V.HOST_FLAGS and m["defines"] == V.HOST_DEFINES
+    assert m["source_sha256"] == V._sha(V.SOURCE.read_text().encode()) and m["compiler"].startswith("g++")
+    assert V.build(out)["built_utc"] == m["built_utc"]
+    so = ctypes.CDLL(str(out / m["library"]))
+    assert all(hasattr(so, f) for f in ("xbps_abi", "xbps_layout", "xbps_tape_host", "xbps_query_host"))
+    assert not any(hasattr(so, f) for f in ("xbps_tape_cuda", "xbps_query_cuda", "xbps_info", "xbps_error_string"))
+    monkeypatch.setenv("EXACT_BALLPARK_SPACE_CUDA_DIR", str(out))
+    monkeypatch.setattr(V, "_LIBS", {})
+    e = V.load_library()
+    assert e["host_only"] and e["manifest"]["library"] == m["library"]
+    assert all(a == b for a, b in V.layout_check(e).values())
+    with pytest.raises(RuntimeError, match="without nvcc"):
+        V.kernel_info(lib=e)
+    bw = SB.BatchedWorlds(SB.cases(1, 4, "orient", 2), "cpu", "orient", lib=e)
+    bw.space.kernel = "cuda"                        # as a layer on a card would be (nothing runs)
+    with pytest.raises(RuntimeError, match="needs nvcc"):
+        bw.space.lib()
+
+
+def _same_bits(x: torch.Tensor, y: torch.Tensor) -> bool:
+    if x.shape != y.shape or x.dtype != y.dtype:
+        return False
+    if x.is_floating_point():
+        it = torch.int64 if x.element_size() == 8 else torch.int32
+        return torch.equal(x.contiguous().view(it), y.contiguous().view(it))
+    return torch.equal(x, y)
+
+
+@NVCC
+def test_g_plus_plus_and_nvccs_host_compiler_give_the_same_bits():
+    """The host functions of the two builds, nvcc's library (its host code compiled by GCC under nvcc) and g++'s
+    (`load_library(host=True)`), side by side on the same worlds: every tensor of the layer's state and of the park
+    after every step, bit for bit, and the events, the answers and the branch counts; VecOrientPark's worlds (seeds 1
+    and 2) and VecModesPark's (seeds 1 and 7)."""
+    a, b = V.load_library(), V.load_library(host=True)
+    assert not a["host_only"] and b["host_only"]
+    seen = {"tensors": 0, "events": 0, "answers": 0, "branches": 0}
+    for park, seed, n, T in (("orient", 1, 300, 20), ("orient", 2, 300, 20), ("modes", 1, 200, 24),
+                             ("modes", HELD_OUT, 200, 24)):
+        cs = SB.cases(seed, n, park, T)
+        A = SB.BatchedWorlds(cs, "cpu", park, hits=True, lib=a)
+        B = SB.BatchedWorlds(cs, "cpu", park, hits=True, lib=b)
+        for t in range(T):
+            for X in (A, B):
+                X.space.clear_events()
+                X.step(t)
+            ta = {**{("st", k): v for k, v in A.space.st.items() if isinstance(v, torch.Tensor)},
+                  **{("park", k): v for k, v in A.view.tensors().items()}}
+            tb = {**{("st", k): v for k, v in B.space.st.items() if isinstance(v, torch.Tensor)},
+                  **{("park", k): v for k, v in B.view.tensors().items()}}
+            assert ta.keys() == tb.keys()
+            for k in ta:
+                assert _same_bits(ta[k], tb[k]), (park, seed, t, k)
+            seen["tensors"] += len(ta)
+            for wi in range(len(cs)):
+                ea = A.space.events(wi)
+                assert ea == B.space.events(wi), (park, seed, t, wi)
+                seen["events"] += len(ea)
+            assert A.answers == B.answers, (park, seed, t)
+            seen["answers"] += sum(len(x) for x in A.answers)
+            A.answers, B.answers = [[] for _ in cs], [[] for _ in cs]
+        assert A.space.hit_counts() == B.space.hit_counts(), (park, seed)
+        seen["branches"] += sum(A.space.hit_counts().values())
+    assert (seen["tensors"] >= 6776 and seen["events"] >= 1693 and seen["answers"] >= 7272
+            and seen["branches"] >= 121384), seen                 # the run: these, exactly
 
 
 def test_the_layer_matches_the_reference_development_worlds():
@@ -319,6 +466,16 @@ def test_the_kernel_matches_the_reference_modes_worlds():
     proper taking a new bubble each tick), development seed 1 and held-out seed 2, the kernel path."""
     for seed in (1, HELD_OUT):
         res = run(seed, 200, "modes", 24, "cuda")
+        assert_exact(res, {"ball_fields": 100000, "world_fields": 15000, "events": 100, "answers": 800})
+        for name in SHARED + ("warp.drop_out_insert",):
+            assert res["hits"].get(name, 0) == res["ref_hits"].get(name, 0), (seed, name)
+        assert res["hits"].get("warp.drop_out_insert", 0) > 0
+
+
+def test_the_host_path_matches_the_reference_modes_worlds():
+    """VecModesPark's worlds on the CPU (its tick on tensors, the layer's host path)."""
+    for seed in (1, HELD_OUT):
+        res = run(seed, 200, "modes", 24, "cpu")
         assert_exact(res, {"ball_fields": 100000, "world_fields": 15000, "events": 100, "answers": 800})
         for name in SHARED + ("warp.drop_out_insert",):
             assert res["hits"].get(name, 0) == res["ref_hits"].get(name, 0), (seed, name)

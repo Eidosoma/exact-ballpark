@@ -11,6 +11,10 @@ the lists empty. The first ticks run eagerly (the lists fill), then per width: m
 `seconds`; the layer's state bytes a world; the largest bucket count reached. Engineering only: the login card is
 shared, so a timing is provisional.
 
+The units. A width (W) is a number of worlds, each of N ships. Each record reports `worlds` (W, also as `W`), `ships`
+(W x N), `ms_per_tick` (the wall time of one batch tick, every world stepped once; also as `ms_tick`, rounded),
+`world_ticks_per_s` and `ship_ticks_per_s`.
+
     python benchmarks/space_primes_speed.py --cases 4:5000,13:2e6,64:2e6 --widths 256,2048 [--cap 13] [--label X]
 """
 
@@ -53,6 +57,12 @@ def build(W: int, N: int, R: float, device: str, cap: int | None) -> tuple:
     return p, space
 
 
+def units(W: int, N: int, ms: float) -> dict:
+    """A record's units from its ms a batch tick (the module's docstring)."""
+    return {"worlds": W, "ships": W * N, "ms_per_tick": ms, "world_ticks_per_s": round(W * 1e3 / ms, 1),
+            "ship_ticks_per_s": round(W * N * 1e3 / ms, 1)}
+
+
 def timed(fn, seconds: float, dev) -> float:
     fn()
     torch.cuda.synchronize(dev)
@@ -92,8 +102,8 @@ def main() -> None:
             ms = timed(g.tick, a.seconds, dev)
             st_bytes = sum(v.numel() * v.element_size() for v in space.st.values() if v is not None)
             ev_bytes = space.st["ev"].numel() * space.st["ev"].element_size()
-            rec = {"label": a.label, "N": N, "R": R, "W": W, "ships": W * N, "S": space.S, "ms_tick": round(ms, 3),
-                   "flagged_worlds": flags, "longest_list": int(space.st["slen"].max()),
+            rec = {"label": a.label, "N": N, "R": R, "W": W, **units(W, N, ms), "S": space.S,
+                   "ms_tick": round(ms, 3), "flagged_worlds": flags, "longest_list": int(space.st["slen"].max()),
                    "map": int(space.st["pn"].max()),
                    "bucket_max": int(space.st["pbkt"].max()) if "pbkt" in space.st else None,
                    "state_bytes_a_world": round((st_bytes - ev_bytes) / W, 1),

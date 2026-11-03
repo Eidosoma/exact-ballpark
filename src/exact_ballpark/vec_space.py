@@ -49,6 +49,12 @@ construction: correctly rounded IEEE double operations (__dadd_rn ... __dsqrt_rn
 on the host, compiled with -ffp-contract=off, no fast math), float sums as binary32 operations, IEEE division, no
 transcendental, no float atomic; every constant generated from the reference's modules (`tables_header`); the build
 reads the PTX back (vec_orient_cuda's check) and the host code's disassembly (`host_check`: no fused instruction).
+Without nvcc (a CPU-only machine) `build` compiles the host functions alone with g++
+(`build_host`): the same source and header, nvcc's host-compiler flags (`HOST_FLAGS`: -O3, -std=c++17, -fPIC,
+-ffp-contract=off, -fno-fast-math), the kernels and their launchers left out by the source's own `__CUDACC__` guards,
+and the three CUDA qualifiers outside them (`HD`'s __host__ and __device__, the device tables' __constant__) defined
+empty on the command line (`HOST_DEFINES`), so the source, and with it every nvcc library's key, is unchanged. The
+library holds the host functions only (`host_only` in its manifest); a layer on a CUDA device still needs nvcc.
 
 **What is not stored.** Boxes below the top level: a box exists while a ball is filed in it or below it, so the walk
 of GetNearbyBalls follows from the filings (the order key, vec_collide, here per pair). Top boxes are a
@@ -129,6 +135,12 @@ CODE_SPAN = CODE_BASE ** (_space.NUM_LEVELS - 1)
 NOT_A_CANDIDATE = 1 << 62
 NO_TOP = -(1 << 63)                  # GetBubbleAtCoordinates' None
 _LIBS: dict = {}
+# the build without nvcc (`build_host`). nvcc hands its host compiler -O3 and -std=c++17 and the
+# -Xcompiler list of vec_orient_cuda.FLAGS (`nvcc --dryrun`: gcc -std=c++17 ... -fPIC -ffp-contract=off -fno-fast-math
+# -O3), so g++ gets the same; the CUDA qualifiers outside the source's __CUDACC__ guards are defined empty.
+HOST_FLAGS = ["-O3", "-std=c++17", "-fPIC", "-ffp-contract=off", "-fno-fast-math", "-shared"]
+HOST_DEFINES = ["-D__host__=", "-D__device__=", "-D__constant__="]
+_CXX_VERSIONS: dict = {}
 RAND_DEG = len(_space.GlibcRandom(1).s)          # glibc's TYPE_3 table (31 words), from the reference
 RAND_WORDS = RAND_DEG + 2                         # a world's rand state: the table, then fptr and rptr (indices)
 
@@ -308,11 +320,14 @@ def host_check(lib: Path) -> dict:
 
 
 def build(out_dir: Path | None = None, variant: str = "native", source: Path = SOURCE, perturb: dict | None = None,
-          checks: bool = True) -> dict:
+          checks: bool = True, host: bool = False) -> dict:
     """Compile `source` with its generated header (nvcc with exact_ballpark.vec_orient_cuda's flags and targets) into
     out_dir (by default `build_dir()`); returns the manifest written beside the library (the inputs' SHA-256, nvcc,
     the flags, the kernels' resources, the PTX check, the host check, the library's SHA-256, the UTC time). A library
-    built from the same inputs is reused. `perturb` and `checks=False` are for the tests' planted faults only."""
+    built from the same inputs is reused. `perturb` and `checks=False` are for the tests' planted faults only. Without
+    nvcc (none at vec_orient_cuda's path nor on PATH), or with `host` (the tests' comparison of the two compilers), the
+    host functions alone, by g++ (`build_host`): whatever the variant, which names device targets
+    only."""
     if variant not in _K.TARGETS:
         raise ValueError(f"unknown variant {variant!r}")
     out_dir = Path(out_dir) if out_dir is not None else build_dir()
@@ -322,7 +337,12 @@ def build(out_dir: Path | None = None, variant: str = "native", source: Path = S
     if checks and calls:
         raise RuntimeError(f"the source calls CUDA's math library: {calls}")
     header = tables_header(perturb)
-    nvcc = _K._nvcc()
+    if host:                                        # g++'s build, even where nvcc is found
+        return build_host(out_dir, source, text, header, perturb, checks, calls)
+    try:
+        nvcc = _K._nvcc()
+    except RuntimeError:                            # no nvcc, the host functions by g++
+        return build_host(out_dir, source, text, header, perturb, checks, calls)
     gencode = [f"-gencode=arch={a},code={c}" for a, c in _K.TARGETS[variant]]
     key = _sha(json.dumps([_sha(text.encode()), _sha(header.encode()), _K.FLAGS, gencode, str(nvcc),
                            _K.nvcc_version(nvcc), checks]).encode())[:16]
@@ -379,6 +399,85 @@ def build(out_dir: Path | None = None, variant: str = "native", source: Path = S
         shutil.rmtree(work, ignore_errors=True)
 
 
+def _cxx() -> Path:
+    """The host compiler of the build without nvcc: EXACT_BALLPARK_CXX, else g++ on PATH."""
+    c = os.environ.get("EXACT_BALLPARK_CXX")
+    if c:
+        if not Path(c).exists():
+            raise RuntimeError(f"EXACT_BALLPARK_CXX names no file: {c}")
+        return Path(c)
+    found = shutil.which("g++")
+    if not found:
+        raise RuntimeError("neither nvcc nor g++ found: the space layer's host functions need one (set EXACT_BALLPARK_NVCC or "
+                           "EXACT_BALLPARK_CXX)")
+    return Path(found)
+
+
+def cxx_version(cxx: Path) -> str:
+    """`<cxx> --version`'s whole output, asked once a process through this module's `subprocess` (a fleet job's guard,
+    exact_ballpark.no_compile, refuses it, as it refuses every call but the pinned nvcc's version): the host build's key
+    holds it."""
+    k = str(cxx)
+    if k not in _CXX_VERSIONS:
+        _CXX_VERSIONS[k] = subprocess.run([k, "--version"], capture_output=True, text=True, check=True).stdout
+    return _CXX_VERSIONS[k]
+
+
+def build_host(out_dir: Path, source: Path, text: str, header: str, perturb: dict | None, checks: bool,
+               calls: list) -> dict:
+    """The host functions alone (`xbps_tape_host`, `xbps_query_host`, `xbps_layout`, `xbps_abi`), compiled by g++ from
+    the source's text and its generated header (`build` reads, scans and makes them, then calls this)
+    into out_dir, as nvcc's host compiler compiles them: `HOST_FLAGS` (nvcc's -O3 and -std=c++17 and
+    vec_orient_cuda.FLAGS' -Xcompiler list), `HOST_DEFINES` (the CUDA qualifiers outside the source's __CUDACC__
+    guards, empty), the source as C++. The host's check as `build`'s: `host_check` (no fused instruction). Returns the
+    manifest written beside the library (`host_only`: no kernel; the inputs' SHA-256, the compiler and its version, the
+    flags, the host check, the library's SHA-256, the UTC time); a library built from the same inputs is reused. Its
+    key holds the compiler's path and `--version` text, never nvcc's, so it never takes an nvcc library's name."""
+    cxx = _cxx()
+    version = cxx_version(cxx)
+    key = _sha(json.dumps([_sha(text.encode()), _sha(header.encode()), HOST_FLAGS, HOST_DEFINES, str(cxx), version,
+                           checks]).encode())[:16]
+    stem = f"vec_space_host_{key}"
+    lib, man = out_dir / f"{stem}.so", out_dir / f"{stem}.json"
+    if lib.exists() and man.exists():
+        m = json.loads(man.read_text())
+        if m.get("library_sha256") == _sha(lib.read_bytes()) and (m.get("host_check", {}).get("ok") or not checks):
+            return m
+    work = out_dir / f".{stem}.{os.getpid()}"
+    work.mkdir(parents=True, exist_ok=True)
+    try:
+        (work / HEADER).write_text(header)
+        src = work / Path(source).name
+        src.write_text(text)
+        tmp = work / "tmp"
+        tmp.mkdir(exist_ok=True)
+        env = dict(os.environ, TMPDIR=os.environ.get("EXACT_BALLPARK_BUILD_TMP", str(tmp)))
+        cmd = [str(cxx), *HOST_FLAGS, *HOST_DEFINES, "-I", str(work), "-o", str(work / "lib.so"), "-x", "c++",
+               str(src)]
+        r = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        if r.returncode != 0:
+            raise RuntimeError(f"{cxx.name} failed:\n{r.stdout}\n{r.stderr}")
+        hcheck = host_check(work / "lib.so")
+        if checks and not hcheck["ok"]:
+            raise RuntimeError(f"the host code has fused floating-point instructions: {hcheck}")
+        manifest = {
+            "variant": "host", "host_only": True, "source": str(source), "source_sha256": _sha(text.encode()),
+            "header": HEADER, "header_sha256": _sha(header.encode()), "perturb": perturb or {}, "checks": checks,
+            "source_scan": calls, "compiler": (version.strip().splitlines() or [""])[0], "compiler_path": str(cxx),
+            "flags": HOST_FLAGS, "defines": HOST_DEFINES, "host_check": hcheck, "library": lib.name,
+            "library_sha256": _sha((work / "lib.so").read_bytes()),
+            "built_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        (work / HEADER).replace(out_dir / f"{stem}.h")
+        (work / "lib.so").replace(lib)
+        mtmp = work / "manifest.json"
+        mtmp.write_text(json.dumps(manifest, indent=1) + "\n")
+        mtmp.replace(man)
+        return manifest
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 class _Park(ctypes.Structure):
     _fields_ = [("R", ctypes.c_int64)] + [(n, ctypes.c_void_p) for n in (
         "ids", "pos", "vel", "old_pos", "old_vel", "radius", "max_vel", "agility", "sf", "mass", "tf", "free_",
@@ -411,12 +510,15 @@ class _Query(ctypes.Structure):
 
 
 def load_library(variant: str = "native", source: Path = SOURCE, perturb: dict | None = None,
-                 checks: bool = True) -> dict:
-    """The compiled library (built if missing or stale), its functions typed, and its manifest; once a process."""
-    k = (variant, str(source), json.dumps(perturb or {}, sort_keys=True), checks)
+                 checks: bool = True, host: bool = False) -> dict:
+    """The compiled library (built if missing or stale), its functions typed, and its manifest; once a process.
+    a library built without nvcc (`build_host`, which `build` takes when nvcc is not found) holds the
+    host functions only (`host_only` in the entry: no kernel to type); `host` builds that one even where nvcc is found
+    (the tests' comparison of the two compilers)."""
+    k = (variant, str(source), json.dumps(perturb or {}, sort_keys=True), checks) + (("host",) if host else ())
     if k in _LIBS:
         return _LIBS[k]
-    manifest = build(None, variant, source, perturb, checks)
+    manifest = build(None, variant, source, perturb, checks, host=host)
     lib = ctypes.CDLL(str(build_dir() / manifest["library"]))
     if lib.xbps_abi() != ABI:
         raise RuntimeError(f"the library's ABI {lib.xbps_abi()} is not {ABI}")
@@ -425,17 +527,20 @@ def load_library(variant: str = "native", source: Path = SOURCE, perturb: dict |
     lib.xbps_tape_host.restype = ctypes.c_int
     lib.xbps_query_host.argtypes = [P, S, QQ]
     lib.xbps_query_host.restype = ctypes.c_int
-    lib.xbps_tape_cuda.argtypes = [P, S, T, ctypes.c_void_p, ctypes.c_int]
-    lib.xbps_tape_cuda.restype = ctypes.c_int
-    lib.xbps_query_cuda.argtypes = [P, S, QQ, ctypes.c_void_p, ctypes.c_int]
-    lib.xbps_query_cuda.restype = ctypes.c_int
+    host_only = bool(manifest.get("host_only"))
+    if not host_only:
+        lib.xbps_tape_cuda.argtypes = [P, S, T, ctypes.c_void_p, ctypes.c_int]
+        lib.xbps_tape_cuda.restype = ctypes.c_int
+        lib.xbps_query_cuda.argtypes = [P, S, QQ, ctypes.c_void_p, ctypes.c_int]
+        lib.xbps_query_cuda.restype = ctypes.c_int
     lib.xbps_layout.argtypes = [ctypes.POINTER(ctypes.c_int64)]
     lib.xbps_layout.restype = ctypes.c_int
-    lib.xbps_info.argtypes = [ctypes.c_int] + [ctypes.POINTER(ctypes.c_int)] * 5
-    lib.xbps_info.restype = ctypes.c_int
-    lib.xbps_error_string.restype = ctypes.c_char_p
-    lib.xbps_error_string.argtypes = [ctypes.c_int]
-    entry = {"lib": lib, "manifest": manifest}
+    if not host_only:
+        lib.xbps_info.argtypes = [ctypes.c_int] + [ctypes.POINTER(ctypes.c_int)] * 5
+        lib.xbps_info.restype = ctypes.c_int
+        lib.xbps_error_string.restype = ctypes.c_char_p
+        lib.xbps_error_string.argtypes = [ctypes.c_int]
+    entry = {"lib": lib, "manifest": manifest, "host_only": host_only}
     _LIBS[k] = entry
     return entry
 
@@ -457,6 +562,8 @@ def kernel_info(device=None, lib: dict | None = None) -> dict:
     """The tape kernel's and the query kernel's resources on the current device (registers, local memory, versions,
     maxThreadsPerBlock)."""
     lib = lib or load_library()
+    if lib.get("host_only"):                        # built by g++, without nvcc
+        raise RuntimeError("the space library was built without nvcc (host functions only): it holds no kernel")
     out = {}
     for which, name in ((0, "tape"), (1, "query")):
         vals = [ctypes.c_int() for _ in range(5)]
@@ -739,6 +846,9 @@ class VecSpace:
     def lib(self) -> dict:
         if self._lib is None:
             self._lib = load_library()
+        if self.kernel == "cuda" and self._lib.get("host_only"):     # a g++ build has no kernel
+            raise RuntimeError("the space layer on a CUDA device needs nvcc (EXACT_BALLPARK_NVCC): its library was built by g++ "
+                               "without it (host functions only)")
         return self._lib
 
     def _park_struct(self) -> tuple:

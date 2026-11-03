@@ -4,6 +4,11 @@
 world here is one ship), at a few widths, with and without dynamical orientation, on one device. Never a scientific
 result.
 
+The units. A width is a number of ships, and every ship is its own world: the ships carry no world label, and the rows
+of VecOrientPark and VecBallpark are independent. Each phase reports `worlds` and `ships` (both the width),
+`world_ticks_per_s` and `ship_ticks_per_s` (equal here), and `ms_per_tick` (the wall time of one batch tick, every
+world stepped once).
+
 The ships: 1e6 to 1e9 kg, agility 0.1 to 2, 50 to 800 m/s, maximum angular speed 0.2 to 2 rad/s, rotational agility
 0.3 to 2, flying GOTO to points 2 to 50 km away in random directions, re-aimed every 10 ticks (so they keep turning,
 often through more than 90 degrees), a mass and a maximum speed set again every 25 ticks (the setters in flight). Per
@@ -96,8 +101,9 @@ def run(device: str, width: int, do, seconds: float, seed: int, kernel: str = "t
     name = {True: "dynamical", False: "yaw-pitch-roll", None: "none (vec.py)"}[do]
     name += {("torch", False): "", ("cuda", False): " (CUDA kernel)", ("cuda", True): " (CUDA kernel, graph)"}[kernel,
                                                                                                          graph]
-    out = {"device": device, "width": width, "orientation": name,
+    out = {"device": device, "width": width, "orientation": name, "worlds": width, "ships": width,
            "ticks": ticks, "wall_s": round(wall, 3), "world_ticks_per_s": round(width * ticks / wall, 1),
+           "ship_ticks_per_s": round(width * ticks / wall, 1),
            "ms_per_tick": round(1000.0 * wall / ticks, 3), "epoch_start": round(e0, 3), "epoch_end": round(e1, 3),
            "pid": os.getpid()}
     if dev.type == "cuda":

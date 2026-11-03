@@ -20,7 +20,9 @@ follower sets exactly. No tolerance anywhere.
 - Planted faults must each be caught.
 
 The CPU part (the generated header, the reference's literals, the source scan, the build, the park's argument checks,
-the commands against the reference, the scenarios' coverage) runs everywhere; the rest skips where no GPU is visible.
+the commands against the reference, the scenarios' coverage, and the tick on tensors, `evolve` on the
+CPU, against ModeBallpark and FullBallpark on the same scenarios) runs everywhere; the rest skips where no GPU is
+visible.
 """
 
 from __future__ import annotations
@@ -166,8 +168,34 @@ def test_the_park_refuses_what_it_cannot_run():
         p.load(rows)                                                                 # MISSILE is not in this park
     rows[1]["mode"] = MO.BOID
     p.load(rows)
-    with pytest.raises(ValueError):
-        p.evolve()                                                                   # the kernel needs CUDA
+    with pytest.raises(ValueError, match="kernel library"):
+        p.evolve(lib={})                                     # a kernel library for a park on the CPU
+
+
+def test_the_kernel_and_its_graph_refuse_a_cpu_park_before_any_build(monkeypatch):
+    """the kernel's tick and ModesGraph refuse a park on the CPU at once, naming the CPU path, and
+    never reach the library's build (a missing nvcc is not what the user is told); on the CPU `evolve` is the tick on
+    tensors, `evolve_torch`, bit for bit."""
+    monkeypatch.setattr(K, "load_library", lambda *a, **k: pytest.fail("the library was loaded for a CPU park"))
+    rows = [{"id": i + 1, "mass": 1e6, "radius": 1.0, "max_vel": 10.0, "pos": [100.0 * i, 0.0, 0.0],
+             "vel": [1.0, 0.0, 0.0], "agility": 1.0, "speed_fraction": 1.0} for i in range(2)]
+    p = V.VecModesPark(2, device="cpu")
+    p.load(rows)
+    with pytest.raises(ValueError, match="CUDA device.*evolve_torch"):
+        K.tick(p)
+    with pytest.raises(ValueError, match="CUDA device"):
+        K.ModesGraph(p)
+    q = V.VecModesPark(2, device="cpu")
+    q.load(rows)
+    one = torch.tensor([True, False])
+    for park in (p, q):
+        park.follow(one, torch.tensor([1, -1]), torch.tensor([50.0, 0.0], dtype=F64))
+    for _ in range(3):
+        p.evolve()
+        q.evolve_torch()
+    for name in p.row_tensors():
+        assert bool(same_bits(getattr(p, name).to(F64), getattr(q, name).to(F64)).all()), name
+    assert p.mode.tolist() == [MO.FOLLOW, R.STOP] and p.current_time == q.current_time == 3
 
 
 # ---- the commands, on the CPU, against the reference (no tick) ----
@@ -297,6 +325,47 @@ def test_the_kernel_matches_fullballpark(seed, which):
     cs = flight_cases(seed, which)
     bad = mb.differences(reference((which, seed), cs, True), mb.batched_full(cs), mb.FIELDS_FULL)
     assert not bad, (len(bad), bad[:8])
+
+
+# ---- the tick on tensors (`evolve` on the CPU) against the same references, no tolerance ----
+
+@pytest.mark.parametrize("seed", [1, 2], ids=["development", "held_out"])
+def test_the_tensor_tick_matches_modeballpark_on_the_cpu(seed):
+    cs = mc.cases(seed)
+    bad = mb.differences(reference(("modes", seed), cs, False), mb.batched_modes(cs, device="cpu"), mb.FIELDS_MODES)
+    assert not bad, (len(bad), bad[:8])
+
+
+@pytest.mark.parametrize("which", ["flight", "mc_do"])
+@pytest.mark.parametrize("seed", [1, 2], ids=["development", "held_out"])
+def test_the_tensor_tick_matches_fullballpark_on_the_cpu(seed, which):
+    cs = flight_cases(seed, which)
+    bad = mb.differences(reference((which, seed), cs, True), mb.batched_full(cs, device="cpu"), mb.FIELDS_FULL)
+    assert not bad, (len(bad), bad[:8])
+
+
+def test_a_tick_of_no_time_is_the_references_on_the_cpu():
+    """with tick_interval_ms=0 Ballpark::Integrate returns at once (ref.py, the kernels); the tensor
+    tick does too (fix_dt0): 40 development worlds of mode_cases with their tick set to 0 against ModeBallpark."""
+    cs = [dict(c, tick=0) for c in mc.cases(1)[:40]]
+    want = mb.reference_modes(cs)
+    assert len(want) > 3000
+    bad = mb.differences(want, mb.batched_modes(cs, device="cpu"), mb.FIELDS_MODES)
+    assert not bad, (len(bad), bad[:8])
+
+
+@needs_cuda
+@pytest.mark.parametrize("seed", [1, 2], ids=["development", "held_out"])
+def test_the_tensor_tick_on_the_card_matches_both_references(seed):
+    """`evolve_torch` on a CUDA device (the cross-check of the kernel) against both references."""
+    hook = lambda park: park.evolve_torch                                          # noqa: E731
+    cs = mc.cases(seed)
+    assert not mb.differences(reference(("modes", seed), cs, False), mb.batched_modes(cs, park_hook=hook),
+                              mb.FIELDS_MODES)
+    for which in ("flight", "mc_do"):
+        fs = flight_cases(seed, which)
+        assert not mb.differences(reference((which, seed), fs, True), mb.batched_full(fs, park_hook=hook),
+                                  mb.FIELDS_FULL), which
 
 
 # ===================================================== a world's result, alone, in any batch, at any width and block

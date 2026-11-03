@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Eidosoma
 """Destiny's flight batched on the GPU: GOTO, STOP, FOLLOW, ORBIT (both laws) and WARP for B balls, with the modes'
-transitions, the setters and dynamical orientation, one CUDA kernel a tick (exact_ballpark.vec_modes_cuda).
+transitions, the setters and dynamical orientation, one CUDA kernel a tick (exact_ballpark.vec_modes_cuda), and the
+same tick on tensors on the CPU (`evolve_torch`; `evolve` takes it on any device but a CUDA one).
 
 It must reproduce the scalar reference bit for bit: `exact_ballpark.modes.ModeBallpark` (FOLLOW, ORBIT and WARP over
 ref.py's GOTO and STOP) and, for dynamical orientation and the setters, `exact_ballpark.full.FullBallpark` (balls added
@@ -48,7 +49,14 @@ another ball (the same ball after a new follow command); StopAllFollowers erases
 **Exactness.** The kernel (vec_modes_cuda) runs the reference's own operations in their order with every rounding
 pinned and glibc's functions transcribed (sin, cos, sincos and log from exact_ballpark.dlibm, exp from
 exact_ballpark.vec_exp, the float functions and pow from vec_libm). The commands and setters here are the reference's on
-tensors: only correctly rounded operations in the reference's order, tensor divisors.
+tensors: only correctly rounded operations in the reference's order, tensor divisors. The tick on tensors
+(`evolve_torch`) is VecComposedPark's phase 1, warp path and drop-out, moved here
+verbatim (VecCombatPark's and VecComposedPark's own parts are hooks), with the kernel's commit and PetrifyTroll:
+the reference's operations in its order on tensors, the double sin, cos, sincos and log through the C library on
+the host (exact by construction: the reference calls the same functions), exp glibc's (vec_exp), the float
+functions vec_libm's; held to ModeBallpark and FullBallpark on the kernel's own scenarios, with no tolerance, by
+tests/test_movement_vec_modes.py (and on the leftovers, under OnTick, and under the server and space layers by
+their tests).
 
 Not here: collisions (exact_ballpark.vec_collide), the partition, bubbles and sensors (every bubble live, no events),
 missiles, formations, mushrooms, the yaw, pitch and roll without dynamical orientation (MOV-729: display only, never
@@ -60,22 +68,133 @@ commands for their own ticks too (their kernels and torch ticks hold the troll's
 
 from __future__ import annotations
 
+import math
+
 import torch
 
+from . import modes as MO
+from . import vec_exp
 from . import vec_libm as L
 from . import vec_modes_cuda as K
-from .modes import AU, BOID, FOLLOW, INERT_MODES, MIN_WARP_DISTANCE_SQ, ORBIT, RIGID, TROLL, WARP
-from .ref import GOTO, STOP
-from .vec_orient import VecOrientPark, _cols, _stack, masked_tick, q_mul, q_rotation, v3_len
+from .modes import (AU, BOID, FOLLOW, INERT_MODES, MAX_ALIGN_TICKS, MIN_WARP_DISTANCE_SQ, MISSILE, ORBIT,
+                    ORBITAL_PRECESSION, RIGID, TROLL, WARP, WARP_FACTOR_TO_ACCELERATION,
+                    WARP_FACTOR_TO_AU_PER_SECOND, WARP_FACTOR_TO_DECELERATION)
+from .ref import GOTO, STOP, STOP_DAMP
+from .vec_collide import _to_int64
+from .vec_orient import (VecOrientPark, _cols, _fdiv, _fmin, _stack, _where, m_rotation_q, masked_tick, q_mul,
+                         q_rotation, transform_coord, v3_dot, v3_len, v3_mul)
 
 F64, I64 = torch.float64, torch.int64
 f32 = L.f32
 LOADABLE = (STOP,) + tuple(INERT_MODES)            # AddBall's STOP, or an inert mode (ModeBallpark.add_ball)
 TROLL_MIN_DELAY = 1                                 # SetBallTroll (Ballpark.cpp:6300); a test holds it to full.py's
 
+# ---- the flight tick on tensors: its constants and tensor helpers, moved here
+# verbatim from exact_ballpark.vec_composed, and RotationQuaternion(yaw, pitch, roll) from exact_ballpark.vec_combat ----
+
+TRUNC7 = 10000000               # _trunc7's scale (modes.py:91)
+RF_SCALE = 40000.0              # EvolveOldStyleOrbit's radial falloff, exp(-(r - dist)^2 / 40000) (modes.py:449)
+GOTO_FAR = 10.0 * AU            # the old orbit's goto point, 10 AU along the thrust (modes.py:460)
+NORMAL_MIN = 1e-12              # GetOrbitalNormal's parallel test (modes.py:484)
+ANGLE_SCALE = 0.1               # the new orbit's angle and distance floor (modes.py:500, 507)
+ANGLE_ZERO = 1e-10              # the new orbit's circle and linear tests (modes.py:511, 520)
+FACTOR_FLOOR = -0.999           # the new orbit's factor floor (modes.py:517)
+LOG_FLOOR = 0.001               # math.log(0.001) below the floor (modes.py:518)
+SLOW_TARGET = 5e-2              # GotoThrustFollow's slow target (modes.py:541)
+THRUST_OFF = 0.1                # OrbitThrust's cut (modes.py:581)
+ALIGN_COS = 0.01                # IsAlignedForWarp (modes.py:331)
+ALIGN_SPEED2 = 0.5625           # 75 % of maxVel, squared (modes.py:332)
+DROP_SPEED = 100.0              # the drop-out speed's cap (modes.py:632)
+REST_SQ = 0.1                   # the drop-out's re-filing at rest, and the commit's (modes.py:711, 723)
+DIR_DIST = 1.0e17               # GotoDirection's point (modes.py:241)
+
+
+# ---- tensor helpers: the reference's vector arithmetic, components left to right ----
+
+def _dot(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    return a[..., 0] * b[..., 0] + a[..., 1] * b[..., 1] + a[..., 2] * b[..., 2]
+
+
+def _len(a: torch.Tensor) -> torch.Tensor:
+    return torch.sqrt(_dot(a, a))
+
+
+def _unit(v: torch.Tensor) -> torch.Tensor:
+    """ref.py's _normalized: times the reciprocal of the length; a zero vector stays as it is."""
+    n = _len(v)
+    inv = torch.ones_like(n) / torch.where(n == 0.0, 1.0, n)
+    return torch.where((n == 0.0)[..., None], v, v * inv[..., None])
+
+
+def _cross(u: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+    """Vector3d::Cross (modes.py's _cross): components in Destiny's order."""
+    return torch.stack((u[..., 1] * v[..., 2] - u[..., 2] * v[..., 1], u[..., 2] * v[..., 0] - u[..., 0] * v[..., 2],
+                        u[..., 0] * v[..., 1] - u[..., 1] * v[..., 0]), dim=-1)
+
+
+def _div(a, b) -> torch.Tensor:
+    """IEEE division a / b with tensors on both sides (a Python number becomes a tensor first)."""
+    if not isinstance(b, torch.Tensor):
+        b = torch.full_like(a, float(b))
+    if not isinstance(a, torch.Tensor):
+        a = torch.full_like(b, float(a))
+    return a / b
+
+
+def _c_call(fn, x: float) -> float:
+    """The C library's double function at x through Python's math (which calls it), with C's results where Python
+    raises (outside the reference's domain: the reference itself raises there)."""
+    try:
+        return fn(x)
+    except ValueError:
+        if fn is math.log and x == 0.0:
+            return -math.inf
+        return math.nan
+    except OverflowError:
+        return math.inf
+
+
+def _host(fn, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    """fn (math.sin, math.cos or math.log: glibc's double functions) on the host for the elements in mask; NaN
+    elsewhere. One host round trip."""
+    out = torch.full_like(x, math.nan)
+    if bool(mask.any()):
+        vals = [_c_call(fn, v) for v in x[mask].tolist()]
+        out[mask] = torch.tensor(vals, dtype=F64, device=x.device)
+    return out
+
+
+def _host_sincos(x: torch.Tensor, mask: torch.Tensor) -> tuple:
+    """glibc's sincos (exact_ballpark.modes._sincos: the sine and cosine of one argument as compiled Destiny takes them,
+    the finding F3) on the host for the elements in mask; NaN elsewhere. One host round trip."""
+    s, c = torch.full_like(x, math.nan), torch.full_like(x, math.nan)
+    if bool(mask.any()):
+        vals = [MO._sincos(v) for v in x[mask].tolist()]
+        s[mask] = torch.tensor([v[0] for v in vals], dtype=F64, device=x.device)
+        c[mask] = torch.tensor([v[1] for v in vals], dtype=F64, device=x.device)
+    return s, c
+
+
+def _trunc7(x: torch.Tensor) -> torch.Tensor:
+    """`(double)((int64_t)(x * 10000000)) / 10000000` (modes.py's _trunc7; the integer conversion makes a value in
+    (-1e-7, 0] a +0)."""
+    return _div(_to_int64(x * float(TRUNC7)).to(F64), float(TRUNC7))
+
+
+def q_rotation_ypr(yaw: torch.Tensor, pitch: torch.Tensor, roll: torch.Tensor) -> tuple:
+    """RotationQuaternion(yaw, pitch, roll) (exact_ballpark.full.q_rotation_ypr: DirectXMath's scalar path) on floats
+    held in float64: half angles, cosf and sinf, four sums of float products left to right."""
+    hp, hy, hr = f32(pitch * 0.5), f32(yaw * 0.5), f32(roll * 0.5)
+    cp, sp, cy, sy, cr, sr = L.cosf(hp), L.sinf(hp), L.cosf(hy), L.sinf(hy), L.cosf(hr), L.sinf(hr)
+    return (f32(f32(f32(cr * sp) * cy) + f32(f32(sr * cp) * sy)), f32(f32(f32(cr * cp) * sy) - f32(f32(sr * sp) * cy)),
+            f32(f32(f32(sr * cp) * cy) - f32(f32(cr * sp) * sy)), f32(f32(f32(cr * cp) * cy) + f32(f32(sr * sp) * sy)))
+
 
 class VecModesPark(VecOrientPark):
-    """B balls, one per row, in independent worlds, with Destiny's flight modes; evolve is one CUDA kernel a tick."""
+    """B balls, one per row, in independent worlds, with Destiny's flight modes; evolve is one CUDA kernel a tick on a
+    CUDA device and the same algorithm on tensors elsewhere (`evolve_torch`)."""
+
+    disable_do_for_missiles = False         # no missiles here (VecCombatPark's option; `_phase1`)
 
     def __init__(self, n: int, friction: float = 1.0e6, tick_interval_ms: int = 1000, device="cuda",
                  dynamical_orientation: bool = False, use_new_orbit: bool = False, block: int = 128,
@@ -313,7 +432,7 @@ class VecModesPark(VecOrientPark):
     def _g11(self, name: str) -> None:
         """Refuse a command whose tick this park's subclass does not run: VecCombatPark and VecComposedPark tick with
         their own kernels, which have neither the troll's petrification nor the follower sets of SetBoid."""
-        if type(self).evolve is not VecModesPark.evolve:
+        if type(self).evolve is not VecModesPark.evolve or type(self).evolve_torch is not VecModesPark.evolve_torch:
             raise NotImplementedError(f"{name} is batched for VecModesPark's own tick only, not {type(self).__name__}")
 
     def set_free(self, mask: torch.Tensor, flag: torch.Tensor) -> None:
@@ -363,14 +482,477 @@ class VecModesPark(VecOrientPark):
         self.effect_stamp = torch.where(mask, self.clock + d, self.effect_stamp)
         self.mode = torch.where(mask, TROLL, self.mode)
 
+    # ---- the tick on tensors: VecCombatPark's thrust, integrator and rotated
+    # vector, and VecComposedPark's phase 1, warp path and drop-out, moved here verbatim; the combat parks' own parts
+    # of phase 1 are hooks (`_existing`, `_phase1_combat`, `_clear_contacts`) ----
+
+    def _thrust_to(self, target: torch.Tensor, taper: torch.Tensor) -> torch.Tensor:
+        """GotoThrust (Ballpark.cpp:1398) toward target for every row: tapered by (L^2 / D^2)^2 inside one tick's
+        distance where `taper` (no missile flag), at maxThrust otherwise; C's division where the mass may be zero."""
+        a = target - self.pos
+        length2 = a[:, 0] * a[:, 0] + a[:, 1] * a[:, 1] + a[:, 2] * a[:, 2]
+        dist = self.speed_fraction * self.max_vel * self.dt
+        max_thrust = self.friction * self.speed_fraction * self.max_vel / (self.mass * self.agility)
+        unit = self._unit(a)
+        dd = dist * dist
+        coff = length2 / torch.where(dd == 0.0, torch.ones_like(dd), dd)
+        scale = torch.where(taper & (length2 < dd), max_thrust * coff * coff, max_thrust)
+        return unit * scale[:, None]
+
+    def _integrate(self, p, v, a, m, tf) -> tuple:
+        """Ballpark::Integrate over the tick with its cached decay factor (MOV-701 to MOV-703), m a column."""
+        k, t = self.friction, self.dt
+        if t == 0.0:                    # Integrate returns at once for no time (ref.py, the kernels)
+            return p, v
+        k2 = k * k
+        ook2, ook = 1.0 / k2, 1.0 / k
+        exact = (m * (m * a * (tf - 1.0) + k * (a * t + v - tf * v)) + p * k2) * ook2
+        taylor = (m * (a * (-k * t) + k * (a * t + v * k * (1.0 / m) * t)) + p * k2) * ook2
+        small = (k < 1e-10 * m * t)
+        return torch.where(small, taylor, exact), (m * a - (m * a - v * k) * tf) * ook
+
+    def rotated_vector(self, rows: torch.Tensor, v: tuple) -> torch.Tensor:
+        """Ball::GetRotatedVector (Ball.cpp:2191) of the balls in `rows`: the float vector v turned by the rotation
+        (dynamical orientation) or by RotationQuaternion(yaw, pitch, roll) of the floats; [R, 3] floats as doubles."""
+        if self.dynamical_orientation:
+            q = _cols(self.rot[rows])
+        else:
+            q = q_rotation_ypr(f32(self.yaw[rows]), f32(self.pitch[rows]), f32(self.roll[rows]))
+        return _stack(transform_coord(v, m_rotation_q(q)))
+
+    def _activates(self, live: torch.Tensor) -> torch.Tensor:
+        """Starts warp proper at its own turn this tick (IsAlignedForWarp of an aligning ball, TRV-706, on its start
+        state, which no other ball changes before its turn)."""
+        d = _unit(self.goto - self.pos)
+        u = _unit(self.vel)
+        cos = u[:, 0] * d[:, 0] + u[:, 1] * d[:, 1] + u[:, 2] * d[:, 2]
+        fast = _dot(self.vel, self.vel) > ALIGN_SPEED2 * self.max_vel * self.max_vel
+        aligned = ((1.0 - cos).abs() < ALIGN_COS) & fast
+        forced = self.effect_stamp.abs() > MAX_ALIGN_TICKS
+        return live & (self.mode == WARP) & (self.effect_stamp < 0) & (aligned | forced)
+
+    def _released_mode(self) -> torch.Tensor:
+        """The mode StopAllFollowers leaves each row in (combat_release with apply false): a missile or an interactive
+        orbiter GOTO, unless its velocity or its point is not finite (then its mode stays); any other follower STOP."""
+        flies = (self.mode == MISSILE) | (self.interactive & (self.mode == ORBIT))
+        point = self.pos + _unit(self.vel) * DIR_DIST
+        ok = torch.isfinite(self.vel).all(dim=1) & torch.isfinite(point).all(dim=1)
+        return torch.where(flies, torch.where(ok, GOTO, self.mode), STOP)
+
+    def _release_rows(self, f: torch.Tensor) -> None:
+        """StopAllFollowers on the follower rows in f (MOV-730): a missile made non-massive, a missile or an
+        interactive orbiter flies on by GotoDirection along its velocity, any other follower stops (on the master a
+        formation follower's slot freed: VecCombatPark._stop_rows)."""
+        if not bool(f.any()):
+            return
+        missile = f & (self.mode == MISSILE)
+        flies = missile | (f & self.interactive & (self.mode == ORBIT))
+        self.massive = torch.where(missile, False, self.massive)
+        self._stop_rows(f & ~flies)
+        self.goto_direction(flies, self.vel.clone())
+
+    def _release_turns(self, hit: torch.Tensor, ts: torch.Tensor) -> tuple:
+        """The followers released this tick (`hit`: their target starts warp proper) split by turn (MOV-730): before
+        their own turn when the target's id is lower, after it otherwise."""
+        return hit & (self.ids[ts] < self.ids), hit & (self.ids[ts] > self.ids)
+
+    def _precessing_normal(self, rows: torch.Tensor) -> torch.Tensor:
+        """DefaultOrbitalNormal (Ballpark.cpp:735): the precessing w vector of MOV-717 truncated to 7 decimals, not
+        normalised; cos and sin on the host for `rows`."""
+        t = self.clock.to(F64)
+        phi1 = t * ORBITAL_PRECESSION
+        phi2 = (self.ids & 0x000000000000FFFF).to(F64) + t * ORBITAL_PRECESSION
+        (s1, c1), (s2, c2) = _host_sincos(phi1, rows), _host_sincos(phi2, rows)
+        return torch.stack((_trunc7(c1 * c2), _trunc7(s2), _trunc7(s1 * c2)), dim=1)
+
+    def _old_orbit(self, rows: torch.Tensor, op: torch.Tensor, orad: torch.Tensor) -> tuple:
+        """EvolveOldStyleOrbit (Ballpark.cpp:1246; MOV-717, MOV-718): (thrust, goto point)."""
+        cruise = self.speed_fraction * self.max_vel
+        max_thrust = (self.friction * cruise) / (self.mass * self.agility)
+        r = (self.follow_range + self.radius) + orad
+        to = op - self.pos
+        dist = _len(to)
+        to = _unit(to)
+        w = _unit(_cross(self._precessing_normal(rows), to))
+        to_comp = dist * dist - r * r
+        tangent = to_comp >= 0.0
+        rad_comp = (r * torch.sqrt(torch.where(tangent, to_comp, 0.0))) / dist
+        s = to_comp / dist
+        to = torch.where(tangent[:, None], _unit(to * s[:, None] + w * rad_comp[:, None]), to)
+        dr = r - dist
+        rf = _trunc7(vec_exp.exp(_div((-dr) * dr, RF_SCALE)))
+        phi = ((-to[:, 0]) * w[:, 0] + (-to[:, 1]) * w[:, 1]) + (-to[:, 2]) * w[:, 2]
+        tf = 1.0 + (rf * rf) * (phi * phi - 1.0)
+        tf = torch.where(tf > 0.0, rf * phi + torch.sqrt(torch.where(tf > 0.0, tf, 0.0)), rf * phi)
+        tf = tf * torch.where(dist - r >= 0.0, 1.0, -1.0)
+        a = (w * rf[:, None] + to * tf[:, None]) * max_thrust[:, None]
+        return a, self.pos + a * GOTO_FAR
+
+    def _orbit_thrust(self, target: torch.Tensor) -> torch.Tensor:
+        """OrbitThrust (Ballpark.cpp:1428; MOV-722): brake toward the point; zero below a tenth of max acceleration."""
+        fom = _div(self.friction, self.mass * self.agility)
+        max_accel = (fom * self.speed_fraction) * self.max_vel
+        a = (target - self.pos) * fom[:, None] - self.vel
+        tacc = _len(a) / max_accel
+        inv = torch.ones_like(tacc) / tacc
+        a = torch.where((tacc > 1.0)[:, None], a * inv[:, None], a)
+        a = torch.where((tacc < THRUST_OFF)[:, None], 0.0, a)
+        return torch.where((max_accel <= 0.0)[:, None], 0.0, a)
+
+    def _goto_thrust_follow(self, target: torch.Tensor, tv: torch.Tensor) -> torch.Tensor:
+        """GotoThrustFollow (Ballpark.cpp:1463; MOV-721) with weight 1, for the new orbit (its only caller): reach
+        the point and match the velocity, capped; OrbitThrust for a slow target."""
+        speed = _len(tv)
+        slow = speed < (SLOW_TARGET * self.max_vel) * self.speed_fraction
+        fom = _div(self.friction, self.mass * self.agility)
+        max_accel = (fom * self.speed_fraction) * self.max_vel
+        one_minus = 1.0 - self.time_factor
+        inv = torch.ones_like(fom) / (self.dt * fom - one_minus)
+        a = (((target - self.pos) * fom[:, None] - self.vel * one_minus[:, None]) * fom[:, None]) * inv[:, None]
+        inv = torch.ones_like(fom) / (1.0 - self.time_factor)
+        avel = ((tv - self.vel * self.time_factor[:, None]) * fom[:, None]) * inv[:, None]
+        weight = 1.0
+        inv_w = 1.0 / (1.0 + weight)                    # a Python constant: 0.5, exactly
+        a = (a + avel * weight) * inv_w
+        accel = _dot(a, a)
+        capped = accel > max_accel * max_accel
+        s = max_accel / torch.sqrt(accel)
+        a = torch.where(capped[:, None], a * s[:, None], a)
+        a = torch.where((max_accel <= 0.0)[:, None], 0.0, a)
+        return torch.where(slow[:, None], self._orbit_thrust(target), a)
+
+    def _new_orbit(self, rows: torch.Tensor, op: torch.Tensor, ov: torch.Tensor, orad: torch.Tensor) -> tuple:
+        """EvolveNewStyleOrbit (Ballpark.cpp:1134; MOV-720) with GetOrbitalNormal (MOV-719; with dynamical orientation
+        the heading's fallback, FullBallpark._orbital_normal): (thrust, goto point). ov is the target's velocity as
+        the ball sees it at its own turn."""
+        do = self.dynamical_orientation
+        cruise = self.speed_fraction * self.max_vel
+        tau = _div(self.mass * self.agility, self.friction)
+        max_thrust = cruise / tau
+        r = (self.follow_range + self.radius) + orad
+        to = op - self.pos
+        to = to + ov * self.dt
+        dist = _len(to)
+        on = dist > 0.0
+        inv = torch.ones_like(dist) / torch.where(on, dist, 1.0)
+        to = torch.where(on[:, None], to * inv[:, None], torch.tensor([0.0, 0.0, 1.0], dtype=F64, device=self.dev))
+        o = _cross(to, self.vel)
+        length2 = _dot(o, o)
+        par = length2 > NORMAL_MIN
+        inv = torch.ones_like(length2) / torch.sqrt(torch.where(par, length2, 1.0))
+        normal = o * inv[:, None]
+        if do:
+            heading = self.rotated_vector(torch.arange(self.n, device=self.dev), (0.0, 0.0, 1.0))
+            o2 = _cross(to, heading)
+            l2 = _dot(o2, o2)
+            use_h = ~par & ~(l2 <= NORMAL_MIN)
+            inv2 = torch.ones_like(l2) / torch.sqrt(torch.where(use_h, l2, 1.0))
+            normal = torch.where(use_h[:, None], o2 * inv2[:, None], normal)
+            default = ~par & ~use_h
+        else:
+            default = ~par
+        default = default & rows
+        if bool(default.any()):
+            normal = torch.where(default[:, None], self._precessing_normal(default), normal)
+        radial = _unit(_cross(normal, to))
+        speed = _len(self.vel)
+        max_speed = torch.where(cruise < speed, speed, cruise)
+        angle = _div(ANGLE_SCALE * (r - dist), max_speed)
+        angle = torch.where(angle < -1.0, -1.0, angle)
+        angle = torch.where(angle > 1.0, 1.0, angle)
+        dist = torch.where(dist < ANGLE_SCALE, ANGLE_SCALE, dist)
+        sq = torch.sqrt(dist * max_thrust)
+        est_v = torch.where(sq < max_speed, sq, max_speed)
+        est_d = est_v * self.dt
+        circle = angle.abs() < ANGLE_ZERO
+        # the circle: t = est_d / dist
+        t_c = est_d / dist
+        # the spiral: t from the factor's three branches
+        factor = ((est_d * angle) / dist) / torch.sqrt(angle * angle + 1.0)
+        floor = ~circle & (factor < FACTOR_FLOOR)
+        logb = ~circle & ~floor & (factor.abs() > ANGLE_ZERO)
+        lin = ~circle & ~floor & ~logb
+        log_floor = _c_call(math.log, LOG_FLOOR)
+        lg = _host(math.log, 1.0 + factor, logb & rows)
+        t_s = torch.where(floor, _div(torch.full_like(angle, log_floor), angle),
+                          torch.where(logb, lg / angle, factor / angle))
+        t = torch.where(circle, t_c, t_s)
+        need = rows & (circle | floor | logb | lin)
+        st, ct = _host_sincos(t, need)
+        gp_c = to * (dist * (1.0 - ct))[:, None] + radial * (dist * st)[:, None]
+        gv_c = radial * (ct * est_v)[:, None] + to * (st * est_v)[:, None]
+        dexp = dist * vec_exp.exp(angle * t)
+        gp_s = to * (dist - dexp * ct)[:, None] + radial * (dexp * st)[:, None]
+        gv_s = _unit(to * ((-angle) * ct + st)[:, None] + radial * (angle * st + ct)[:, None]) * est_v[:, None]
+        gp = torch.where(circle[:, None], gp_c, gp_s)
+        gv = torch.where(circle[:, None], gv_c, gv_s)
+        goto = self.pos + gp
+        gv = gv + ov
+        return self._goto_thrust_follow(goto, gv), goto
+
+    def _real_warp(self, act: torch.Tensor) -> None:
+        """RealWarp (Ballpark.cpp:4143; TRV-707), the warper's own part (its followers are released by their rows):
+        the exit point min range short of the goto point, warp proper from this tick, non-massive, sensor off."""
+        if not bool(act.any()):
+            return
+        dst = self.goto
+        delta = _unit(self.pos - dst)
+        mr = self.follow_id.contiguous().view(F64)
+        dst = dst + delta * mr[:, None]
+        delta = dst - self.pos
+        self.goto = torch.where(act[:, None], dst, self.goto)
+        self.effect_stamp = torch.where(act, self.clock, self.effect_stamp)
+        self.last_collision = torch.where(act, _len(delta), self.last_collision)
+        self.massive = torch.where(act, False, self.massive)
+        self.sensor = torch.where(act, False, self.sensor)
+
+    def _orient_composed(self, a: torch.Tensor, steer: torch.Tensor) -> torch.Tensor:
+        """EvolveBehaviorForBall's dynamical-orientation branch (Ballpark.cpp:840-890; MOV-728; FullBallpark._orient)
+        for the rows in `steer`: VecOrientPark._orient, with a ball in warp proper that coasts turning toward its exit
+        point (the torque searched toward mGoto - pos, as floats)."""
+        ax, ay, az = a[:, 0], a[:, 1], a[:, 2]
+        accel = f32(torch.sqrt(ax * ax + ay * ay + az * az))
+        max_accel = _fdiv(f32(f32(torch.full_like(ax, self.ffriction) * self.speed_fraction) * self.max_vel),
+                          f32(f32(self.mass) * self.agility))
+        thrust = accel > 1e-2 * max_accel
+        warping = (self.mode == WARP) & (self.effect_stamp >= 0)
+        coast_warp = ~thrust & warping
+        t_scale = self._t_scale()
+        tf = L.expf(f32(-self.fdt * t_scale))
+        kap = self._kappas(tf)
+        a32 = _cols(f32(a))
+        g32 = _cols(f32(self.goto - self.pos))
+        direction = _where(thrust, a32, g32)
+        search = steer & (thrust | coast_warp)
+        torque = self._goto_torque_breaks(direction, tf, kap, search)
+        torque = _where(search, torque, (torch.zeros_like(ax),) * 3)
+        torque0, roll0 = self.torque, self.rot_roll
+        self.torque = torch.where(steer[:, None], _stack(torque), torque0)
+        roll = self._goto_roll_breaks(torque, tf, kap)
+        self.rot_roll = torch.where(steer, roll, roll0)
+        rotation, angvel = self._apply_torque(torque, roll, self._tau())
+        heading = transform_coord((0.0, 0.0, 1.0), m_rotation_q(rotation))
+        cosangle = _fmin(torch.ones_like(accel), _fdiv(v3_dot(heading, a32), accel))
+        h = _stack(v3_mul(heading, f32(f32(cosangle * cosangle) * accel)))
+        steered = torch.where((cosangle <= 0.0)[:, None], 0.0, h)
+        return torch.where((steer & thrust)[:, None], steered, a)
+
+    def _phase1(self, live: torch.Tensor) -> None:
+        """Phase 1 (EvolveBehaviorForBall, Ballpark.cpp:789) for every live ball in ascending id, as tensors:
+        vec_combat_cuda's prepass and phase-1 kernels. A member of a ball that starts warp proper this tick (Destiny's
+        test, follow_ptr and the follow id: a ball SetBoid took out of a follow mode too) is released
+        before its own turn when the target's id is lower (it then behaves in its new mode), after it otherwise; a ball
+        reading its target's velocity sees it after the target's STOP damping when the target's turn came first."""
+        do = self.dynamical_orientation
+        n = self.n
+        t = self.follow_ptr
+        t_ok = (t >= 0) & (t < n)
+        ts = torch.where(t_ok, t, 0)
+        act = self._activates(live)
+        pos0, vel0 = self.pos.clone(), self.vel.clone()
+        hit = self._members(act) & self._existing()  # StopAllFollowers' members (Destiny's test)
+        before, after = self._release_turns(hit, ts)
+        # the prepass: the vertical velocity each ball shows after its own turn (its mode at its turn)
+        m_turn = torch.where(before, self._released_mode(), self.mode)
+        vy = vel0[:, 1]
+        damp = live & (m_turn == STOP) & (not do)
+        vy_after = torch.where(damp, (vy - 0.07 * vy) * STOP_DAMP, vy)
+        vy_seen = torch.where(self.ids[ts] < self.ids, vy_after[ts], vel0[ts, 1])
+        # the releases before the follower's own turn
+        self._release_rows(before)
+        # the behaviours
+        mode = self.mode
+        t = self.follow_ptr
+        t_ok = (t >= 0) & (t < n)
+        ts = torch.where(t_ok, t, 0)
+        a = torch.zeros_like(self.pos)
+        warp = live & (mode == WARP)
+        proper = warp & (self.effect_stamp >= 0)
+        activate = warp & ~proper & act
+        align = warp & ~proper & ~act
+        self.effect_stamp = torch.where(align, self.effect_stamp - 1, self.effect_stamp)
+        self._real_warp(activate)
+        go = live & (mode == GOTO)
+        a = torch.where((go | align)[:, None], self._thrust_to(self.goto, torch.ones_like(go)), a)
+        follow = live & (mode == FOLLOW) & t_ok
+        if bool(follow.any()):
+            op = pos0[ts]
+            delta = self.pos - op
+            dist = _len(delta)
+            r = (self.follow_range + self.radius) + self.radius[ts]
+            inv = torch.ones_like(dist) / torch.where(dist == 0.0, 1.0, dist)
+            on = torch.stack((op[:, 0] + 1.0 * r, op[:, 1] + 0.0 * r, op[:, 2] + 0.0 * r), dim=1)
+            target = torch.where((dist == 0.0)[:, None], on, op + (delta * r[:, None]) * inv[:, None])
+            self.goto = torch.where(follow[:, None], target, self.goto)
+            a = torch.where(follow[:, None], self._thrust_to(self.goto, torch.ones_like(go)), a)
+        orbit = live & (mode == ORBIT) & t_ok
+        if bool(orbit.any()):
+            op = pos0[ts]
+            if self.use_new_orbit:
+                ov = vel0[ts].clone()
+                ov[:, 1] = vy_seen
+                th, gp = self._new_orbit(orbit, op, ov, self.radius[ts])
+            else:
+                th, gp = self._old_orbit(orbit, op, self.radius[ts])
+            self.goto = torch.where(orbit[:, None], gp, self.goto)
+            a = torch.where(orbit[:, None], th, a)
+        a = self._phase1_combat(a, live, mode, t_ok, ts, pos0, vel0, vy_seen)
+        stop = live & (mode == STOP)
+        if not do:
+            v = self.vel.clone()
+            v[:, 1] = torch.where(stop, (vy - 0.07 * vy) * STOP_DAMP, v[:, 1])
+            self.vel = v
+        else:
+            steer = live & ~(self.disable_do_for_missiles & (mode == MISSILE))
+            a = self._orient_composed(a, steer)
+        self.last_g = torch.where(live[:, None], a, self.last_g)
+        self._clear_contacts(live)
+        # the releases after the follower's own turn (its thrust stands)
+        self._release_rows(after)
+
+    def _warp_path(self, rows: torch.Tensor) -> tuple:
+        """WarpDistance (Ballpark.cpp:4260; TRV-708 to TRV-713) with SetupWarpConstants, for the rows in warp proper:
+        (position, velocity, dropped out). The logs on the host; the exps glibc's (vec_exp)."""
+        wf = self.owner_id.to(F64)
+        wd = self.last_collision
+        s = (wf * WARP_FACTOR_TO_AU_PER_SECOND) * AU
+        acc = wf * WARP_FACTOR_TO_ACCELERATION
+        d0 = wf * WARP_FACTOR_TO_DECELERATION
+        dec = torch.where(2.0 < d0, 2.0, d0)
+        cap = (((wd + 1.0) * acc) * dec) / (acc + dec)
+        s = torch.where(cap < s, cap, s)
+        t_a = _host(math.log, s / acc, rows) / acc
+        t_c = (((wd / s) - (torch.ones_like(acc) / acc)) - (torch.ones_like(dec) / dec)) + (torch.ones_like(s) / s)
+        t_d = _host(math.log, s / dec, rows) / dec
+        d_a, d_c, d_d = s / acc, s * t_c, s / dec - 1.0
+        tt = (self.clock - self.effect_stamp).to(F64) * self.dt
+        p, v = self.pos, self.vel
+        d = _unit(self.goto - p)
+        total = (d_a + d_c) + d_d
+        b1 = tt < t_a
+        b2 = ~b1 & ((tt - t_a) < t_c)
+        b3 = ~b1 & ~b2 & (((tt - t_c) - t_a) < (t_d + 1.0))
+        b4 = ~b1 & ~b2 & ~b3
+        e1 = vec_exp.exp(acc * tt)
+        speed1 = acc * e1
+        cur = _len(v)
+        speed1 = torch.where(cur > speed1, cur, speed1)
+        v1 = d * speed1[:, None]
+        p1 = self.goto - d * (total - e1)[:, None]
+        v2 = d * s[:, None]
+        p2 = self.goto - d * (total - (s * (tt - t_a) + d_a))[:, None]
+        e3 = vec_exp.exp((-dec) * ((tt - t_c) - t_a))
+        speed3 = s * e3
+        v3 = d * speed3[:, None]
+        sd = s / dec
+        p3 = self.goto - d * (total - (((sd - sd * e3) + d_a) + d_c))[:, None]
+        half = _div(self.max_vel, 2.0)
+        drop3 = speed3 < torch.where(DROP_SPEED < half, DROP_SPEED, half)
+        pw = torch.where(b1[:, None], p1, torch.where(b2[:, None], p2, torch.where(b3[:, None], p3, self.goto)))
+        vw = torch.where(b1[:, None], v1, torch.where(b2[:, None], v2, torch.where(b3[:, None], v3, 0.0)))
+        drop = rows & ((b3 & drop3) | b4)
+        return pw, vw, drop
+
+    def _integrate_rows(self, p, v, a) -> tuple:
+        m = (self.mass * self.agility)[:, None]
+        return self._integrate(p, v, a, m, self.time_factor[:, None])
+
+    def _at_rest(self, dropped: torch.Tensor, wv: torch.Tensor) -> torch.Tensor:
+        """The drop-outs re-filed at their drop-out point: at rest, |v|^2 < 0.1 (modes.py:711)."""
+        return dropped & ~(_dot(wv, wv) >= REST_SQ)
+
+    def _existing(self) -> torch.Tensor:
+        """The rows holding a ball (the hook in `_phase1`; VecCombatPark: `exists`): every row here."""
+        return torch.ones(self.n, dtype=torch.bool, device=self.dev)
+
+    def _phase1_combat(self, a, live, mode, t_ok, ts, pos0, vel0, vy_seen) -> torch.Tensor:
+        """Phase 1's MISSILE and FORMATION thrusts (the hook in `_phase1`; VecCombatPark's): none here."""
+        return a
+
+    def _clear_contacts(self, live: torch.Tensor) -> None:
+        """Phase 1's clearing of the collision lists (the hook in `_phase1`; VecComposedPark's): no lists
+        here."""
+
+    def evolve_torch(self, active: torch.Tensor | None = None) -> None:
+        """One tick of every world on tensors: the main kernel's algorithm
+        (vec_modes_cuda.cu's main_kernel), the tick on a CPU device and a cross-check of the kernel on a CUDA one.
+        Phase 1 (`_phase1`: a warper's followers released before or after their own turn by their ids, every mode's
+        behaviour, dynamical orientation with a warper in warp proper turning toward its exit point), mLastCollision of
+        a massive ball (the gradient without neighbours), the warp paths and the drop-outs (massive and sensing again,
+        Stop, their state the drop-out point's), phases 3 and 4 (the warp path or the integrator with mLastG + 0, the
+        rotation a tick on, the commit: the new rotation and angular velocity where finite), PetrifyTroll of each troll
+        due, and every row's clock. The prepass's scratch (pos0, vel0, vy_after, act) is the kernel's own and is left as
+        it is. `active` [n]: OnTick's per-world mask, as `evolve`'s (vec_orient.masked_tick, in
+        place)."""
+        if active is not None:
+            masked_tick(self, active, lambda: VecModesPark.evolve_torch(self), in_place=True)
+            return
+        live = self.free & ~self.moribund
+        do = self.dynamical_orientation
+        self._phase1(live)
+        warping = live & (self.mode == WARP) & (self.effect_stamp >= 0)
+        self.last_collision = torch.where(live & self.massive, -1.0, self.last_collision)
+        wp, wv, dropped = self._warp_path(warping)
+        # the drop-out: massive and sensing again, Stop (no follower: a warper is none), the drop-out point's state
+        self.massive = torch.where(dropped, True, self.massive)
+        self.sensor = torch.where(dropped, True, self.sensor)
+        self._stop_rows(dropped)
+        self.pos = torch.where(dropped[:, None], wp, self.pos)
+        self.vel = torch.where(dropped[:, None], wv, self.vel)
+        # phase 3: the end-of-tick states (mLastG + mLastC, zero without collisions: -0 becomes +0); the rotation
+        pn, vn = self._integrate_rows(self.pos, self.vel, self.last_g + 0.0)
+        coast = warping & ~dropped
+        pn = torch.where(coast[:, None], wp, pn)
+        vn = torch.where(coast[:, None], wv, vn)
+        if do:
+            rot1, w1 = self._apply_torque(_cols(f32(self.torque)), f32(self.rot_roll), self._tau())
+            rot1, w1 = _stack(rot1), _stack(w1)
+        # phase 4: the commit of every live ball
+        sel = live[:, None]
+        self.old_pos = torch.where(sel, self.pos, self.old_pos)
+        self.old_vel = torch.where(sel, self.vel, self.old_vel)
+        self.pos = torch.where(sel, pn, self.pos)
+        self.vel = torch.where(sel, vn, self.vel)
+        if do:
+            q = rot1
+            rot_ok = torch.isfinite(f32(f32(f32(f32(q[:, 0] * q[:, 0]) + f32(q[:, 1] * q[:, 1]))
+                                            + f32(q[:, 2] * q[:, 2])) + f32(q[:, 3] * q[:, 3])))
+            w_ok = torch.isfinite(f32(f32(f32(w1[:, 0] * w1[:, 0]) + f32(w1[:, 1] * w1[:, 1]))
+                                      + f32(w1[:, 2] * w1[:, 2])))
+            r0, w0 = self.rot, self.ang_vel
+            self.rot = torch.where(sel & rot_ok[:, None], rot1, r0)
+            self.old_rot = torch.where(sel & rot_ok[:, None], r0, torch.where(sel, rot1, self.old_rot))
+            self.ang_vel = torch.where(sel & w_ok[:, None], w1, w0)
+            self.old_ang_vel = torch.where(sel & w_ok[:, None], w0, torch.where(sel, w1, self.old_ang_vel))
+        # PetrifyTroll (Ballpark.cpp:6327; MOV-736) of each live troll due (TrollReady, 6315: not effect_stamp > clock),
+        # after the commit, as the kernel does it: SetBallFree(false) (Stop(Ball*), a troll following nothing;
+        # SetBallVelocity(0, 0, 0), the new and old velocity, whose rotation snap leaves a ball at rest as it is; out of
+        # the free set; mLastG cleared), SetBallInteractive(false), RIGID
+        due = live & (self.mode == TROLL) & ~(self.effect_stamp > self.clock)
+        self.vel = torch.where(due[:, None], 0.0, self.vel)
+        self.old_vel = torch.where(due[:, None], 0.0, self.old_vel)
+        self.last_g = torch.where(due[:, None], 0.0, self.last_g)
+        self.free = self.free & ~due
+        self.interactive = self.interactive & ~due
+        self.mode = torch.where(due, RIGID, self.mode)
+        self.clock = self.clock + 1
+        self.current_time += 1
+
     # ---- one tick (Ballpark::Evolve, TIME-706, TIME-707) ----
 
     def evolve(self, lib: dict | None = None, active: torch.Tensor | None = None) -> None:
-        """One tick of every world, in place: the prepass and the main kernel (vec_modes_cuda.tick), no host sync.
+        """One tick of every world, in place: on a CUDA device the prepass and the main kernel (vec_modes_cuda.tick), no
+        host sync; on any other device the same tick on tensors (`evolve_torch`; `lib`, a kernel
+        library, is refused there).
         `active` [n] (OnTick's per-world mask, a world's rows together): only those rows tick; every
         other row keeps every per-row tensor, its world's clock included, bit for bit (vec_orient.masked_tick: the
         kernel runs for every row, whose reads stay in its world, and the other rows are put back in place; no host
         sync, so a CUDA graph captures it)."""
+        if self.dev.type != "cuda":                 # the tick on tensors off a CUDA device
+            if lib is not None:
+                raise ValueError("lib is a kernel library: a park on the CPU ticks on tensors (evolve_torch)")
+            self.evolve_torch(active)
+            return
         if active is not None:
             masked_tick(self, active, lambda: VecModesPark.evolve(self, lib), in_place=True)
             return

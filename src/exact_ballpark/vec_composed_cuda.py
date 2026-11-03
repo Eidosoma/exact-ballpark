@@ -440,10 +440,14 @@ class ComposedGraph:
     vec_modes_cuda.ModesGraph's): `tick(active)`."""
 
     def __init__(self, park, block: int = BLOCK, libs: dict | None = None, masked: bool = False):
+        if park.dev.type != "cuda":                 # before any library is loaded or built
+            raise ValueError("a CUDA graph needs a park on a CUDA device (evolve_torch is the CPU path; evolve "
+                             "takes it there)")
         if not park.dynamical_orientation:
             raise ValueError("without dynamical orientation a tick needs the host (the yaw, pitch and roll)")
         if not park.collisions:
-            raise ValueError("ComposedGraph captures the composed tick (collisions on); VecCombatPark's is CombatGraph")
+            raise ValueError("ComposedGraph captures the composed tick (collisions on); with collisions off the park "
+                             "ticks by evolve (VecCombatPark's kernels, then its collision lists)")
         self.park, self.block = park, int(block)
         self.libs = libs or libraries()
         self.names = ([n for n, _, _ in MK.STATE_TENSORS] + [n for n, _, _ in KC.COMBAT_TENSORS]

@@ -13,8 +13,8 @@ velocity, stops a formation follower (freeing its slot) and every other follower
 It must reproduce `exact_ballpark.server` (Actions, Ticker, BubbleUpdater, ParkUpdateBatcher on a master DestinyPark over
 FullBallpark: this port's LaunchMissile thunk, PyLaunchMissile, with its parse and the negative-target refusal) bit for
 bit; checked by tests/test_movement_vec_server_combat.py on generated command streams (tests/server_combat_cases.py)
-on the CPU (VecCombatPark's torch tick: GOTO, STOP, MISSILE and FORMATION) and the GPU (its kernels: FOLLOW, ORBIT and
-WARP too): every client's update list and every ball's state.
+on the CPU (VecCombatPark's torch tick: every mode, FOLLOW, ORBIT and WARP included) and the GPU (its
+kernels): every client's update list and every ball's state.
 
 **The worlds** are VecServer's (one bubble a world, static, kept alive by an interactive ball), on VecCombatPark with
 `master=True`: the missile balls are in the park from the load (in STOP until LaunchMissile), as the server's queue
@@ -54,7 +54,7 @@ I64, BOOL = torch.int64, torch.bool
 class CombatAdapter(VS.ModesAdapter):
     """ModesAdapter over VecCombatPark: every kind ModesAdapter applies and LaunchMissile; `exists` is the park's (an
     empty row is no ball); its stream fields carry the formation id. On the CPU the park's tick is its torch path
-    (`evolve_torch`: GOTO, STOP, MISSILE and FORMATION), on a CUDA device its kernels."""
+    (`evolve_torch`, every mode), on a CUDA device its kernels."""
 
     def __init__(self, park, master: bool = True):
         from .vec_combat import VecCombatPark

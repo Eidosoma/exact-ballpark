@@ -324,13 +324,168 @@ def test_a_massive_warper_is_refused_by_the_kernel_too():
     assert flags[0] == flags[1] and flags[1][0] & vp.FLAG_WARP_MASSIVE
 
 
-def test_the_kernel_path_needs_a_card():
-    """On the CPU, evolve with collisions on refuses (the kernels need a CUDA device; evolve_torch is the CPU path)."""
+def test_the_kernel_path_needs_a_card(monkeypatch):
+    """The kernels and ComposedGraph refuse a park on the CPU (they need a CUDA device; evolve_torch is the CPU path),
+    before any library is loaded; on the CPU `evolve` is the tick on tensors, a kernel library
+    refused."""
+    monkeypatch.setattr(KP, "libraries", lambda *a, **k: pytest.fail("the libraries were loaded for a CPU park"))
     cfg = pc.batches(1, 1, 2)[0]
     rows, _ = dc.rows_for(cfg)
     p = _park(cfg, rows, "cpu")
+    for fn in (KP.tick, KP.after):
+        with pytest.raises(ValueError, match="CUDA device"):
+            fn(p)
+    p.dynamical_orientation = True
     with pytest.raises(ValueError, match="CUDA device"):
-        p.evolve()
+        KP.ComposedGraph(p)
+    p.dynamical_orientation = bool(cfg["do"])
+    with pytest.raises(ValueError, match="kernel library"):
+        p.evolve(lib={})
+    q = _park(cfg, rows, "cpu")
+    p.evolve()
+    q.evolve_torch()
+    for name in p.row_tensors():
+        x, y = getattr(p, name), getattr(q, name)
+        assert torch.equal(x.view(torch.int64) if x.dtype == torch.float64 else x,
+                           y.view(torch.int64) if y.dtype == torch.float64 else y), name
+
+
+# ---- with collisions off, the collision lists after the kernels ----
+
+class _CardLists(vp.VecComposedPark):
+    """VecComposedPark with collisions off whose tick on tensors is checked, each tick, against the card's bookkeeping:
+    after the tick its lists are made junk and hits_n is put back to the kernels' count (its own less ev_self), and
+    `_lists_from_counts` from the follow ids at the tick's start must give back the tick's hits and hits_n bit for bit
+    (then the tick's own are put back). `evolve_torch` is replaced on the instance, so the class's own stays the park's
+    (`_g11` reads it)."""
+    seen: Counter = Counter()
+
+    def __init__(self, *a, **kw):
+        kw["collisions"] = False
+        super().__init__(*a, **kw)
+        self.evolve_torch = self._checked_tick
+
+    def _checked_tick(self, active=None):
+        assert active is None
+        follow, ptr = self.follow_id.clone(), self.follow_ptr.clone()
+        vp.VecComposedPark.evolve_torch(self)
+        want_h, want_n = self.hits.clone(), self.hits_n.clone()
+        count = want_n - self.ev_self.to(torch.int64)
+        self.hits, self.hits_n = torch.full_like(want_h, -7), count.clone()
+        self._lists_from_counts(follow)
+        s = _CardLists.seen
+        s["ticks"] += 1
+        s["differ"] += int(not (torch.equal(self.hits, want_h) and torch.equal(self.hits_n, want_n)))
+        s["contacts"] += int((count > 0).sum())
+        s["self_collisions"] += int(self.ev_self.sum())
+        t = ptr.clamp(min=0)
+        s["released_after_a_contact"] += int(((count > 0) & (ptr >= 0) & self.dying.bool()[t]
+                                              & (self.follow_ptr < 0)).sum())
+        self.hits, self.hits_n = want_h, want_n
+
+
+def test_with_collisions_off_the_lists_follow_from_the_kernels_counts():
+    """With collisions off, `evolve` on a card ticks with VecCombatPark's kernels, which
+    count each row's contacts with its target (hits_n) and the master's self-collision (ev_self) but keep no list, then
+    makes the lists from those counts and the follow ids at the tick's start (`_lists_from_counts`). Here on the CPU,
+    every tick of the worlds (development seed 1), the released missiles' worlds of
+    tests/test_movement_vec_defenders.py and the mushroom worlds (seed 1, missiles released after a
+    contact with a mushroom removed that tick): from the tick on tensors' own counts, `_lists_from_counts` gives back
+    its hits and hits_n bit for bit, every row. (The card's item compares the kernels' own counts.)"""
+    import composed_leftover_cases as clc
+    import test_movement_vec_defenders as td
+    _CardLists.seen = Counter()
+    for cfg in dc.batches(1, 6, 24) + td.owner_cfgs()[:4]:
+        pc.batched(cfg, "cpu", park_cls=_CardLists)
+    for cfg in clc.batches(1, 12, 12):
+        clc.batched(cfg, "cpu", park_cls=_CardLists)
+    s = _CardLists.seen
+    assert s["differ"] == 0, dict(s)
+    assert (s["ticks"] >= 373 and s["contacts"] >= 887 and s["self_collisions"] >= 88
+            and s["released_after_a_contact"] >= 6), dict(s)       # the run: these, exactly
+
+
+def test_a_combat_graph_refuses_the_composed_park(monkeypatch):
+    """CombatGraph captures VecCombatPark's kernels alone, so it refuses a VecComposedPark (with
+    collisions off its lists are made after the kernels, by `evolve`; with them on its tick is ComposedGraph's), before
+    any library is loaded; ComposedGraph's refusal of collisions off names `evolve`."""
+    from exact_ballpark import vec_combat_cuda as KC
+    monkeypatch.setattr(KC, "load_library", lambda *a, **k: pytest.fail("the library was loaded"))
+    monkeypatch.setattr(KP, "libraries", lambda *a, **k: pytest.fail("the libraries were loaded"))
+    cfg = pc.batches(1, 1, 2)[0]
+    rows, _ = dc.rows_for(cfg)
+    for collisions in (False, True):
+        p = _park(cfg, rows, "cpu", collisions=collisions)
+        p.dynamical_orientation = True
+        with pytest.raises(ValueError, match="a VecComposedPark ticks by ComposedGraph"):
+            KC.CombatGraph(p)
+    q = _park(cfg, rows, "cpu", collisions=False)
+    q.dynamical_orientation = True
+    q.dev = torch.device("cuda")                    # past the device check, as a card's park (nothing runs)
+    with pytest.raises(ValueError, match="with collisions off the park ticks by evolve"):
+        KP.ComposedGraph(q)
+
+
+def _lockstep_off_masked(cfg: dict, cls, masked: bool, seed: int = 5) -> tuple:
+    """Two collisions-off parks on the card, the tick on tensors (A) and the kernel path (B), the same commands, every
+    state tensor compared after every step; with `masked` each tick under OnTick's per-world mask (a seeded half of the
+    worlds, a world's rows together)."""
+    rows, where = dc.rows_for(cfg)
+    A, B = _park(cfg, rows, "cuda", cls), _park(cfg, rows, "cuda", cls)
+    W = len(cfg["worlds"])
+    outs = {k: [{"S": {}, "E": [], "A": [], "B": [], "X": None} for _ in range(W)] for k in "AB"}
+    by_step = [defaultdict(list) for _ in range(W)]
+    for wi, w in enumerate(cfg["worlds"]):
+        for rec in w["records"]:
+            by_step[wi][rec[0]].append(rec)
+    g = torch.Generator().manual_seed(seed)
+    out, examples = Counter(), []
+    compare(A, B, out, examples, ("load",))
+    for s in range(cfg["steps"] + 1):
+        slots = max(len(by_step[wi].get(s, ())) for wi in range(W))
+        for j in range(slots):
+            recs = {wi: by_step[wi][s][j] for wi in range(W) if j < len(by_step[wi].get(s, ()))}
+            pc.apply_batch(A, recs, where, len(rows), outs["A"])
+            pc.apply_batch(B, recs, where, len(rows), outs["B"])
+        if s > 0:
+            act = (torch.rand(W, generator=g) < 0.5)[A.world_index.cpu()].to("cuda") if masked else None
+            A.evolve_torch(act)
+            B.evolve(None, act)
+            ea, eb = A.events(), B.events()
+            out["events"] += len(ea)
+            if ea != eb:
+                out["events_differ"] += 1
+                examples.append((s, "events", ea[:3], eb[:3]))
+            out["ticks"] += 1
+            out["lists"] += int((A.hits_n > 0).sum())
+        compare(A, B, out, examples, (s,))
+    return out, examples
+
+
+@CUDA
+def test_with_collisions_off_the_kernel_path_keeps_the_tensor_ticks_lists():
+    """On the card, with collisions off, the kernel path (VecCombatPark's kernels, then
+    `_lists_from_counts`) equals the tick on tensors on the same card, every state tensor every tick, `hits` and
+    `hits_n` among them: the worlds (two batches), every tick unmasked and under OnTick's per-world mask;
+    and the mushroom worlds (seed 1, four batches): every ball's state and collision list at every step
+    and the events."""
+    import composed_leftover_cases as clc
+    import test_movement_vec_defenders as td
+    out, ex = Counter(), []
+    for cfg in dc.batches(1, 6, 24)[:2]:
+        for masked in (False, True):
+            o, e = _lockstep_off_masked(cfg, td._Off, masked)
+            out.update(o)
+            ex.extend(e[:3])
+    _clean(out, ex)
+    assert out["ticks"] > 0 and out["lists"] > 0 and out["events"] > 0, dict(out)
+    lists = 0
+    for cfg in clc.batches(1, 12, 12)[:4]:
+        a, _ = clc.batched(cfg, "cuda", path="torch", park_cls=td._Off)
+        b, _ = clc.batched(cfg, "cuda", path="kernel", park_cls=td._Off)
+        assert all(not clc.differences(x, y) for x, y in zip(a, b))
+        lists += sum(1 for w in a for st in w["S"].values() for row in st.values() if row["collisions"])
+    assert lists > 0
 
 
 # ---- planted faults: each must change the comparison ----

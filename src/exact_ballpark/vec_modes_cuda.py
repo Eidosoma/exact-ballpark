@@ -322,6 +322,9 @@ def make_state(park) -> State:
 def tick(park, block: int = 128, lib: dict | None = None) -> None:
     """One tick of a VecModesPark in place: the prepass and the main kernel, on torch's current stream of the park's
     device; no allocation, no host synchronisation."""
+    if park.dev.type != "cuda":                 # before any library is loaded or built
+        raise ValueError("the modes kernel needs a park on a CUDA device (evolve_torch is the CPU path; evolve "
+                         "takes it there)")
     e = lib or load_library()
     s = make_state(park)
     if not park.n:
@@ -375,6 +378,9 @@ class ModesGraph:
     mask and replays (every row when active is None)."""
 
     def __init__(self, park, block: int | None = None, lib: dict | None = None, masked: bool = False):
+        if park.dev.type != "cuda":                 # before any library is loaded or built
+            raise ValueError("a CUDA graph needs a park on a CUDA device (evolve_torch is the CPU path; evolve "
+                             "takes it there)")
         self.park, self.block = park, park.block if block is None else int(block)
         self.lib = lib or load_library()
         self.buf = {}

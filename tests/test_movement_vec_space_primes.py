@@ -153,6 +153,13 @@ def test_the_kernel_matches_the_reference_crowded_worlds_development(park):
                                                        "world_steps": 400})
 
 
+def test_the_host_path_matches_the_reference_crowded_modes_worlds():
+    """VecModesPark's crowded worlds on the CPU (its tick on tensors), development and held-out."""
+    for seed in DEV + HELD_OUT:
+        assert_exact(run(seed, 40, "modes", 12, "cpu"), {"ball_fields": 100000, "bucket_states": 10000,
+                                                         "world_steps": 400})
+
+
 @CUDA
 @pytest.mark.parametrize("park", ["orient", "modes"])
 def test_the_kernel_matches_the_reference_crowded_worlds_held_out(park):

@@ -237,6 +237,13 @@ def test_the_kernel_matches_the_reference_modes_worlds():
         assert_exact(res, {"ball_fields": 40000, "rand_states": 1900, "shuffled_records": 900, "events": 100})
 
 
+def test_the_host_path_matches_the_reference_modes_worlds():
+    """the same worlds on the CPU (VecModesPark's tick on tensors, the layer's host path)."""
+    for seed in (101, HELD_OUT):
+        res = run(seed, 120, "modes", 16, "cpu")
+        assert_exact(res, {"ball_fields": 40000, "rand_states": 1900, "shuffled_records": 900, "events": 100})
+
+
 @CUDA
 def test_the_kernel_matches_the_reference_orient_worlds():
     res = run(102, 120, "orient", 16, "cuda")

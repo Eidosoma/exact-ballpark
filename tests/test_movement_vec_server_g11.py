@@ -178,6 +178,15 @@ def test_the_modes_layer_matches_the_scalar_layer_on_the_gpu(server_kernel, do, 
     assert out["trolls"] > 0 and out["rigid"] > 0 and out["fixed"] > 0 and out["stale_members_kept"] > 0, out
 
 
+@pytest.mark.parametrize("do", [False, True])
+@pytest.mark.parametrize("seed", [1, 2], ids=["development", "held_out"])
+def test_the_modes_layer_matches_the_scalar_layer_on_the_cpu(do, seed):
+    """the same on the CPU, VecModesPark's tick on tensors (PetrifyTroll as the kernel does it)."""
+    out, bad = G.run_modes(G.modes_cases(seed, 40, do), "cpu", do=do, evolve=True)
+    _clean(out, bad)
+    assert out["trolls"] > 0 and out["rigid"] > 0 and out["fixed"] > 0 and out["stale_members_kept"] > 0, out
+
+
 def _modes_pair(cs: list, do: bool, fault: str | None = None) -> tuple:
     ts, index = S.build(cs, "modes", "cuda", do=do)
     ks, _ = S.build(cs, "modes", "cuda", do=do, server_kernel="cuda")

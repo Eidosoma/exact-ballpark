@@ -115,8 +115,11 @@ port reproduces libstdc++'s order (`numerics.md`, section 6). Another standard l
 - **The `oracle` tests** skip when the harnesses are not built. Built with another compiler or C library, they test the
   reference against destiny as built there. That is meaningful, but it is not the qualified platform.
 - **The `gpu` tests** skip without a CUDA device and `nvcc`.
-- **The space layer's CPU path** is host code compiled by nvcc, so its CPU tests need `nvcc` but no GPU. Its build
-  check refuses fused instructions in that host code, and it knows aarch64's fused instructions only.
+- **The space layer's CPU path** is compiled host code. Where `nvcc` is found, `nvcc` builds it; without `nvcc`, `g++`
+  builds the host functions alone, with the flags `nvcc` gives its host compiler (`devices.md`). So its CPU tests need
+  `nvcc` or `g++`, but no GPU. Its build check refuses fused instructions in that host code, and it knows aarch64's
+  fused instructions only.
+- **The `g++` build** takes `g++` from `EXACT_BALLPARK_CXX`, else `PATH`, and binutils' `objdump` for its check.
 - **Everything the GPU builds need:**
   - `nvcc`, from `EXACT_BALLPARK_NVCC`, else `$CUDA_HOME/bin/nvcc`, else `PATH`;
   - `cuobjdump`, beside `nvcc`, for the PTX check;

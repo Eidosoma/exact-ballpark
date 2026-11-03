@@ -7,7 +7,11 @@ second takes the first's id), every ship re-filed every tick, each with a 5 km p
 eager (VecSpace.tick: the dead-bubble skip, the kernel, the re-filings and HandleProximities; three of the layer's
 launches and the park's two), the same as one replay of a CUDA graph (SpaceGraph), and as a graph without the sensors
 (the partition alone). Each mode a warm-up, then
-ticks for about `seconds`, timed between device syncs. Engineering only: the login card is shared."""
+ticks for about `seconds`, timed between device syncs. Engineering only: the login card is shared.
+
+The units. A width is a number of worlds, each of four ships (`build`). Each row reports `worlds`, `ships`, and per
+mode `ms_per_tick` (the wall time of one batch tick, every world stepped once), `world_ticks_per_s` (worlds a batch
+tick over its seconds) and `ship_ticks_per_s` (ships over the same), beside the former `*_ms` fields."""
 
 from __future__ import annotations
 
@@ -25,6 +29,7 @@ TOP = LEVEL_WIDTH[0]
 
 
 def build(W: int, device: str, sensors: bool = True) -> tuple:
+    """(park, space): W worlds of four ships, rows world-major (the space's [W, 4] row map)."""
     g = torch.Generator().manual_seed(1)
     rows = []
     for w in range(W):
@@ -75,6 +80,14 @@ def build_server(W: int, device: str) -> tuple:
     return server, tick
 
 
+def rates(worlds: int, ships: int, ms: dict) -> dict:
+    """A row's units from each mode's ms a batch tick: {"ms_per_tick", "world_ticks_per_s", "ship_ticks_per_s"}, each
+    {mode: value}."""
+    return {"ms_per_tick": {k: round(v, 4) for k, v in ms.items()},
+            "world_ticks_per_s": {k: round(worlds * 1e3 / v, 1) for k, v in ms.items()},
+            "ship_ticks_per_s": {k: round(ships * 1e3 / v, 1) for k, v in ms.items()}}
+
+
 def timed(fn, seconds: float, dev) -> float:
     fn()
     torch.cuda.synchronize(dev)
@@ -118,6 +131,8 @@ def main() -> None:
                "mean_bubble_ids": bubbles,
                "events_last": int(space.st["evn"].sum().item()), "flags": int((space.st["flags"] != 0).sum().item()),
                "peak_mib": round(torch.cuda.max_memory_allocated(dev) / 2 ** 20, 1)}
+        row.update(rates(W, 4 * W, {"park": park_ms, "layer_eager": eager_ms, "layer_graph": graph_ms,
+                                    "partition_only_graph": partition_ms}))
         out["rows"].append(row)
         print(json.dumps(row), flush=True)
         if a.out:
@@ -130,7 +145,8 @@ def main() -> None:
         server, tick = build_server(W, "cuda")
         ms = timed(tick, a.seconds, dev)
         row = {"worlds": W, "ships": 4 * W, "server_torch_eager_ms": round(ms, 3),
-               "peak_mib": round(torch.cuda.max_memory_allocated(dev) / 2 ** 20, 1)}
+               "peak_mib": round(torch.cuda.max_memory_allocated(dev) / 2 ** 20, 1),
+               **rates(W, 4 * W, {"server_torch_eager": ms})}
         out["server_rows"].append(row)
         print(json.dumps(row), flush=True)
         if a.out:

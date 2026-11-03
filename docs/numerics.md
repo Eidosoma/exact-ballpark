@@ -219,8 +219,13 @@ Two forms need a note:
   nonzero operand, where they equal the ternaries for every input, NaN included.
 
 **The host check.** The space layer's sequential algorithm is compiled by nvcc into both host functions (its CPU path)
-and kernels. The build disassembles the host code and refuses any fused instruction in it (on aarch64: `fmadd`,
-`fmsub`, `fnmadd`, `fnmsub`, `fmla`, `fmls`).
+and kernels.
+- **Without nvcc,** g++ compiles the host functions alone, from the same source and header. It uses the flags nvcc
+  gives its host compiler (`-O3 -std=c++17 -fPIC -ffp-contract=off -fno-fast-math`), with the source's three CUDA
+  qualifiers defined empty. Its library is cached under its own name, keyed by the compiler's path and version.
+- **Either way,** the build disassembles the host code and refuses any fused instruction in it (on aarch64: `fmadd`,
+  `fmsub`, `fnmadd`, `fnmsub`, `fmla`, `fmls`).
+- **The two compilers agree.** On the qualified platform, their host code gives the same bits (`devices.md`, section 4).
 
 **Constants are generated, never typed.**
 - **The generated header.** Every table and constant a kernel needs is written into a header at build time, as bit

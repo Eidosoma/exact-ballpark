@@ -219,10 +219,39 @@ def test_collisions_off_is_vec_combat_parks_tick():
     _clean(out, 135, allowed=vc.FLAG_MASSIVE)
 
 
+def test_with_collisions_off_the_lists_are_fullballparks():
+    """Why the card keeps the collision lists with collisions off:
+    in VecCombatPark's domain (no two massive balls a world but missiles) the tick on tensors keeps each ball's list as
+    FullBallpark keeps Ball::mCollisions (Potential appends the target's id once a contact, then the master's
+    self-collision), so `hits` and `hits_n` are the reference's state, not this port's own bookkeeping: on the worlds (development seed 1) every ball's list at every step equals the reference's, as do the events."""
+    out = Counter()
+    for cfg in dc.batches(1, 6, 24):
+        got, park = pc.batched(cfg, "cpu", collisions=False)
+        flags = park.world_flags()
+        for wi, w in enumerate(cfg["worlds"]):
+            want = pc.reference(cfg, w)
+            if not dc.in_domain(want) or flags[wi]:
+                out["not_compared"] += 1
+                continue
+            out["worlds"] += 1
+            for s, balls in want["S"].items():
+                for bid, row in balls.items():
+                    g = got[wi]["S"].get(s, {}).get(bid)
+                    out["lists"] += 1
+                    out["entries"] += len(row["collisions"])
+                    out["self_entries"] += row["collisions"].count(bid)
+                    if g is None or g["collisions"] != row["collisions"]:
+                        out["differ"] += 1
+            out["events"] += len(want["E"])
+            out["events_differ"] += want["E"] != got[wi]["E"]
+    assert out["differ"] == 0 and out["events_differ"] == 0, dict(out)
+    assert out["worlds"] >= 144 and out["entries"] >= 446 and out["self_entries"] >= 88, dict(out)   # a recorded run
+
+
 def test_the_domain_is_refused_not_guessed():
     """A massive ball in warp proper (SetBallMassive during a warp) and, on the master, a normal cloak's proximity
-    sensor are flagged and raised by check(); the kernel path (`evolve` with collisions on) needs a CUDA device
-    (tests/test_movement_vec_composed_cuda.py)."""
+    sensor are flagged and raised by check(); on the CPU `evolve` is the tick on tensors (the kernel
+    path is tests/test_movement_vec_composed_cuda.py), a kernel library refused."""
     cfg = _drop_world(0.0)
     rows, where = dc.rows_for(cfg)
     p = vp.VecComposedPark(len(rows), cfg["friction"], cfg["tick"], "cpu")
@@ -238,8 +267,19 @@ def test_the_domain_is_refused_not_guessed():
     assert p.world_flags()[0] & vp.FLAG_WARP_MASSIVE
     with pytest.raises(RuntimeError, match="warp proper"):
         p.check()
-    with pytest.raises(ValueError, match="CUDA device"):
-        p.evolve()
+    with pytest.raises(ValueError, match="kernel library"):
+        p.evolve(lib={})
+    q = vp.VecComposedPark(len(rows), cfg["friction"], cfg["tick"], "cpu")
+    q.load(rows)
+    for name in p.row_tensors():                     # q now holds p's state, row for row
+        setattr(q, name, getattr(p, name).clone())
+    q.current_time = p.current_time
+    p.evolve()
+    q.evolve_torch()
+    for name in p.row_tensors():
+        x, y = getattr(p, name), getattr(q, name)
+        assert torch.equal(x.view(torch.int64) if x.dtype == torch.float64 else x,
+                           y.view(torch.int64) if y.dtype == torch.float64 else y), name
     m = vp.VecComposedPark(len(rows), cfg["friction"], cfg["tick"], "cpu", master=True)
     m.load([{**r, "bubble": 0} for r in rows])
     m.cloak(one, torch.ones(n, dtype=torch.int64))

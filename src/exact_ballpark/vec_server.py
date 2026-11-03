@@ -269,8 +269,8 @@ class _Adapter:
 
 
 class ModesAdapter(_Adapter):
-    """exact_ballpark.vec_modes.VecModesPark: its rows, worlds (`world`), ids and flags; every kind; its tick the CUDA
-    kernel (on the CPU only the pre-tick runs)."""
+    """exact_ballpark.vec_modes.VecModesPark: its rows, worlds (`world`), ids and flags; every kind; its tick the park's
+    `evolve` (the CUDA kernel on a CUDA device, the tick on tensors elsewhere)."""
 
     def __init__(self, park, master: bool = True):
         self.park, self.R, self.dev, self.master = park, park.n, park.dev, bool(master)

@@ -10,5 +10,9 @@
 - **`platform.md`:** the qualified platform, what "qualified" means, and how to qualify another compiler, C library or
   GPU.
 - **`limits.md`:** what is not covered, or covered only on some paths, park by park.
+- **`devices.md`:** where each park and layer runs (the CPU, the GPU's PyTorch path, the CUDA kernels and the CUDA
+  graphs), what each path needs, and the evidence that the paths agree.
+- **`benchmarks.md`:** every speed measurement, in world-ticks a second, for each layer and world count on an otherwise
+  idle NVIDIA GH200, with each measurement's spread and the environment.
 - **`rules.md`:** the table of destiny's rules this port is held to. Each rule has its source location in destiny and
   the tests that check it.

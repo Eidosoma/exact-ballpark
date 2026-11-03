@@ -492,5 +492,6 @@ def in_domain(want: dict) -> bool:
 
 
 def torch_domain(w: dict) -> bool:
-    """A world VecCombatPark.evolve_torch holds (GOTO, STOP, MISSILE and FORMATION: no warp)."""
-    return not any(rec[1] == "warp" for rec in w["records"])
+    """A world VecCombatPark.evolve_torch holds: every world (the tensor tick holds
+    FOLLOW, ORBIT and WARP too; it held GOTO, STOP, MISSILE and FORMATION before, no warp)."""
+    return True

@@ -4,8 +4,10 @@
 target, collision events, release and end) and formations (the slots and formation follow), with cloaking at the
 park, for many independent worlds, on the flight park of step 3 (`exact_ballpark.vec_modes.VecModesPark`, whose
 GOTO, STOP, FOLLOW, ORBIT, WARP, setters and dynamical orientation are kept unchanged); the tick is four CUDA launches
-(exact_ballpark.vec_combat_cuda; `evolve`), or the same algorithm on tensors for GOTO, STOP, MISSILE and FORMATION on the
-CPU or the GPU (`evolve_torch`); the commands are torch operations on either device.
+(exact_ballpark.vec_combat_cuda; `evolve`), or the same algorithm on tensors for every mode on the CPU or the GPU
+(`evolve_torch`: VecComposedPark's tick with collisions off, which held FOLLOW,
+ORBIT and WARP, moved here; `evolve` takes it on any device but a CUDA one); the commands are torch operations on
+either device.
 
 It must reproduce `exact_ballpark.full.FullBallpark` bit for bit (the gradient method, Destiny's default; on a client
 or, with `master=True`, on the master with one live bubble a world), which is held bit for bit to Destiny's own code
@@ -85,8 +87,7 @@ host round trips a tick (with `ypr="host"`, the default), so only a park with it
 
 Not here: defender missiles, the iterative collision method, missiles beside VecCollidePark (ships colliding while
 missiles fly), RemoveBall with a delay (moribund until BringOutTheDeads), the master's proximity sensors
-(exact_ballpark.vec_space), the server layer's actions for these commands (exact_ballpark.vec_server's kinds), FOLLOW, ORBIT
-and WARP in `evolve_torch` (the kernels hold them).
+(exact_ballpark.vec_space), the server layer's actions for these commands (exact_ballpark.vec_server's kinds).
 """
 
 from __future__ import annotations
@@ -105,10 +106,11 @@ from .full import FORMATION_MAX_SLOTS, HALF_PI, MISSILE_LAUNCH_SPEED, ROLL_ACCEL
 from .full import MISSILE_STRAIGHT_MS as FU_MISSILE_STRAIGHT_MS
 from .modes import FOLLOW, FORMATION, MISSILE, ORBIT, RIGID, TROLL, WARP
 from .modes import MINIBALL as MINIBALL_MODE
+from .modes import MUSHROOM
 from .modes import MUSHROOM as MUSHROOM_MODE
-from .ref import GOTO, STOP
-from .ref import STOP_DAMP as STOP_DAMP_C
-from .vec_modes import VecModesPark
+from .ref import GOTO, STOP                           # noqa: F401 (GOTO: the tests read vc.GOTO)
+from .vec_modes import VecModesPark, q_rotation_ypr  # noqa: F401 (q_rotation_ypr moved there)
+from .vec_modes import q_rotation_ypr as _q_rotation_ypr  # (the name the moved _formation_thrust reads)
 from .vec_orient import _cols, _stack, m_rotation_q, masked_tick, transform_coord
 
 F64, I64, BOOL = torch.float64, torch.int64, torch.bool
@@ -142,18 +144,9 @@ def _fmin(a, b):
     return torch.where(b < a, b, a)
 
 
-def q_rotation_ypr(yaw: torch.Tensor, pitch: torch.Tensor, roll: torch.Tensor) -> tuple:
-    """RotationQuaternion(yaw, pitch, roll) (exact_ballpark.full.q_rotation_ypr: DirectXMath's scalar path) on floats
-    held in float64: half angles, cosf and sinf, four sums of float products left to right."""
-    hp, hy, hr = f32(pitch * 0.5), f32(yaw * 0.5), f32(roll * 0.5)
-    cp, sp, cy, sy, cr, sr = L.cosf(hp), L.sinf(hp), L.cosf(hy), L.sinf(hy), L.cosf(hr), L.sinf(hr)
-    return (f32(f32(f32(cr * sp) * cy) + f32(f32(sr * cp) * sy)), f32(f32(f32(cr * cp) * sy) - f32(f32(sr * sp) * cy)),
-            f32(f32(f32(sr * cp) * cy) - f32(f32(cr * sp) * sy)), f32(f32(f32(cr * cp) * cy) + f32(f32(sr * sp) * sy)))
-
-
 class VecCombatPark(VecModesPark):
     """VecModesPark with MISSILE and FORMATION, the missiles' contacts and collision events, cloaking at the park,
-    AddBall and RemoveBall mid-run; the tick four CUDA launches (vec_combat_cuda)."""
+    AddBall and RemoveBall mid-run; the tick four CUDA launches (vec_combat_cuda), or on tensors (`evolve_torch`)."""
 
     def __init__(self, n: int, friction: float = 1.0e6, tick_interval_ms: int = 1000, device="cuda",
                  dynamical_orientation: bool = False, use_new_orbit: bool = False, block: int = 128,
@@ -365,15 +358,6 @@ class VecCombatPark(VecModesPark):
         self.speed_fraction = torch.where(ok, 1.0, self.speed_fraction)
         self.mode = torch.where(ok, MISSILE, self.mode)
         self.flags |= torch.where(ok & (owner < 0), FLAG_DEFENDER, 0)
-
-    def rotated_vector(self, rows: torch.Tensor, v: tuple) -> torch.Tensor:
-        """Ball::GetRotatedVector (Ball.cpp:2191) of the balls in `rows`: the float vector v turned by the rotation
-        (dynamical orientation) or by RotationQuaternion(yaw, pitch, roll) of the floats; [R, 3] floats as doubles."""
-        if self.dynamical_orientation:
-            q = _cols(self.rot[rows])
-        else:
-            q = q_rotation_ypr(f32(self.yaw[rows]), f32(self.pitch[rows]), f32(self.roll[rows]))
-        return _stack(transform_coord(v, m_rotation_q(q)))
 
     def launch_missile(self, mask: torch.Tensor, target: torch.Tensor, owner: torch.Tensor, aimed: torch.Tensor,
                        massive: torch.Tensor) -> None:
@@ -747,13 +731,20 @@ class VecCombatPark(VecModesPark):
     # ---- one tick (Ballpark::Evolve, TIME-706, TIME-707) ----
 
     def evolve(self, lib: dict | None = None, active: torch.Tensor | None = None) -> None:
-        """One tick of every world, in place: the four launches (vec_combat_cuda.tick), then without dynamical
-        orientation the yaw, pitch and roll of every live ball (phase 4's CalculateYawPitchRoll, on the host), then the
+        """One tick of every world, in place. On any device but a CUDA one, the tick on tensors (`evolve_torch`;
+        `lib`, a kernel library, is refused there). On a CUDA device: the four launches
+        (vec_combat_cuda.tick), then without dynamical orientation the yaw, pitch and roll of every live ball
+        (phase 4's CalculateYawPitchRoll, on the host), then the
         fifth launch (vec_combat_cuda.after: a removed mushroom's members whose turns came first; PetrifyTroll) and,
         without dynamical orientation, the petrified trolls' yaw, pitch and roll snapped (SetBallVelocity's).
         `active` [n] (OnTick's per-world mask, a world's rows together): only those rows tick, every
         other row keeps every per-row tensor bit for bit (vec_orient.masked_tick, in place; `events()` then reports
         the rows that ticked)."""
+        if self.dev.type != "cuda":                 # the tick on tensors off a CUDA device
+            if lib is not None:
+                raise ValueError("lib is a kernel library: a park on the CPU ticks on tensors (evolve_torch)")
+            self.evolve_torch(active)
+            return
         if active is not None:
             masked_tick(self, active, lambda: VecCombatPark.evolve(self, lib), in_place=True)
             return
@@ -767,29 +758,6 @@ class VecCombatPark(VecModesPark):
         self.current_time += 1
 
     # ---- the tick on tensors (the CPU path, and a cross-check of the kernels on the GPU) ----
-
-    def _thrust_to(self, target: torch.Tensor, taper: torch.Tensor) -> torch.Tensor:
-        """GotoThrust (Ballpark.cpp:1398) toward target for every row: tapered by (L^2 / D^2)^2 inside one tick's
-        distance where `taper` (no missile flag), at maxThrust otherwise; C's division where the mass may be zero."""
-        a = target - self.pos
-        length2 = a[:, 0] * a[:, 0] + a[:, 1] * a[:, 1] + a[:, 2] * a[:, 2]
-        dist = self.speed_fraction * self.max_vel * self.dt
-        max_thrust = self.friction * self.speed_fraction * self.max_vel / (self.mass * self.agility)
-        unit = self._unit(a)
-        dd = dist * dist
-        coff = length2 / torch.where(dd == 0.0, torch.ones_like(dd), dd)
-        scale = torch.where(taper & (length2 < dd), max_thrust * coff * coff, max_thrust)
-        return unit * scale[:, None]
-
-    def _integrate(self, p, v, a, m, tf) -> tuple:
-        """Ballpark::Integrate over the tick with its cached decay factor (MOV-701 to MOV-703), m a column."""
-        k, t = self.friction, self.dt
-        k2 = k * k
-        ook2, ook = 1.0 / k2, 1.0 / k
-        exact = (m * (m * a * (tf - 1.0) + k * (a * t + v - tf * v)) + p * k2) * ook2
-        taylor = (m * (a * (-k * t) + k * (a * t + v * k * (1.0 / m) * t)) + p * k2) * ook2
-        small = (k < 1e-10 * m * t)
-        return torch.where(small, taylor, exact), (m * a - (m * a - v * k) * tf) * ook
 
     @staticmethod
     def _spheres(p0, p1, q0, q1, cr) -> torch.Tensor:
@@ -869,95 +837,49 @@ class VecCombatPark(VecModesPark):
         return gone | ((self.bubble[osafe] != self.bubble) & (self.bubble != -1)) | (self.cloaked[osafe] != 0)
 
     def evolve_torch(self, active: torch.Tensor | None = None) -> None:
-        """One tick on tensors (CPU or GPU) for the modes GOTO, STOP, MISSILE and FORMATION (and the inert ones), the
-        same algorithm as the kernels: phase 1 (the thrust; dynamical orientation unless disabled for missiles), the
-        missiles' contacts, phases 3 and 4 (the integrator, the rotation a tick on or the disabled missile's snap, the
-        commit, the dispatch's counts), the clock, then `after_tick`. A ball in FOLLOW, ORBIT or WARP is refused.
-        `active` [n]: OnTick's per-world mask, as `evolve`'s."""
+        """One tick on tensors (the CPU path; on a CUDA device a cross-check of the kernels) for every mode
+        (VecComposedPark's tick moved here, its collisions hooks): phase 1
+        (`_phase1`: the releases, every mode's behaviour, dynamical orientation), the warp paths, the contacts
+        (`_contacts_phase`: a normal missile's with its target here; VecComposedPark's gradient), phases 3 and 4
+        (the warp path or the integrator with mLastG + mLastC, the drop-out's extra step, the rotation a tick on or
+        the disabled missile's snap, the commit, the dispatch counts), the clock, then `after_tick`; a free
+        mushroom grows at its phase-4 turn (glibc's powf, no swap) or is removed there (its members released
+        before their own commit when their ids are higher, after phase 4 otherwise), and PetrifyTroll after phase
+        4 (`_after_phase4`), as the kernels. VecComposedPark's re-filings and collision lists are
+        its hooks (`_warp_massive`, `_refile`, `_last_c`, `_list_self_collisions`). `active` [n]:
+        OnTick's per-world mask, as `evolve`'s."""
         if active is not None:
             masked_tick(self, active, lambda: VecCombatPark.evolve_torch(self), in_place=True)
             return
         self.watch()
         live = self.free & ~self.moribund & self.exists
-        if bool((live & ((self.mode == FOLLOW) | (self.mode == ORBIT) | (self.mode == WARP))).any()):
-            raise RuntimeError("evolve_torch holds GOTO, STOP, MISSILE and FORMATION: use the kernels (evolve)")
         do = self.dynamical_orientation
-        frac = self._mushroom_fraction()                # the mushrooms that go this tick
-        mush = live & (self.mode == MUSHROOM_MODE)
+        frac = self._mushroom_fraction()                # the mushrooms that go this tick (from their own fields)
+        mush = live & (self.mode == MUSHROOM)
         dying = mush & ~(frac < 1.0)
         self.dying = dying.to(torch.uint8)
-        pos0, vel0 = self.pos.clone(), self.vel.clone()
-        stop = live & (self.mode == STOP)
-        vy_after = vel0[:, 1]
-        if not do:
-            vy_after = torch.where(stop, (vy_after - 0.07 * vy_after) * STOP_DAMP_C, vy_after)
-        t = self.follow_ptr
-        ts = torch.where((t >= 0) & (t < self.n), t, 0)
-        # phase 1: the thrust of each mode
-        a = torch.zeros_like(self.pos)
-        goto = live & (self.mode == GOTO)
-        a = torch.where(goto[:, None], self._thrust_to(self.goto, torch.ones_like(goto)), a)
-        missile = live & (self.mode == MISSILE)
-        straight = missile & ((self.clock - self.effect_stamp) * self.tick_ms <= FU_MISSILE_STRAIGHT_MS)
-        a = torch.where(straight[:, None], self._thrust_to(self.goto, torch.ones_like(goto)), a)
-        pursue = missile & ~straight
-        if bool(pursue.any()):
-            op = pos0[ts]
-            ov = vel0[ts].clone()
-            ov[:, 1] = torch.where(self.ids[ts] < self.ids, vy_after[ts], ov[:, 1])
-            delta = self.pos - op
-            dist = torch.sqrt(delta[:, 0] * delta[:, 0] + delta[:, 1] * delta[:, 1] + delta[:, 2] * delta[:, 2])
-            ct = dist / self.max_vel
-            target = op + ov * ct[:, None]
-            r = (self.follow_range + self.radius) + self.radius[ts]
-            on = torch.stack((op[:, 0] + 1.0 * r, op[:, 1] + 0.0 * r, op[:, 2] + 0.0 * r), dim=1)
-            inv = torch.ones_like(dist) / torch.where(dist == 0.0, 1.0, dist)
-            off = target + (delta * r[:, None]) * inv[:, None]
-            target = torch.where((dist == 0.0)[:, None], on, off)
-            self.goto = torch.where(pursue[:, None], target, self.goto)
-            a = torch.where(pursue[:, None], self._thrust_to(target, torch.zeros_like(goto)), a)
-        form = live & (self.mode == FORMATION)
-        if bool(form.any()):
-            fid = self.formation_id[ts]
-            F = self.n_formations
-            fsafe = fid.clamp(0, max(0, F - 1))
-            slot = _char(self.effect_stamp)
-            length_f = self.formation_lengths[fsafe]
-            ok = form & (fid >= 0) & ~(fid > F - 1) & ~(slot > length_f - 1) & (slot >= 0)
-            offset = self.formation_table[fsafe, slot.clamp(0, self.max_slots - 1)]
-            length = torch.sqrt(offset[:, 0] * offset[:, 0] + offset[:, 1] * offset[:, 1]
-                                + offset[:, 2] * offset[:, 2])
-            length = torch.where(length == 0.0, 1.0, length)
-            k = (self.radius + self.radius[ts]) + length
-            inv = torch.ones_like(length) / length
-            vec = _cols(f32((offset * k[:, None]) * inv[:, None]))
-            if do:
-                q = _cols(self.rot[ts])
-            else:
-                q = q_rotation_ypr(f32(self.yaw[ts]), f32(self.pitch[ts]), f32(self.roll[ts]))
-            rv = _stack(transform_coord(vec, m_rotation_q(q)))
-            g = pos0[ts] + rv
-            self.goto = torch.where(ok[:, None], g, self.goto)
-            a = torch.where(ok[:, None], self._thrust_to(g, torch.ones_like(goto)), a)
-        if not do:
-            vel = self.vel.clone()
-            vel[:, 1] = torch.where(stop, vy_after, vel[:, 1])
-            self.vel = vel
-        else:
-            steer = live & ~(self.disable_do_for_missiles & (self.mode == MISSILE))
-            torque0, roll0 = self.torque, self.rot_roll
-            oriented = self._orient(a)
-            a = torch.where(steer[:, None], oriented, a)
-            self.torque = torch.where(steer[:, None], self.torque, torque0)
-            self.rot_roll = torch.where(steer, self.rot_roll, roll0)
-        self.last_g = torch.where(live[:, None], a, self.last_g)
-        # the gradient: a massive ball's mLastCollision, the missiles' contacts
+        self._phase1(live)
+        # the gradient's mLastCollision; the warp paths (a warper's own state only); the gradient
+        warping = live & (self.mode == WARP) & (self.effect_stamp >= 0)
+        self._warp_massive(warping)
         self.last_collision = torch.where(live & self.massive, -1.0, self.last_collision)
-        self.hits_n = self._contacts(live)
-        # phases 3 and 4
-        m = (self.mass * self.agility)[:, None]
-        pn, vn = self._integrate(self.pos, self.vel, self.last_g + 0.0, m, self.time_factor[:, None])
-        if do:                                          # the rotation a tick on (phase 3), by the mode then
+        wp, wv, dropped = self._warp_path(warping)
+        rest = self._at_rest(dropped, wv)
+        self._contacts_phase(live, wp, wv, dropped, rest)
+        # the drop-out: massive and sensing again, Stop, its state the drop-out point's, re-filed at rest
+        self.massive = torch.where(dropped, True, self.massive)
+        self.sensor = torch.where(dropped, True, self.sensor)
+        self._stop_rows(dropped)
+        self.pos = torch.where(dropped[:, None], wp, self.pos)
+        self.vel = torch.where(dropped[:, None], wv, self.vel)
+        self._refile(rest)
+        # phase 3: the end-of-tick states; the rotation a tick on, by the mode then
+        a = self.last_g + self._last_c()
+        pn, vn = self._integrate_rows(self.pos, self.vel, a)
+        coast = warping & ~dropped
+        pn = torch.where(coast[:, None], wp, pn)
+        vn = torch.where(coast[:, None], wv, vn)
+        if do:
             off = self.disable_do_for_missiles & (self.mode == MISSILE)
             rot1, w1 = self._apply_torque(_cols(f32(self.torque)), f32(self.rot_roll), self._tau())
             rot1 = torch.where(off[:, None], self.old_rot, _stack(rot1))
@@ -966,7 +888,7 @@ class VecCombatPark(VecModesPark):
         # their commit, from their state before the swap; the others after phase 4 (`_after_phase4`)
         tsafe = torch.where(self.follow_ptr >= 0, self.follow_ptr, 0)
         members = self._members(dying) & self.exists
-        self._release_members(members & (self.ids[tsafe] < self.ids))
+        self._release_rows(members & (self.ids[tsafe] < self.ids))
         later = members & (self.ids[tsafe] > self.ids)
         commit = live & ~mush                           # a mushroom skips the swap: its integrated state stays old
         sel, msel = commit[:, None], mush[:, None]
@@ -989,7 +911,9 @@ class VecCombatPark(VecModesPark):
             wo = torch.where(sel & w_ok[:, None], w0, torch.where(sel | msel, w1, self.old_ang_vel))
             self.rot, self.old_rot, self.ang_vel, self.old_ang_vel = rn, ro, wn, wo
             self._snap_orientation(commit & off)
-        grow = mush & ~dying                            # mRadius = range*pow(timeFraction,0.25f): the C library's powf
+        # a mushroom's turn: mRadius = range*pow(timeFraction,0.25f) (the C library's powf), re-filed with its radius
+        # and its state at the tick's start (InsertBallInBoxes, Ballpark.cpp:571); or RemoveBall in Evolve
+        grow = mush & ~dying
         if bool(grow.any()):
             rows = grow.nonzero().flatten()
             fr = frac[rows].tolist()
@@ -997,20 +921,113 @@ class VecCombatPark(VecModesPark):
             r = self.radius.clone()
             r[rows] = f32(self.follow_range[rows] * p)
             self.radius = r
+            self._refile(grow)
         self._stop_rows(dying)                          # RemoveBall in Evolve: Stop(Ball*), moribund, non-massive
         self.moribund = self.moribund | dying
         self.massive = torch.where(dying, False, self.massive)
         self.effect_stamp = torch.where(dying, self.clock, self.effect_stamp)
-        d = self.pos - before
-        moved = ~((d[:, 0] * d[:, 0] + d[:, 1] * d[:, 1] + d[:, 2] * d[:, 2]) < FU_DISPATCH_MIN_MOVE_SQ)
-        dispatch = commit & (self.mode == MISSILE) & moved
+        # phase 4: the re-filing of a ball that moved, the missiles' dispatch
+        dd = self.pos - before
+        moved = commit & ~((dd[:, 0] * dd[:, 0] + dd[:, 1] * dd[:, 1] + dd[:, 2] * dd[:, 2]) < FU_DISPATCH_MIN_MOVE_SQ)
+        self._refile(moved)
+        dispatch = moved & (self.mode == MISSILE)
         self.ev_n = torch.where(dispatch, self.hits_n, 0)
         self.ev_self = dispatch & self._orphans() if self.master else torch.zeros_like(dispatch)
+        self._list_self_collisions()
         self.clock = self.clock + 1
         self.after_tick()
         self._after_phase4(later)
         self.watch()
         self.current_time += 1
+
+    def _missile_thrust(self, missile: torch.Tensor, ts: torch.Tensor, pos0, vel0, vy_seen) -> torch.Tensor:
+        """EvolveMissile (MOV-723): VecCombatPark.evolve_torch's, the target's velocity as seen at the turn."""
+        a = torch.zeros_like(self.pos)
+        straight = missile & ((self.clock - self.effect_stamp) * self.tick_ms <= FU_MISSILE_STRAIGHT_MS)
+        a = torch.where(straight[:, None], self._thrust_to(self.goto, torch.ones_like(missile)), a)
+        pursue = missile & ~straight
+        if bool(pursue.any()):
+            op = pos0[ts]
+            ov = vel0[ts].clone()
+            ov[:, 1] = vy_seen
+            delta = self.pos - op
+            dist = torch.sqrt(delta[:, 0] * delta[:, 0] + delta[:, 1] * delta[:, 1] + delta[:, 2] * delta[:, 2])
+            ct = dist / self.max_vel
+            target = op + ov * ct[:, None]
+            r = (self.follow_range + self.radius) + self.radius[ts]
+            on = torch.stack((op[:, 0] + 1.0 * r, op[:, 1] + 0.0 * r, op[:, 2] + 0.0 * r), dim=1)
+            inv = torch.ones_like(dist) / torch.where(dist == 0.0, 1.0, dist)
+            off = target + (delta * r[:, None]) * inv[:, None]
+            target = torch.where((dist == 0.0)[:, None], on, off)
+            self.goto = torch.where(pursue[:, None], target, self.goto)
+            a = torch.where(pursue[:, None], self._thrust_to(target, torch.zeros_like(missile)), a)
+        return a
+
+    def _formation_thrust(self, form: torch.Tensor, ts: torch.Tensor, pos0) -> torch.Tensor:
+        """EvolveFormation (MOV-726): VecCombatPark.evolve_torch's."""
+        a = torch.zeros_like(self.pos)
+        if not bool(form.any()):
+            return a
+        do = self.dynamical_orientation
+        fid = self.formation_id[ts]
+        F = self.n_formations
+        fsafe = fid.clamp(0, max(0, F - 1))
+        slot = _char(self.effect_stamp)
+        length_f = self.formation_lengths[fsafe]
+        ok = form & (fid >= 0) & ~(fid > F - 1) & ~(slot > length_f - 1) & (slot >= 0)
+        offset = self.formation_table[fsafe, slot.clamp(0, self.max_slots - 1)]
+        length = torch.sqrt(offset[:, 0] * offset[:, 0] + offset[:, 1] * offset[:, 1] + offset[:, 2] * offset[:, 2])
+        length = torch.where(length == 0.0, 1.0, length)
+        k = (self.radius + self.radius[ts]) + length
+        inv = torch.ones_like(length) / length
+        vec = _cols(f32((offset * k[:, None]) * inv[:, None]))
+        if do:
+            q = _cols(self.rot[ts])
+        else:
+            q = _q_rotation_ypr(f32(self.yaw[ts]), f32(self.pitch[ts]), f32(self.roll[ts]))
+        rv = _stack(transform_coord(vec, m_rotation_q(q)))
+        g = pos0[ts] + rv
+        self.goto = torch.where(ok[:, None], g, self.goto)
+        return torch.where(ok[:, None], self._thrust_to(g, torch.ones_like(form)), a)
+
+    # ---- the hooks in the tick on tensors (VecModesPark._phase1 and the tick above): this park's parts,
+    # the statements VecComposedPark's tick held at those points less its collisions (VecComposedPark's override) ----
+
+    def _existing(self) -> torch.Tensor:
+        """The rows holding a ball (`_phase1`'s StopAllFollowers members): `exists`."""
+        return self.exists
+
+    def _phase1_combat(self, a, live, mode, t_ok, ts, pos0, vel0, vy_seen) -> torch.Tensor:
+        """Phase 1's MISSILE and FORMATION thrusts (EvolveMissile, EvolveFormation), at their place in `_phase1`."""
+        missile = live & (mode == MISSILE) & t_ok
+        if bool(missile.any()):
+            a = torch.where(missile[:, None], self._missile_thrust(missile, ts, pos0, vel0, vy_seen), a)
+        form = live & (mode == FORMATION) & t_ok
+        if bool(form.any()):
+            a = torch.where(form[:, None], self._formation_thrust(form, ts, pos0), a)
+        return a
+
+    def _clear_contacts(self, live: torch.Tensor) -> None:
+        """Phase 1's clearing of the collision lists (VecComposedPark's): none here (`_contacts_phase` sets every
+        row's count)."""
+
+    def _warp_massive(self, warping: torch.Tensor) -> None:
+        """A massive ball in warp proper beside collisions (VecComposedPark's FLAG_WARP_MASSIVE): nothing here."""
+
+    def _contacts_phase(self, live: torch.Tensor, wp, wv, dropped: torch.Tensor, rest: torch.Tensor) -> None:
+        """The contacts at phase 3: each massive normal missile's Potential with its target, counted (`_contacts`)."""
+        self.hits_n = self._contacts(live)
+
+    def _refile(self, which: torch.Tensor) -> None:
+        """A re-filing in the partition (VecComposedPark's): no partition here."""
+
+    def _last_c(self):
+        """mLastC at phase 3 (VecComposedPark's collision responses): zero here, `last_g + 0.0` (-0 becomes +0)."""
+        return 0.0
+
+    def _list_self_collisions(self) -> None:
+        """The master's self-collision appended to a missile's collision list (VecComposedPark's): no lists here (the
+        dispatch's counts, `ev_n` and `ev_self`, are the events)."""
 
     def _after_phase4(self, later: torch.Tensor) -> None:
         """After phase 4 and its yaw, pitch and roll (vec_combat_cuda.after's launch on tensors): the

@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Eidosoma
 """Destiny's delayed removal on the master, batched: RemoveBall with a delay and BringOutTheDeads with
-its 7-ball buffer (TIME-713), for the worlds of a `exact_ballpark.vec_space.VecSpace` over its park (VecModesPark on a
-CUDA device, VecOrientPark on the CPU or a CUDA device), on the park's device, with no host synchronisation (so the
+its 7-ball buffer (TIME-713), for the worlds of a `exact_ballpark.vec_space.VecSpace` over its park (VecModesPark or
+VecOrientPark, on the CPU or a CUDA device), on the park's device, with no host synchronisation (so the
 bring-out and a tick of the layer can be captured together as a CUDA graph).
 
 It must reproduce the scalar reference bit for bit: `exact_ballpark.full.FullBallpark` with is_master=True (space.py's

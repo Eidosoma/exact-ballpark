@@ -16,8 +16,9 @@ is refused (FLAG_DEFENDER), as VecCombatPark refuses it; this port's finding (a 
 
 On the card: the kernel path against the torch path, every tensor every tick (both seeds), a CUDA graph, the kernel
 path against FullBallpark, three planted faults in the composed candidates; the kernel path (collisions off)
-against the torch path every tensor every tick (the collision list aside: the kernels count a missile's contacts
-and keep no list), its owner row included, and the old kernel (the fix taken out) caught on the same worlds.
+against the torch path every tensor every tick (the collision lists included: the kernels count a missile's
+contacts and the park makes the lists from the counts), its owner row included, and the old kernel
+(the fix taken out) caught on the same worlds.
 """
 
 from __future__ import annotations
@@ -317,26 +318,13 @@ def owner_cfgs() -> list:
 
 
 def _lockstep_off(cfgs: list, monkeypatch, lib=None) -> tuple:
-    """the kernel path (collisions off) against the torch path, every state tensor every tick, the collision list
-    aside: with collisions off the torch path keeps the list (the target's id once a contact, then the master's
-    self-collision appended, as FullBallpark's list), the kernels keep only the contact count (hits_n, the
-    self-collision apart in ev_self; VecCombatPark's events come from these counts). So `hits` is left out, and in
-    place of a plain comparison of `hits_n` the relation torch hits_n == kernel hits_n + kernel ev_self is checked at
-    every comparison."""
+    """the kernel path (collisions off) against the torch path, every state tensor every tick, the collision lists
+    included: with collisions off the torch path keeps the lists (the target's id once a contact, then the master's
+    self-collision appended, as FullBallpark's list); the kernels count the contacts (hits_n) and the
+    self-collision (ev_self), and the park's `evolve` makes the lists from those counts after the kernels (earlier,
+    `hits` was left out here and the relation torch hits_n ==
+    kernel hits_n + kernel ev_self checked in place of `hits_n`). `monkeypatch` is no longer used."""
     import test_movement_vec_composed_cuda as tk
-    names, plain = tk.state_names, tk.compare
-    monkeypatch.setattr(tk, "state_names", lambda p: [k for k in names(p) if k not in ("hits", "hits_n")])
-
-    def compare(A, B, out, examples, tag):
-        plain(A, B, out, examples, tag)
-        bad = int((A.hits_n != B.hits_n + B.ev_self.to(torch.int64)).sum())
-        out["tensors"] += 1
-        if bad:
-            out["differ"] += 1
-            out["values_differ"] += bad
-            out["differ:hits_n_relation"] += bad
-            examples.append((tag, "hits_n relation", bad))
-    monkeypatch.setattr(tk, "compare", compare)
     out, ex = Counter(), []
     for cfg in cfgs:
         o, e, A, B = tk.lockstep(cfg, kernel_cls=_Off, torch_cls=_Off, libs=lib)

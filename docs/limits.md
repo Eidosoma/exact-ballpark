@@ -5,12 +5,16 @@ whole, section 2 the scalar reference, and the later sections each park in turn.
 
 **How refusals work.** A batched park checks its domain as it runs. A world that leaves the domain gets a flag on its
 rows, and the park's `check()` raises. A flagged world is never computed approximately and passed off as exact. The
-tests count flagged worlds apart and never count them as equal.
+tests count flagged worlds apart and never count them as equal. One exception: a replay of the combat park's CUDA
+graph leaves out that park's domain watch, which the caller runs around it (section 7).
 
 ## 1. Across the port
 
 - **One qualified platform** (`platform.md`). The `sm_100` binaries and the `compute_90` PTX are built but have never
   been run.
+- **Devices** (`devices.md`). Every park and layer runs on the CPU and on a CUDA device. The fused kernels and the CUDA
+  graphs run on a CUDA device only, and refuse a park on the CPU before anything is built. On the CPU, the space layer
+  runs its host code, compiled by `nvcc` or, where `nvcc` is absent, by `g++`.
 - **Many small, independent worlds.** The batched parks step many worlds at once, each with a few balls. The space
   layer holds at most 64 balls a world.
 - **OnTick's per-world intervals.** destiny's OnTick lets each world tick on its own clock. A call earlier than a
@@ -118,6 +122,9 @@ Not in this park:
 
 A world's balls must all be in the park and share one clock. A follower's target must be in its world.
 
+**The flight-mode park's tick on tensors** (`evolve_torch`, which `evolve()` runs on any device but a CUDA one) is the
+kernel's algorithm. On the CPU it is held to the same references as the kernel (`devices.md`, section 4).
+
 **destiny's behaviour is reproduced, not judged.** Where its public code does something surprising, for example in
 the commands it accepts during a warp, the port does the same.
 
@@ -158,7 +165,11 @@ Not in this park:
 - the visibility and range queries;
 - global balls.
 
-It runs over the flight-mode, orientation and collision parks, on the CPU and the GPU.
+It runs over the flight-mode, orientation and collision parks, on the CPU and the GPU:
+- **On the CPU,** it runs host functions compiled from the same C++ source as its kernel, by `nvcc` or, where `nvcc` is
+  absent, by `g++` (`devices.md`, section 3).
+- **On a CUDA device,** it runs its kernel, so it needs `nvcc`. A library built by `g++` holds no kernel, and the layer
+  refuses it there.
 
 **Its domain:**
 - free or fixed balls with positive ids;
@@ -241,7 +252,7 @@ its kernel `CudaSpaceServer`:
 - immediate additions and removals;
 - OnTick's per-world intervals, with destiny's `BringOutTheDeads` at each world's call.
 
-Its kernels run them on the GPU.
+Its kernels run them on a CUDA device. Its tick on tensors runs them on any device, FOLLOW, ORBIT and WARP included.
 
 **Its domain:**
 - the gradient method;
@@ -258,16 +269,45 @@ Its kernels run them on the GPU.
 - There is one formation table for the whole park, so a `LoadFormations` reloads every world at once.
 - Without dynamical orientation, the yaw, pitch and roll are computed on the host by default, and the park's CUDA
   graph needs dynamical orientation.
-- **A CUDA graph of the park replays its kernels only.** The domain check that the eager tick runs around them
-  (`watch()`, which flags two massive balls meeting) is not part of a replay. A world that leaves the domain between
-  replays is flagged only if the caller runs the check around each replay.
+- **A CUDA graph of the park (`CombatGraph`) replays its kernels only.** The eager tick (`evolve`) runs the park's
+  domain watch, `watch()`, at the start and at the end of every tick, around its kernels. A replay leaves both out.
+  - **What `watch()` flags:** every world that holds two or more balls that are in the park (not an empty row, not
+    moribund), massive and not in missile mode, free or fixed, however far apart they are. This park has no
+    collision code for them, so it refuses the configuration, not a contact. The flag goes on all of the world's
+    rows and stays until the park is loaded again.
+  - **What `check()` does:** it raises on the flags already set. On the master it also tests, itself, for a world
+    with balls in more than one bubble or without an interactive ball. It does not run `watch()`: right after a load,
+    a world holding two massive balls has no flag yet, and `check()` passes.
+  - **So, around each replay, in this order:**
+
+    ```python
+    park.watch()    # the eager tick's watch at its start
+    graph.tick()    # the replay: the park's kernels (graph.tick(active) with OnTick's mask)
+    park.watch()    # and at its end
+    park.check()    # raises if any world is outside the domain
+    ```
+
+    Without OnTick's mask, this sets the same flags as the eager tick. With it (a graph made with `masked=True`),
+    `watch()` also flags a world outside the mask, which the eager masked tick leaves as it was: stricter, never
+    laxer.
+- **`CombatGraph` captures this park's tick only.** It refuses a `VecComposedPark`, whose tick with collisions on is
+  `ComposedGraph`'s, and whose tick with collisions off makes collision lists after the kernels, which a replay would
+  leave out.
 
 ## 8. The composed park: `VecComposedPark` and its kernel
 
 **`exact_ballpark.vec_composed.VecComposedPark`** holds flight modes, missiles (defender missiles included),
 formations, cloaking, mushrooms, trolls and the commands, all together with ship-to-ship collisions. It also holds
-OnTick's per-world intervals, as the combat park does. Its CUDA graph, like the combat park's, replays the kernels
-only, without the eager tick's domain check (section 7).
+OnTick's per-world intervals, as the combat park does. Its CUDA graph (`ComposedGraph`) needs collisions on, and
+then leaves nothing of the eager tick out. With collisions, two massive balls are computed, so the park's `watch()`
+does nothing. The refusals below are flagged inside the tick by its kernels (a massive ball in warp proper; a ball at
+the partition's edge, or wider than a top box), or by the cloak command before it. As after an eager tick, a flagged
+world raises only at `check()`. With collisions off there is no graph: the park ticks eagerly (`evolve`), and its
+`watch()` flags two massive balls as the combat park's does.
+
+**With collisions off,** the park ticks eagerly on a CUDA device: the combat park's kernels, then the collision lists,
+made from the kernels' counts as its tick on tensors and the reference keep them. Its CUDA graph (`ComposedGraph`)
+needs collisions on.
 
 **Its domain is the combat park's, less two refusals:** two massive balls may meet, and defender missiles are
 computed. In addition, it refuses:
@@ -280,6 +320,7 @@ Not in this park:
 - static collidables, minis and force fields (its build refuses the static collidables' code);
 - space junk;
 - defender missiles with collisions off;
+- a CUDA graph with collisions off;
 - proximity sensors;
 - more than one bubble a world: apart from a missile's one candidate, its balls' candidates are a client's view;
 - the delayed removal;

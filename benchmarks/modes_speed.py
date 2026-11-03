@@ -1,9 +1,16 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Eidosoma
 """Engineering probe: the flight modes' speed on the GPU (exact_ballpark.vec_modes, one CUDA kernel a
-tick), in world-ticks a second (a world here is one ship, as benchmarks/orient_speed.py counts), at a few widths,
-against flight alone (vec.py's VecBallpark, GOTO) and the turning kernel (VecOrientPark, GOTO with
-dynamical orientation). Never a scientific result.
+tick), at a few widths, against flight alone (vec.py's VecBallpark, GOTO) and the turning kernel
+(VecOrientPark, GOTO with dynamical orientation). Never a scientific result.
+
+The units. A width is a number of ships. On the flight-modes park (modes "modes", "modes_graph", "modes_do" and
+"modes_do_graph") the ships fly in worlds of four that interact (a follower and an orbiter of their world's leader), so
+n ships are ceil(n / 4) worlds, counted from the park's own world labels; VecOrientPark ("turn2", "turn2_graph") and
+VecBallpark ("none") ignore the world labels, every ship its own world, so n ships are n worlds. Each phase reports
+`worlds`, `ships`, `world_ticks_per_s` (worlds x ticks / wall), `ship_ticks_per_s` (ships x ticks / wall) and
+`ms_per_tick` (the wall time of one batch tick, every world stepped once). Until 2 November 2026 `world_ticks_per_s`
+was ships x ticks / wall, four times the world rate on the flight-modes park.
 
 The mixed ships, in worlds of four (ids 1 to 4): a leader flying GOTO to points 2 to 50 km away, re-aimed every 10
 ticks; a follower of it (FOLLOW, range 500 m); an orbiter of it (ORBIT under the new law, range 2 km); and a ship
@@ -51,6 +58,14 @@ def ships(n: int, seed: int) -> list:
     return out
 
 
+def worlds_of(park) -> int:
+    """The worlds a park steps: the flight-modes park's distinct world labels (worlds of four here); every row of
+    VecOrientPark and VecBallpark is its own world."""
+    if isinstance(park, VecModesPark):
+        return int(torch.unique(park.world).numel())
+    return int(park.n)
+
+
 def roles(n: int, dev) -> dict:
     k = torch.arange(n, device=dev) % 4
     leader = torch.arange(n, device=dev) - k
@@ -81,8 +96,11 @@ def warp(park, gen: torch.Generator, mask) -> None:
 
 
 def run(device: str, width: int, mode: str, seconds: float, seed: int) -> dict:
+    """One phase: `width` ships, in worlds of four on the flight-modes park and one ship a world elsewhere (the
+    module's docstring). The graph modes need a CUDA device; the others also run on the CPU (the parks' tensor
+    ticks)."""
     dev = torch.device(device)
-    sync = lambda: torch.cuda.synchronize(dev)
+    sync = (lambda: torch.cuda.synchronize(dev)) if dev.type == "cuda" else (lambda: None)
     rows = ships(width, seed)
     every = torch.ones(width, dtype=torch.bool, device=dev)
     gen = torch.Generator().manual_seed(seed)
@@ -114,7 +132,8 @@ def run(device: str, width: int, mode: str, seconds: float, seed: int) -> dict:
             tick = ModesGraph(park).tick
         tick()
     sync()
-    torch.cuda.reset_peak_memory_stats(dev)
+    if dev.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(dev)
     ticks, t0, e0 = 0, time.perf_counter(), time.time()
     while True:
         if ticks % 10 == 0:
@@ -132,10 +151,13 @@ def run(device: str, width: int, mode: str, seconds: float, seed: int) -> dict:
                 break
     sync()
     wall, e1 = time.perf_counter() - t0, time.time()
-    out = {"device": device, "width": width, "mode": mode, "ticks": ticks, "wall_s": round(wall, 3),
-           "world_ticks_per_s": round(width * ticks / wall, 1), "ms_per_tick": round(1000.0 * wall / ticks, 3),
-           "epoch_start": round(e0, 3), "epoch_end": round(e1, 3), "pid": os.getpid(),
-           "peak_mib": round(torch.cuda.max_memory_allocated(dev) / 2 ** 20, 1)}
+    worlds = worlds_of(park)
+    out = {"device": device, "width": width, "mode": mode, "worlds": worlds, "ships": width, "ticks": ticks,
+           "wall_s": round(wall, 3), "world_ticks_per_s": round(worlds * ticks / wall, 1),
+           "ship_ticks_per_s": round(width * ticks / wall, 1), "ms_per_tick": round(1000.0 * wall / ticks, 3),
+           "epoch_start": round(e0, 3), "epoch_end": round(e1, 3), "pid": os.getpid()}
+    if dev.type == "cuda":
+        out["peak_mib"] = round(torch.cuda.max_memory_allocated(dev) / 2 ** 20, 1)
     if isinstance(park, VecModesPark):
         m = park.mode.cpu()
         out["modes_at_end"] = {k: int((m == v).sum()) for k, v in (("goto", 0), ("follow", 1), ("stop", 2),
@@ -156,7 +178,7 @@ def main(argv=None) -> None:
     for mode in a.modes.split(","):
         for w in (int(x) for x in a.widths.split(",")):
             res = run(a.device, w, mode, a.seconds, a.seed)
-            print(json.dumps(res), flush=True)
+            print(json.dumps(res), flush=True)          # worlds, ships and both rates (the module's docstring)
             phases.append(res)
     with open(a.out, "w") as f:
         json.dump({"phases": phases}, f, indent=1)

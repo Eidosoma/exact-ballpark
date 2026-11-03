@@ -62,6 +62,13 @@ def test_matches_the_scalar_server_layer_held_out_worlds():
     assert_exact(run(HELD_OUT), MINIMUM)
 
 
+def test_matches_the_scalar_server_layer_with_follows_and_orbits_on_the_cpu():
+    """the card's worlds (FollowBall and Orbit of ships too) on the park's tensor tick, seeds 1
+    and 5."""
+    for seed in (1, HELD_OUT):
+        assert_exact(SC.run(SC.cases(seed, 200, "cuda", 12), "cpu"), dict(MINIMUM, FollowBall=50, Orbit=50))
+
+
 def test_launch_missile_is_a_kind_of_the_combat_park_only():
     """LaunchMissile is queued for VecCombatPark's adapter; VecModesPark's adapter refuses it (no missiles), and its
     kinds are as before."""

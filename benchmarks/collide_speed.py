@@ -3,6 +3,11 @@
 """Engineering probe: the batched collisions' speed (exact_ballpark.vec_collide) on race-like worlds, in
 world-ticks a second, at a few widths and ball counts, on one device. Never a scientific result.
 
+The units. A width is a number of worlds, each of `--ships` ships and `--obstacles` fixed spheres, which collide.
+Each phase reports `worlds` (the width), `ships` (all of them: worlds x a world's ships), `ships_a_world` and
+`obstacles` (a world's), `world_ticks_per_s` (worlds x ticks / wall), `ship_ticks_per_s` (ships x ticks / wall) and
+`ms_per_tick` (the wall time of one batch tick, every world stepped once). Until 2 November 2026 `ships` was a world's.
+
 A world: K ships (free, massive; radius 20 to 60 m, 1e6 to 1e8 kg, 200 to 800 m/s) and M obstacles (fixed spheres of
 100 to 900 m) in a 12 km field; each ship flies GOTO to an obstacle's surface or a point past it, re-aimed every 20
 ticks, so contacts (ship-obstacle and ship-ship) happen while most ticks have none. Per configuration: a warm-up, then
@@ -86,9 +91,11 @@ def run(device: str, width: int, ships: int, obstacles: int, seconds: float, col
     sync()
     b = time.time()
     park.check()
-    out = {"device": device, "width": width, "ships": ships, "obstacles": obstacles, "collisions": collisions,
+    out = {"device": device, "width": width, "worlds": width, "ships": width * ships, "ships_a_world": ships,
+           "obstacles": obstacles, "collisions": collisions,
            "method": "iterative" if iterative else "gradient", "contact_slots": contact_slots, "ticks": ticks,
            "seconds": round(b - a, 3), "world_ticks_per_s": round(width * ticks / (b - a), 1),
+           "ship_ticks_per_s": round(width * ships * ticks / (b - a), 1),
            "ms_per_tick": round(1000.0 * (b - a) / ticks, 3), "contacts_last_tick": contacts,
            "passes_per_tick": round(passes / ticks, 2) if iterative else None, "a": a, "b": b}
     if dev.type == "cuda":

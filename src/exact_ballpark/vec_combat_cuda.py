@@ -290,6 +290,9 @@ def tick(park, block: int = 128, lib: dict | None = None) -> None:
     """One tick of a VecCombatPark in place: the four launches, on torch's current stream of the park's device; no
     allocation, no host synchronisation. `after` follows (after the host's yaw, pitch and roll without dynamical
     orientation: VecCombatPark.evolve)."""
+    if park.dev.type != "cuda":                 # before any library is loaded or built
+        raise ValueError("the combat kernels need a park on a CUDA device (evolve_torch is the CPU path; evolve "
+                         "takes it there)")
     e = lib or load_library()
     s = make_state(park)
     if not park.n:
@@ -303,6 +306,9 @@ def after(park, block: int = 128, lib: dict | None = None) -> None:
     """The fifth launch, after phase 4 and the host's yaw, pitch and roll: the members of a mushroom
     removed this tick whose turns came first are released, then each troll due is petrified (its row marked in
     `petrified`, whose yaw, pitch and roll the host then snaps without dynamical orientation); no host sync."""
+    if park.dev.type != "cuda":                 # before any library is loaded or built
+        raise ValueError("the combat kernels need a park on a CUDA device (evolve_torch is the CPU path; evolve "
+                         "takes it there)")
     e = lib or load_library()
     s = make_state(park)
     if not park.n:
@@ -378,6 +384,12 @@ class CombatGraph:
     as vec_modes_cuda.ModesGraph's): `tick(active)`."""
 
     def __init__(self, park, block: int | None = None, lib: dict | None = None, masked: bool = False):
+        if hasattr(park, "_lists_from_counts"):     # VecComposedPark, before any build
+            raise ValueError("CombatGraph captures VecCombatPark's tick: a VecComposedPark ticks by ComposedGraph "
+                             "(collisions on) or by evolve (collisions off: these kernels, then its collision lists)")
+        if park.dev.type != "cuda":                 # before any library is loaded or built
+            raise ValueError("a CUDA graph needs a park on a CUDA device (evolve_torch is the CPU path; evolve "
+                             "takes it there)")
         if not park.dynamical_orientation:
             raise ValueError("without dynamical orientation a tick needs the host (the yaw, pitch and roll)")
         self.park, self.block = park, park.block if block is None else int(block)
