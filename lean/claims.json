@@ -1,0 +1,2023 @@
+{
+  "revision": "098653233eb0f9910a3f02564e36b0641cbd4e0f",
+  "sources": {
+    "src/exact_ballpark/ref.py": "94d3da47f6685552408f421838c88c1385273d2c2550c8e5f5fe15dabb4077a9",
+    "src/exact_ballpark/space.py": "e3eb4bb396201a99398e1e619b878882f62411974e9a66a6abba410e66045a74",
+    "src/exact_ballpark/full.py": "a827faa371ccd757cd0a2a5ae71b0ca649aac9407036235880e33b037e9f9b67",
+    "src/exact_ballpark/modes.py": "8f49de92a031f415b598603e23a6c99429eb933e81dae833ce54f15a64a3a6ec",
+    "src/exact_ballpark/vec_exp.py": "ce17f5099e545d0f6d1e5d824657ff9a1cfd981b27b4e984f3d529c7b8dd3f96",
+    "src/exact_ballpark/dlibm_powf.py": "de0fb1cc1fa15f4e1ace292a6991e80536da1c9b7d1cd45389df5912d0f861d9",
+    "src/exact_ballpark/dlibm.py": "3690d968cefca8fc076ff551630f0cdfa466bc521fa5c3f793222233dbcd5a1e",
+    "src/exact_ballpark/dlibm_inv.py": "58a2ca8c02d49e7d0b4a902d1f8ef6ef0b1b11406ed8e2194d26ec9a3787493b",
+    "src/exact_ballpark/server.py": "b22342124651adeab50eab88fa77c868cee0990775ebc5e7707a99e7389684e1",
+    "src/exact_ballpark/client.py": "acf03a91f754d6cb4e7661fa83d73916a893959448efa79b1ccd35ca629b14e6",
+    "src/exact_ballpark/vec_collide.py": "2121fe58e8c3947fd8f4b6dd954afbfc363ec0ec33317270131283d768ebdd57"
+  },
+  "correspondence": "The register identifies manually transcribed models and source-extracted definitions. The Python-to-Lean extractors are trusted. The Lean kernel checks the resulting theorems. The full.py digest includes a docstring correction to the pinned formation source.",
+  "deviceQualification": "The engine records device qualification on NVIDIA GH200, aarch64 and glibc 2.34. This proof gate runs on the host CPU.",
+  "claims": [
+    {
+      "title": "Effective mass and the cached tick factor",
+      "moduleName": "ExactBallparkProofs.Movement.Integrator",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-701",
+        "MOV-704"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark._refresh_time_factor, Ballpark.integrate",
+      "scope": "The cache refresh theorem assumes positive mass \u00d7 agility. A full tick requires the stored decay for that interval. A partial tick recomputes it. The accuracy of libm exp remains open.",
+      "theorems": [
+        "ExactBallpark.Movement.refresh_positive",
+        "ExactBallpark.Movement.stepFactor_eq"
+      ],
+      "ruleTheorems": {
+        "MOV-701": [
+          "refresh_positive"
+        ],
+        "MOV-704": [
+          "refresh_positive",
+          "stepFactor_eq"
+        ]
+      }
+    },
+    {
+      "title": "Cache maintenance through mass and agility setters",
+      "moduleName": "ExactBallparkProofs.Movement.Cache",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-704",
+        "MOV-711"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.add_ball, Ballpark.set_mass, Ballpark.set_agility, Ballpark._refresh_time_factor, Ballpark.integrate",
+      "scope": "One ball with fixed friction and tick interval. Agility inputs are the finite values after conversion. Construction and any finite history of these two setters preserve the cache, including rejected changes and zero effective mass. Positive final effective mass and nonzero friction suffice for the velocity formula. IEEE rounding and exceptional values remain open.",
+      "theorems": [
+        "ExactBallpark.Movement.CacheState.addBall_valid",
+        "ExactBallpark.Movement.CacheState.update_valid",
+        "ExactBallpark.Movement.CacheState.history_valid",
+        "ExactBallpark.Movement.CacheState.velocity_after_updates"
+      ],
+      "ruleTheorems": {
+        "MOV-704": [
+          "addBall_valid",
+          "update_valid",
+          "history_valid",
+          "velocity_after_updates"
+        ],
+        "MOV-711": [
+          "addBall_valid"
+        ]
+      }
+    },
+    {
+      "title": "Regular constant-force trajectory",
+      "moduleName": "ExactBallparkProofs.Movement.Integrator",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-701",
+        "MOV-702"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "scope": "One Cartesian component, constant acceleration and coefficients. The source identity requires nonzero friction. The drag ODE assumes nonzero effective mass and friction. Composition concerns the regular mathematical flow.",
+      "theorems": [
+        "ExactBallpark.Movement.source_regular",
+        "ExactBallpark.Movement.flow_zero",
+        "ExactBallpark.Movement.decay_hasDerivAt",
+        "ExactBallpark.Movement.position_hasDerivAt",
+        "ExactBallpark.Movement.velocity_hasDerivAt",
+        "ExactBallpark.Movement.flow_compose"
+      ],
+      "ruleTheorems": {
+        "MOV-701": [
+          "source_regular",
+          "velocity_hasDerivAt"
+        ],
+        "MOV-702": [
+          "source_regular",
+          "flow_zero",
+          "decay_hasDerivAt",
+          "position_hasDerivAt",
+          "velocity_hasDerivAt",
+          "flow_compose"
+        ]
+      }
+    },
+    {
+      "title": "Dispatcher and near-zero-friction position",
+      "moduleName": "ExactBallparkProofs.Movement.SpecialBranch",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-702",
+        "MOV-703",
+        "MOV-704"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "scope": "Zero time returns the input unconditionally. The ordinary branch includes equality at the threshold. At a nonzero special step with nonzero effective mass and friction, position is p + v t and velocity uses the selected factor. Rounded cancellation is outside this claim.",
+      "theorems": [
+        "ExactBallpark.Movement.integrate_zero",
+        "ExactBallpark.Movement.integrate_regular",
+        "ExactBallpark.Movement.special_position_eq",
+        "ExactBallpark.Movement.integrate_special",
+        "ExactBallpark.Movement.integrate_velocity"
+      ],
+      "ruleTheorems": {
+        "MOV-702": [
+          "integrate_zero",
+          "integrate_regular",
+          "integrate_velocity"
+        ],
+        "MOV-703": [
+          "special_position_eq",
+          "integrate_special"
+        ],
+        "MOV-704": [
+          "integrate_regular",
+          "integrate_velocity"
+        ]
+      }
+    },
+    {
+      "title": "Three-dimensional velocity bounds",
+      "moduleName": "ExactBallparkProofs.Movement.Bounds",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-701",
+        "MOV-702"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "scope": "Euclidean speed under constant acceleration. Positive effective mass and friction and nonnegative time bound decay by one. Both initial and terminal speeds must lie inside the claimed envelope.",
+      "theorems": [
+        "ExactBallpark.Movement.decay_bounds",
+        "ExactBallpark.Movement.velocity_contraction",
+        "ExactBallpark.Movement.speed_envelope",
+        "ExactBallpark.Movement.velocity_tends_to_terminal"
+      ]
+    },
+    {
+      "title": "GOTO taper and thrust",
+      "moduleName": "ExactBallparkProofs.Movement.Modes",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-705",
+        "MOV-706"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "_normalized, Ballpark.goto_thrust, Ballpark.integrate",
+      "scope": "Nonnegative tick and requested speed (speed fraction \u00d7 max velocity), positive effective mass and friction. The taper uses squared Euclidean distance. Normalizing the offset, including zero, and applying drag preserves the requested speed envelope if the initial speed is inside it.",
+      "theorems": [
+        "ExactBallpark.Movement.taper_bounds",
+        "ExactBallpark.Movement.goto_terminal_bound",
+        "ExactBallpark.Movement.goto_speed_bound"
+      ],
+      "ruleTheorems": {
+        "MOV-705": [
+          "goto_terminal_bound",
+          "goto_speed_bound"
+        ],
+        "MOV-706": [
+          "taper_bounds",
+          "goto_terminal_bound",
+          "goto_speed_bound"
+        ]
+      }
+    },
+    {
+      "title": "STOP vertical damping and ordinary drag",
+      "moduleName": "ExactBallparkProofs.Movement.Modes",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-710"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "STOP_DAMP, Ballpark.evolve, Ballpark.integrate",
+      "scope": "Three velocity components, zero mode acceleration and zero collision impulse. The two encoded binary64 constants are interpreted exactly over the reals. The bound is on squared Euclidean speed after damping and drag.",
+      "theorems": [
+        "ExactBallpark.Movement.stop_speed_sq"
+      ]
+    },
+    {
+      "title": "Binary64 mass clamp",
+      "moduleName": "ExactBallparkProofs.Numerics.Clamp",
+      "model": "Lean Float logical model (binary64)",
+      "rules": [
+        "MOV-711"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.add_ball",
+      "scope": "Mass field only. The strict comparison maps negatives to positive zero, retains negative zero and preserves the NaN class. The equality convention treats any two NaNs alike. Binary32 conversion and other setters remain open.",
+      "theorems": [
+        "ExactBallpark.Numerics.clamp_negative",
+        "ExactBallpark.Numerics.clamp_other",
+        "ExactBallpark.Numerics.clamp_nan",
+        "ExactBallpark.Numerics.clamp_negative_zero",
+        "ExactBallpark.Numerics.signed_zeros_distinct"
+      ]
+    },
+    {
+      "title": "First contact of two swept spheres",
+      "moduleName": "ExactBallparkProofs.Collision.Sweep",
+      "model": "Real arithmetic",
+      "rules": [
+        "COL-705"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.collide_two_spheres, _sub, _dot",
+      "scope": "Straight interpolation on both endpoint chords and a physical combined radius \u2265 0. Covers initial overlap, stationary relative motion, tangency, endpoint hits and a complete miss. Sign decisions in binary64 remain open.",
+      "theorems": [
+        "ExactBallpark.Collision.gap_quadratic",
+        "ExactBallpark.Collision.contact_correct"
+      ]
+    },
+    {
+      "title": "Box exclusion along a straight sweep",
+      "moduleName": "ExactBallparkProofs.Collision.Sweep",
+      "model": "Real arithmetic",
+      "rules": [
+        "COL-712"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "AABB.can_exclude",
+      "scope": "Broad-phase filter used by the oriented-box part of COL-712. For a valid box and nonnegative radius, one strict separating side persists for the full chord, including endpoints. Contact response remains open.",
+      "theorems": [
+        "ExactBallpark.Collision.excluded_chord"
+      ]
+    },
+    {
+      "title": "Agility rounding before validation",
+      "moduleName": "ExactBallparkProofs.Numerics.Agility",
+      "model": "Lean core binary64 and binary32 logical models",
+      "rules": [
+        "MOV-712",
+        "MOV-713"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "f32, Ballpark.set_agility",
+      "scope": "Binary64 input is unpacked, rounded to nearest-even binary32 and classified before the write. Negative values and both zeros are rejected. NaN and positive infinity are accepted when conversion returns. Includes both signs of the halfway-to-minimum-subnormal input and their next magnitudes. Host overflow exceptions and NaN payloads are outside the model.",
+      "theorems": [
+        "ExactBallpark.Numerics.agility_accepts_iff",
+        "ExactBallpark.Numerics.agility_half_subnormal",
+        "ExactBallpark.Numerics.agility_above_half_subnormal"
+      ]
+    },
+    {
+      "title": "Warp destination and alignment state",
+      "moduleName": "ExactBallparkProofs.Warp.Commands",
+      "model": "Real arithmetic",
+      "rules": [
+        "TRV-701",
+        "TRV-702",
+        "TRV-703"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark.warp_to",
+      "scope": "An existing ball with finite destination. The 100 km guard precedes repeated-target detection. Long duplicate commands preserve all modeled fields. Fresh long commands install the clamped factor and range and start alignment at stamp -1. GOTO bookkeeping and emitted events remain separate.",
+      "theorems": [
+        "ExactBallpark.Warp.short_iff",
+        "ExactBallpark.Warp.repeated_warp",
+        "ExactBallpark.Warp.long_starts_alignment"
+      ],
+      "ruleTheorems": {
+        "TRV-701": [
+          "short_iff"
+        ],
+        "TRV-702": [
+          "repeated_warp"
+        ],
+        "TRV-703": [
+          "long_starts_alignment"
+        ]
+      }
+    },
+    {
+      "title": "Alignment and warp exit geometry",
+      "moduleName": "ExactBallparkProofs.Warp.Commands",
+      "model": "Real arithmetic",
+      "rules": [
+        "TRV-706",
+        "TRV-707"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark._is_aligned_for_warp, ModeBallpark._evolve_warp, ModeBallpark._real_warp",
+      "scope": "Given the computed direction cosine and nonnegative speed and max velocity, both motion thresholds are strict. The forced path is available after 180 unsuccessful calls from stamp -1. Distinct endpoints and nonnegative minimum range give exactly that distance between the original target and offset exit.",
+      "theorems": [
+        "ExactBallpark.Warp.alignment_after_waits",
+        "ExactBallpark.Warp.exit_distance"
+      ],
+      "ruleTheorems": {
+        "TRV-706": [
+          "alignment_after_waits"
+        ],
+        "TRV-707": [
+          "exit_distance"
+        ]
+      }
+    },
+    {
+      "title": "Warp rates, peak and phase distances",
+      "moduleName": "ExactBallparkProofs.Warp.Profile",
+      "model": "Real arithmetic",
+      "rules": [
+        "TRV-704",
+        "TRV-708",
+        "TRV-709",
+        "TRV-710"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark.warp_constants",
+      "scope": "Positive warp factor and rates, nonnegative distance. The encoded rate constants determine requested peak speed. The deceleration rate caps at two. Limiting the peak makes cruise duration nonnegative and the short-warp branch makes it zero. Phase distances add to the requested distance.",
+      "theorems": [
+        "ExactBallpark.Warp.rate_bounds",
+        "ExactBallpark.Warp.short_cruise_zero",
+        "ExactBallpark.Warp.cruise_nonnegative",
+        "ExactBallpark.Warp.phase_distances_sum"
+      ],
+      "ruleTheorems": {
+        "TRV-704": [
+          "rate_bounds"
+        ],
+        "TRV-708": [
+          "rate_bounds"
+        ],
+        "TRV-709": [
+          "short_cruise_zero"
+        ],
+        "TRV-710": [
+          "cruise_nonnegative",
+          "phase_distances_sum"
+        ]
+      }
+    },
+    {
+      "title": "Warp trajectory joins and drop-out",
+      "moduleName": "ExactBallparkProofs.Warp.Profile",
+      "model": "Real arithmetic",
+      "rules": [
+        "TRV-711",
+        "TRV-712",
+        "TRV-713"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark.warp_constants, ModeBallpark._warp_distance",
+      "scope": "Axial traveled distance under positive rates and peak. The exponential, cruise and deceleration distance branches meet, with nominal deceleration ending at the target distance. The strict deceleration and speed tests are preserved. Reported speed can be held above the acceleration curve.",
+      "theorems": [
+        "ExactBallpark.Warp.phase_joins",
+        "ExactBallpark.Warp.phase_decel_iff",
+        "ExactBallpark.Warp.dropout_iff",
+        "ExactBallpark.Warp.decel_velocity"
+      ],
+      "ruleTheorems": {
+        "TRV-711": [
+          "phase_joins"
+        ],
+        "TRV-712": [
+          "phase_decel_iff",
+          "decel_velocity"
+        ],
+        "TRV-713": [
+          "dropout_iff"
+        ]
+      }
+    },
+    {
+      "title": "Tick backlog, timestamps and render delay",
+      "moduleName": "ExactBallparkProofs.Time.Tick",
+      "model": "Integer clock and ordered calls",
+      "rules": [
+        "TIME-702",
+        "TIME-703",
+        "TIME-704",
+        "TIME-705",
+        "TIME-708"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.on_tick, FullBallpark.shifted_time",
+      "scope": "Integer 100 ns timestamps and positive interval. Covers early calls, the first due call, server resynchronization above five whole intervals, ordered event/evolve calls, and exact remainder for the ordinary loop. Cleanup is a call in the trace. Handler and deletion effects remain outside this projection.",
+      "theorems": [
+        "ExactBallpark.Time.rounds_remainder",
+        "ExactBallpark.Time.rounds_trace",
+        "ExactBallpark.Time.early",
+        "ExactBallpark.Time.first_due",
+        "ExactBallpark.Time.master_resync",
+        "ExactBallpark.Time.ordinary_tick",
+        "ExactBallpark.Time.render_two_ticks"
+      ],
+      "ruleTheorems": {
+        "TIME-702": [
+          "rounds_remainder",
+          "early",
+          "ordinary_tick"
+        ],
+        "TIME-703": [
+          "master_resync"
+        ],
+        "TIME-704": [
+          "first_due"
+        ],
+        "TIME-705": [
+          "rounds_trace",
+          "ordinary_tick"
+        ],
+        "TIME-708": [
+          "render_two_ticks"
+        ]
+      }
+    },
+    {
+      "title": "Elastic normal response",
+      "moduleName": "ExactBallparkProofs.Collision.Response",
+      "model": "Real arithmetic",
+      "rules": [
+        "COL-706",
+        "COL-707",
+        "COL-708",
+        "COL-716",
+        "COL-717"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._potential, SpaceBallpark._impact_static, SpaceBallpark._impact_free",
+      "scope": "Unit contact normal for reflection. Positive base masses for one-dimensional exchange. Before drag, response scaling and AddImpact limiting, reflection preserves speed and reverses the normal projection. An applied pair impulse reverses relative normal speed and preserves normal momentum and kinetic energy.",
+      "theorems": [
+        "ExactBallpark.Collision.reflection",
+        "ExactBallpark.Collision.elastic_exchange",
+        "ExactBallpark.Collision.iterative_exchange"
+      ],
+      "ruleTheorems": {
+        "COL-706": [
+          "elastic_exchange"
+        ],
+        "COL-707": [
+          "reflection"
+        ],
+        "COL-708": [
+          "elastic_exchange"
+        ],
+        "COL-716": [
+          "reflection"
+        ],
+        "COL-717": [
+          "iterative_exchange"
+        ]
+      }
+    },
+    {
+      "title": "Overlap displacement and impact limiting",
+      "moduleName": "ExactBallparkProofs.Collision.Response",
+      "model": "Real arithmetic",
+      "rules": [
+        "COL-709",
+        "COL-718"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._potential, SpaceBallpark._add_impact",
+      "scope": "Positive collision inertias split overlap plus one metre. The limited nonzero impulse has magnitude (5 maxVel)\u00b2 / original magnitude. Real interpretation before binary32 rounding of the numerator.",
+      "theorems": [
+        "ExactBallpark.Collision.overlap_split",
+        "ExactBallpark.Collision.limitImpact_norm"
+      ],
+      "ruleTheorems": {
+        "COL-709": [
+          "overlap_split"
+        ],
+        "COL-718": [
+          "limitImpact_norm"
+        ]
+      }
+    },
+    {
+      "title": "Transversal angular speed and accuracy bounds",
+      "moduleName": "ExactBallparkProofs.Combat.Accuracy",
+      "model": "Real arithmetic",
+      "rules": [
+        "CMB-701",
+        "CMB-702"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.relative_velocities, FullBallpark.get_accuracy",
+      "scope": "Distinct positions and ordinary relative velocities with dynamical orientation off. The independent squared-speed expression equals squared angular speed from the transverse projection. On the successful accuracy branch the chance lies in (0,1], and a stationary relative target inside optimal range has chance one. Early returns and numeric cancellation remain separate.",
+      "theorems": [
+        "ExactBallpark.Combat.angular_agrees",
+        "ExactBallpark.Combat.accuracy_bounds",
+        "ExactBallpark.Combat.optimal_stationary"
+      ],
+      "ruleTheorems": {
+        "CMB-701": [
+          "angular_agrees"
+        ],
+        "CMB-702": [
+          "accuracy_bounds",
+          "optimal_stationary"
+        ]
+      }
+    },
+    {
+      "title": "Sensor timing, edge events and range boundaries",
+      "moduleName": "ExactBallparkProofs.Space.Proximity",
+      "model": "Real arithmetic",
+      "rules": [
+        "SEN-701",
+        "SEN-702",
+        "SEN-703",
+        "SEN-704"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._check_sensor, SpaceBallpark._check_target_tracking, SpaceBallpark._check_notification_range",
+      "scope": "Live eligible candidates. A sensor checks on reaching its period and includes the outer distance boundary. Tracking uses a strict outer boundary and follow notifications use an open band. Radii in the sensor comparison are supplied after the source float additions. An unchanged inside/outside sample emits no repeated edge event.",
+      "theorems": [
+        "ExactBallpark.Space.crossing",
+        "ExactBallpark.Space.repeated_sample",
+        "ExactBallpark.Space.sensor_inside",
+        "ExactBallpark.Space.tracking_boundary",
+        "ExactBallpark.Space.follow_band_iff",
+        "ExactBallpark.Space.sensor_schedule"
+      ],
+      "ruleTheorems": {
+        "SEN-701": [
+          "sensor_schedule"
+        ],
+        "SEN-702": [
+          "sensor_inside",
+          "crossing",
+          "repeated_sample"
+        ],
+        "SEN-703": [
+          "tracking_boundary",
+          "crossing",
+          "repeated_sample"
+        ],
+        "SEN-704": [
+          "follow_band_iff",
+          "crossing"
+        ]
+      }
+    },
+    {
+      "title": "Finest admissible partition level",
+      "moduleName": "ExactBallparkProofs.Space.Partition",
+      "model": "Real arithmetic",
+      "rules": [
+        "SEN-705",
+        "SEN-706"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "LEVEL_WIDTH, SpaceBallpark.level_for",
+      "scope": "Eight widths from 7864320 m to 480 m, a factor of four apart. The argument is the filing radius supplied to level_for. An oversized object falls back to level zero. Every positive level has the exact inclusive three-radius threshold.",
+      "theorems": [
+        "ExactBallpark.Space.finest_level",
+        "ExactBallpark.Space.finest_width"
+      ],
+      "ruleTheorems": {
+        "SEN-705": [
+          "finest_width"
+        ],
+        "SEN-706": [
+          "finest_level"
+        ]
+      }
+    },
+    {
+      "title": "Exponential dispatch by magnitude",
+      "moduleName": "ExactBallparkProofs.Numerics.LibmGuards",
+      "model": "64-bit words",
+      "rules": [
+        "MOV-738"
+      ],
+      "source": "src/exact_ballpark/vec_exp.py",
+      "symbols": "exp",
+      "scope": "All binary64 encodings. The signed shift and mask implement the two exact unsigned-magnitude intervals for the tiny and large branches. Table evaluation, rounding and device execution remain open.",
+      "theorems": [
+        "ExactBallpark.Numerics.exp_tiny_iff",
+        "ExactBallpark.Numerics.exp_large_iff"
+      ]
+    },
+    {
+      "title": "Signaling NaN detection in powf",
+      "moduleName": "ExactBallparkProofs.Numerics.LibmGuards",
+      "model": "32-bit words",
+      "rules": [
+        "MOV-739"
+      ],
+      "source": "src/exact_ballpark/dlibm_powf.py",
+      "symbols": "_signaling",
+      "scope": "All binary32 encodings. The test is exactly an all-ones exponent, clear quiet bit and nonzero remaining payload. The resulting powf arithmetic remains open.",
+      "theorems": [
+        "ExactBallpark.Numerics.powf_signaling_iff"
+      ]
+    },
+    {
+      "title": "Logarithm range reduction guard",
+      "moduleName": "ExactBallparkProofs.Numerics.LibmGuards",
+      "model": "64-bit words",
+      "rules": [
+        "MOV-740"
+      ],
+      "source": "src/exact_ballpark/dlibm.py",
+      "symbols": "log",
+      "scope": "All binary64 encodings. The wrapping addition recognizes the inclusive near-one bit interval. Polynomial and other branches remain open.",
+      "theorems": [
+        "ExactBallpark.Numerics.log_near_one_iff"
+      ]
+    },
+    {
+      "title": "Atan2 sign restoration",
+      "moduleName": "ExactBallparkProofs.Numerics.LibmGuards",
+      "model": "64-bit words",
+      "rules": [
+        "MOV-741"
+      ],
+      "source": "src/exact_ballpark/dlibm_inv.py",
+      "symbols": "_signed",
+      "scope": "All binary64 encodings, including signed zeros and NaN payloads. The returned sign comes from y and the other 63 bits come from z. Only this final primitive is covered.",
+      "theorems": [
+        "ExactBallpark.Numerics.atan2_sign"
+      ]
+    },
+    {
+      "title": "A GOTO overshoot witness",
+      "moduleName": "ExactBallparkProofs.Movement.Guidance",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-707"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.goto_thrust, Ballpark.integrate",
+      "scope": "A ball at x=0 moving toward x=1 at speed 2, with unit speed request, tick, friction and effective mass. The taper and regular integration yield a position strictly beyond the target.",
+      "theorems": [
+        "ExactBallpark.Movement.goto_overshoot"
+      ]
+    },
+    {
+      "title": "Follow geometry and orbit steering",
+      "moduleName": "ExactBallparkProofs.Movement.Guidance",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-714",
+        "MOV-717",
+        "MOV-718",
+        "MOV-720",
+        "MOV-721",
+        "MOV-722"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark._evolve_follow, _evolve_old_orbit, _evolve_new_orbit, _goto_thrust_follow, _orbit_thrust",
+      "scope": "The range offset has magnitude |r|, including the coincident fallback axis. The old orbit angles repeat across IDs separated by 65536 and its truncated Gaussian stays in [0,1]. The new orbit-plane target has the spiral radius in an orthonormal frame. The two uncapped linear guidance solves reach their prescribed endpoint component or velocity when denominators are nonzero. Positive-limit orbit braking bounds the output norm.",
+      "theorems": [
+        "ExactBallpark.Movement.unit_norm",
+        "ExactBallpark.Movement.follow_range",
+        "ExactBallpark.Movement.orbit_id_period",
+        "ExactBallpark.Movement.orbit_weight_bounds",
+        "ExactBallpark.Movement.spiral_radius",
+        "ExactBallpark.Movement.solve_guidance",
+        "ExactBallpark.Movement.orbit_brake_cap"
+      ],
+      "ruleTheorems": {
+        "MOV-714": [
+          "unit_norm",
+          "follow_range"
+        ],
+        "MOV-717": [
+          "orbit_id_period"
+        ],
+        "MOV-718": [
+          "orbit_weight_bounds"
+        ],
+        "MOV-720": [
+          "spiral_radius"
+        ],
+        "MOV-721": [
+          "solve_guidance"
+        ],
+        "MOV-722": [
+          "orbit_brake_cap"
+        ]
+      }
+    },
+    {
+      "title": "Follow cleanup, GOTO defaults and mode events",
+      "moduleName": "ExactBallparkProofs.Movement.Control",
+      "model": "Discrete transitions with real speed fractions",
+      "rules": [
+        "MOV-708",
+        "MOV-709",
+        "MOV-715",
+        "MOV-730",
+        "MOV-735"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark._stop, _goto_point, _follow, _stop_all_followers, _set_mode",
+      "scope": "Projection onto one existing ball with consistent follow links and finite command values. Checks STOP cleanup and idempotence, GOTO speed default, target eligibility, fly-on exceptions, and ordered exit/mode-change events. Target follower sets, formation slots and command rejection for nonfinite coordinates are separate.",
+      "theorems": [
+        "ExactBallpark.Control.stop_clears",
+        "ExactBallpark.Control.goto_cancels",
+        "ExactBallpark.Control.follow_iff",
+        "ExactBallpark.Control.fly_on_iff",
+        "ExactBallpark.Control.exit_iff",
+        "ExactBallpark.Control.exiting_order"
+      ],
+      "ruleTheorems": {
+        "MOV-708": [
+          "goto_cancels"
+        ],
+        "MOV-709": [
+          "stop_clears"
+        ],
+        "MOV-715": [
+          "follow_iff"
+        ],
+        "MOV-730": [
+          "fly_on_iff"
+        ],
+        "MOV-735": [
+          "exit_iff",
+          "exiting_order"
+        ]
+      }
+    },
+    {
+      "title": "Server queue duplicate suppression",
+      "moduleName": "ExactBallparkProofs.Time.History",
+      "model": "Lists with decidable equality",
+      "rules": [
+        "TIME-709",
+        "TIME-710"
+      ],
+      "source": "src/exact_ballpark/server.py",
+      "symbols": "Actions._add_to_system_history",
+      "scope": "A history element is the complete compared value, including ball id, stamp and event. For values with reflexive decidable equality, a duplicate tail is idempotent and a distinct next action is appended. Python custom equality and NaN tuple behavior are outside the model.",
+      "theorems": [
+        "ExactBallpark.Time.last_enqueued",
+        "ExactBallpark.Time.duplicate_idempotent",
+        "ExactBallpark.Time.distinct_actions_kept"
+      ],
+      "ruleTheorems": {
+        "TIME-709": [
+          "last_enqueued",
+          "distinct_actions_kept"
+        ],
+        "TIME-710": [
+          "duplicate_idempotent"
+        ]
+      }
+    },
+    {
+      "title": "Client wait and successful synchronization",
+      "moduleName": "ExactBallparkProofs.Time.History",
+      "model": "Integer clock and ordered snapshots",
+      "rules": [
+        "TIME-715"
+      ],
+      "source": "src/exact_ballpark/client.py",
+      "symbols": "Ticker.do_pre_tick, Ticker.synchronize_to_simulation_time",
+      "scope": "A waiting bubble defers dispatch. Without that flag only future stamps one and two ticks ahead are deferred at the queue head. On successful synchronization with usable snapshots and one tick per evolve, the resulting clock equals the requested stamp.",
+      "theorems": [
+        "ExactBallpark.Time.sync_reaches_stamp",
+        "ExactBallpark.Time.wait_iff"
+      ]
+    },
+    {
+      "title": "Python warp constants and parameter dependence",
+      "moduleName": "ExactBallparkProofs.Warp.Profile",
+      "model": "Real arithmetic",
+      "rules": [
+        "TRV-704",
+        "TRV-708",
+        "TRV-709",
+        "TRV-710",
+        "TRV-716"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark.warp_constants",
+      "scope": "The build gate regenerates this pure helper\u2019s real expression from its Python AST and checks all nine tuple fields against the analytic definitions. Only warp factor, distance and module constants enter the extracted function. The dependency statement is local to this helper. The extractor is trusted and intermediate floating-point rounding is outside the model.",
+      "theorems": [
+        "ExactBallpark.Warp.source_constants"
+      ]
+    },
+    {
+      "title": "Behavior dispatch and angular cap",
+      "moduleName": "ExactBallparkProofs.Movement.Flight",
+      "model": "Discrete dispatch and real vectors",
+      "rules": [
+        "MOV-716",
+        "MOV-727",
+        "MOV-734"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark._behaviour, _cap_acceleration",
+      "scope": "Exhaustive classification of all 13 modes for both orientation settings. Six select a thrust callback, ORBIT selects the configured law, and CapAcceleration returns the requested vector. The callbacks have independent contracts.",
+      "theorems": [
+        "ExactBallpark.Movement.thrust_modes",
+        "ExactBallpark.Movement.orbit_switch",
+        "ExactBallpark.Movement.cap_preserves"
+      ],
+      "ruleTheorems": {
+        "MOV-716": [
+          "orbit_switch"
+        ],
+        "MOV-727": [
+          "cap_preserves"
+        ],
+        "MOV-734": [
+          "thrust_modes"
+        ]
+      }
+    },
+    {
+      "title": "Predicted target direction",
+      "moduleName": "ExactBallparkProofs.Movement.Flight",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-719"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark._orbital_normal",
+      "scope": "Nonzero offset and dynamical orientation off. The computed direction times the distance reaches the target advanced by its velocity times dt. The cross product and default normal branch have further obligations.",
+      "theorems": [
+        "ExactBallpark.Movement.predicted_direction"
+      ]
+    },
+    {
+      "title": "Game flight targets and launch speed",
+      "moduleName": "ExactBallparkProofs.Movement.Flight",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-723",
+        "MOV-724",
+        "MOV-725"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark._evolve_missile, missile_follow, launch_missile",
+      "scope": "The 800 ms straight phase includes equality. On the pursuit branch the radii cancel if their sum was stored exactly, including coincident positions. For a valid aimed launch with distinct target the initial speed is one. On an ordinary moving launch the added speed has magnitude max(150, launcher.max_vel). Endpoint storage, float narrowing and later commands remain separate.",
+      "theorems": [
+        "ExactBallpark.Movement.pursuit_center",
+        "ExactBallpark.Movement.launch_speeds"
+      ],
+      "ruleTheorems": {
+        "MOV-723": [
+          "pursuit_center"
+        ],
+        "MOV-724": [
+          "pursuit_center"
+        ],
+        "MOV-725": [
+          "launch_speeds"
+        ]
+      }
+    },
+    {
+      "title": "Formation and orientation bounds",
+      "moduleName": "ExactBallparkProofs.Movement.Flight",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-726",
+        "MOV-728",
+        "MOV-729"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark._evolve_formation, _orient, _yaw_pitch_roll",
+      "scope": "A valid formation slot and norm-preserving rotation, before vector narrowing. For the above-threshold orientation branch with unit predicted heading and nonnegative requested magnitude, projected thrust stays within the request. For nonnegative smoothing parameter the target-angle error contracts by 1/(1+mm/2) after angle wrapping. Quaternion and torque calculation remain separate.",
+      "theorems": [
+        "ExactBallpark.Movement.formation_distance",
+        "ExactBallpark.Movement.orientation_bound",
+        "ExactBallpark.Movement.smooth_error"
+      ],
+      "ruleTheorems": {
+        "MOV-726": [
+          "formation_distance"
+        ],
+        "MOV-728": [
+          "orientation_bound"
+        ],
+        "MOV-729": [
+          "smooth_error"
+        ]
+      }
+    },
+    {
+      "title": "Troll readiness and minimum delay",
+      "moduleName": "ExactBallparkProofs.Movement.Flight",
+      "model": "Integer ticks and modes",
+      "rules": [
+        "MOV-736"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.set_ball_troll, _troll_ready",
+      "scope": "A ball kept in TROLL mode becomes ready exactly when elapsed integer ticks reach both the requested delay and one. Petrification side effects remain separate.",
+      "theorems": [
+        "ExactBallpark.Movement.troll_due"
+      ]
+    },
+    {
+      "title": "Alignment countdown, backdating and exit tick",
+      "moduleName": "ExactBallparkProofs.Warp.Transitions",
+      "model": "Integer transitions and real integration",
+      "rules": [
+        "TRV-705",
+        "TRV-714",
+        "TRV-715"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark._evolve_warp, entity_warp_in, evolve",
+      "scope": "From a negative stamp each unsuccessful wait decrements before the GOTO callback. For nonnegative clock, EntityWarpIn starts min(now,5) ticks into warp on the warp path. Dropout uses its returned position and velocity in the full-tick integrator, including both position branches, with cache and nonzero premises in the theorems.",
+      "theorems": [
+        "ExactBallpark.Warp.waiting_ticks",
+        "ExactBallpark.Warp.entity_elapsed",
+        "ExactBallpark.Warp.exit_regular",
+        "ExactBallpark.Warp.exit_special"
+      ],
+      "ruleTheorems": {
+        "TRV-705": [
+          "waiting_ticks"
+        ],
+        "TRV-714": [
+          "exit_regular",
+          "exit_special"
+        ],
+        "TRV-715": [
+          "entity_elapsed"
+        ]
+      }
+    },
+    {
+      "title": "Default tick duration",
+      "moduleName": "ExactBallparkProofs.Time.Schedule",
+      "model": "Lean logical binary64",
+      "rules": [
+        "TIME-701"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.__init__",
+      "scope": "The actual binary64 encoding of 1000 multiplied by the encoding of 0.001 rounds to exactly one second. Other tick lengths can incur rounding.",
+      "theorems": [
+        "ExactBallpark.Time.default_tick_seconds"
+      ]
+    },
+    {
+      "title": "Phase order and ascending free IDs",
+      "moduleName": "ExactBallparkProofs.Time.Schedule",
+      "model": "Ordered lists of integer IDs",
+      "rules": [
+        "TIME-706",
+        "TIME-707"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.evolve",
+      "scope": "Ordered call projection using a fixed live predicate for the three passes, and a fixed free-ID snapshot. Filtering each phase recovers the same ascending live IDs. Actual handler state changes, mushroom commits and device scheduling remain separate.",
+      "theorems": [
+        "ExactBallpark.Time.phase_ids",
+        "ExactBallpark.Time.phase_ordered"
+      ],
+      "ruleTheorems": {
+        "TIME-706": [
+          "phase_ids"
+        ],
+        "TIME-707": [
+          "phase_ordered"
+        ]
+      }
+    },
+    {
+      "title": "Dead bubbles, remote followers and cleanup quota",
+      "moduleName": "ExactBallparkProofs.Time.Schedule",
+      "model": "Discrete state",
+      "rules": [
+        "TIME-713",
+        "TIME-714",
+        "MOV-731"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.in_dead_bubble, remote_followers, bring_out_the_deads",
+      "scope": "Dead-bubble exclusion needs a master, non-warp mode and both interest counts zero. Remote follower IDs must be free with a follow mode and either missing or other-bubble target. For actual moribund entries outside Evolve, expired entries consume no quota while near-due deletion preserves the seven-entry budget. Server delivery of STOP and heap order remain separate.",
+      "theorems": [
+        "ExactBallpark.Time.dead_iff",
+        "ExactBallpark.Time.remote_iff",
+        "ExactBallpark.Time.cleanup_budget"
+      ],
+      "ruleTheorems": {
+        "TIME-713": [
+          "cleanup_budget"
+        ],
+        "TIME-714": [
+          "dead_iff"
+        ],
+        "MOV-731": [
+          "remote_iff"
+        ]
+      }
+    },
+    {
+      "title": "Immediate removal and pre-tick ordering",
+      "moduleName": "ExactBallparkProofs.Time.Server",
+      "model": "Source-extracted call traces",
+      "rules": [
+        "TIME-711",
+        "TIME-712"
+      ],
+      "source": "src/exact_ballpark/server.py",
+      "symbols": "Actions.remove_ball, BaseTicker.tick",
+      "scope": "Gate extracts ordered calls from the two Python methods. Successful removal always calls the parent last, preceded by notification exactly for global balls. Pre-tick calls the six named hooks in order. Effects inside hooks, exceptions and transport are separate.",
+      "theorems": [
+        "ExactBallpark.Time.removal_calls",
+        "ExactBallpark.Time.pretick_calls"
+      ],
+      "ruleTheorems": {
+        "TIME-711": [
+          "removal_calls"
+        ],
+        "TIME-712": [
+          "pretick_calls"
+        ]
+      }
+    },
+    {
+      "title": "Bubble update recipients",
+      "moduleName": "ExactBallparkProofs.Time.Server",
+      "model": "Sets of integer IDs",
+      "rules": [
+        "SEN-712"
+      ],
+      "source": "src/exact_ballpark/server.py",
+      "symbols": "ParkUpdateBatcher.send_batch",
+      "scope": "The union of interested clients across a bubble\u2019s interactive balls splits exhaustively and disjointly according to character history. Separate singlecasts and network delivery are outside this claim.",
+      "theorems": [
+        "ExactBallpark.Time.recipient_split"
+      ]
+    },
+    {
+      "title": "Gradient choice and candidate exceptions",
+      "moduleName": "ExactBallparkProofs.Collision.Selection",
+      "model": "Discrete state",
+      "rules": [
+        "COL-701",
+        "COL-702",
+        "COL-703",
+        "COL-704",
+        "SEN-708"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.evolve, _collision_candidates, _nearby, _gradient",
+      "scope": "Free massive live actors in the eligible bubble use the gradient when iteration is disabled. After broad-phase lookup and other eligibility filters, a non-defender missile sees its same-bubble target directly. Ordinary candidates exclude cloaks and missiles, with the master global-ball exception. Gradient skips the owner and non-junk versus junk.",
+      "theorems": [
+        "ExactBallpark.Collision.gradient_iff",
+        "ExactBallpark.Collision.missile_target",
+        "ExactBallpark.Collision.ordinary_candidate",
+        "ExactBallpark.Collision.owner_junk_skip"
+      ],
+      "ruleTheorems": {
+        "COL-701": [
+          "gradient_iff"
+        ],
+        "COL-702": [
+          "gradient_iff"
+        ],
+        "COL-703": [
+          "missile_target",
+          "ordinary_candidate"
+        ],
+        "COL-704": [
+          "owner_junk_skip"
+        ],
+        "SEN-708": [
+          "ordinary_candidate",
+          "missile_target"
+        ]
+      }
+    },
+    {
+      "title": "Twenty-pass iteration and orphan detection",
+      "moduleName": "ExactBallparkProofs.Collision.Selection",
+      "model": "Bounded recursion and discrete state",
+      "rules": [
+        "COL-714",
+        "COL-719"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark._collision_responses, _orphaned",
+      "scope": "The work-list loop enters one to twenty passes for arbitrary successive frontier results and terminates after one for an empty first frontier. With a known owner, orphan detection uses cloak or a different bubble while the missile has a bubble. Delivery of collision events has additional motion and master guards.",
+      "theorems": [
+        "ExactBallpark.Collision.iteration_cap",
+        "ExactBallpark.Collision.orphan_with_owner"
+      ],
+      "ruleTheorems": {
+        "COL-714": [
+          "iteration_cap"
+        ],
+        "COL-719": [
+          "orphan_with_owner"
+        ]
+      }
+    },
+    {
+      "title": "Collision tie strength, mass-ratio and ID ordering",
+      "moduleName": "ExactBallparkProofs.Collision.Selection",
+      "model": "Discrete selection and real arithmetic",
+      "rules": [
+        "COL-710",
+        "COL-711",
+        "COL-715"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._potential, _next_collision_free",
+      "scope": "Equal-time non-skipped response has the greater norm after scaling by the exact binary64 value of 0.85. Positive first inertia converts the strict lighter-ball threshold to m2 > 25*m1. For distinct ordinary free IDs the search order admits exactly one ordered pair. Recursive and static candidate geometry remain separate.",
+      "theorems": [
+        "ExactBallpark.Collision.response_tie",
+        "ExactBallpark.Collision.lighter_boost",
+        "ExactBallpark.Collision.unique_pair"
+      ],
+      "ruleTheorems": {
+        "COL-710": [
+          "lighter_boost"
+        ],
+        "COL-711": [
+          "response_tie"
+        ],
+        "COL-715": [
+          "unique_pair"
+        ]
+      }
+    },
+    {
+      "title": "Bubble neighbors, visibility and range",
+      "moduleName": "ExactBallparkProofs.Space.Queries",
+      "model": "Real arithmetic",
+      "rules": [
+        "SEN-707",
+        "SEN-709",
+        "SEN-710"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._nearby_bubbles, _traverse, check_visibility, ball_ids_in_range",
+      "scope": "The neighbor loop enumerates all 26 distinct adjacent offsets, excluding the center. In one valid bubble, the first eligible blocker in dictionary order has nonnegative discriminant and entry strictly between endpoints. Eligible range candidates with nonnegative distance satisfy distance \u2264 |range+radius|, including negative range inputs. Partition reachability, eligibility filtering and rounded grazing cases remain separate.",
+      "theorems": [
+        "ExactBallpark.Space.neighbor_offsets",
+        "ExactBallpark.Space.neighbor_iff",
+        "ExactBallpark.Space.first_occluder",
+        "ExactBallpark.Space.visibility_entry",
+        "ExactBallpark.Space.range_abs"
+      ],
+      "ruleTheorems": {
+        "SEN-707": [
+          "neighbor_offsets",
+          "neighbor_iff"
+        ],
+        "SEN-709": [
+          "visibility_entry",
+          "first_occluder"
+        ],
+        "SEN-710": [
+          "range_abs"
+        ]
+      }
+    },
+    {
+      "title": "Cloak, field and fixed collision-part rules",
+      "moduleName": "ExactBallparkProofs.Space.Queries",
+      "model": "Discrete state and real vectors",
+      "rules": [
+        "SEN-711",
+        "MOV-737",
+        "MOV-732",
+        "COL-713"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.cloak_ball, _nearby, _add_actual_minicapsule, _add_minis",
+      "scope": "Successful positive cloak releases followers and clears massive, with a sensor call only for normal cloak on the master. The harmonic, corporation and alliance filter includes both sentinel exceptions. A fixed parent translates both capsule endpoints preserving the axis vector; free parents do not instantiate it. Other mini shapes, allocation and sensor effects are outside these claims.",
+      "theorems": [
+        "ExactBallpark.Space.cloak_effect",
+        "ExactBallpark.Space.field_iff",
+        "ExactBallpark.Space.fixed_capsule"
+      ],
+      "ruleTheorems": {
+        "SEN-711": [
+          "cloak_effect"
+        ],
+        "MOV-737": [
+          "field_iff"
+        ],
+        "MOV-732": [
+          "fixed_capsule"
+        ],
+        "COL-713": [
+          "fixed_capsule"
+        ]
+      }
+    },
+    {
+      "title": "Ball flag byte round trip",
+      "moduleName": "ExactBallparkProofs.Numerics.Flags",
+      "model": "Eight-bit words",
+      "rules": [
+        "MOV-733"
+      ],
+      "source": "src/exact_ballpark/server.py",
+      "symbols": "DestinyPark._write_ball_to_stream, _read_ball_from_stream",
+      "scope": "All 256 combinations of five state flags and three mini-presence bits recover their original values in the eight reader masks. The claim concerns the flag byte.",
+      "theorems": [
+        "ExactBallpark.Numerics.flags_roundtrip"
+      ]
+    },
+    {
+      "title": "Source-extracted movement integrator",
+      "moduleName": "ExactBallparkProofs.Movement.Correspondence",
+      "model": "Real arithmetic",
+      "rules": [
+        "MOV-701",
+        "MOV-702",
+        "MOV-703",
+        "MOV-704"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "scope": "A restricted translator reads the actual Python arithmetic, indexed comprehensions, guards, reciprocal multiplications and cached-factor override. Its single-coordinate real program agrees with the existing integrator for every choice of inputs. Real division in Lean is total; applying the result to an actual Python return requires defined source operations. The source translation is trusted.",
+      "theorems": [
+        "ExactBallpark.Movement.extracted_integrator"
+      ]
+    },
+    {
+      "title": "Finite integrator operations and compatibility-branch witness",
+      "moduleName": "ExactBallparkProofs.Movement.Correspondence",
+      "model": "Lean logical binary64",
+      "rules": [
+        "MOV-702",
+        "MOV-703",
+        "MOV-704"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "scope": "The source-extracted binary64 model uses an explicit exp function and both position branches. For every nonzero full tick whose duration compares equal to itself, velocity bits follow the stated ordered arithmetic on the supplied factor. The MOV-703 stress input sets p=0, v=k=t=dt=1, effective mass 2^40 and acceleration 2^20, implying terminal speed 2^60. The position operations store +0 m. The 1 m baseline is the exact-real value of the first-order branch. The test uses cached factor 0x3fefffffffffe000. Host exp and the device remain separate.",
+      "theorems": [
+        "ExactBallpark.Movement.full_tick_velocity_bits",
+        "ExactBallpark.Movement.special_rounding_witness"
+      ],
+      "ruleTheorems": {
+        "MOV-702": [
+          "full_tick_velocity_bits"
+        ],
+        "MOV-703": [
+          "special_rounding_witness"
+        ],
+        "MOV-704": [
+          "full_tick_velocity_bits"
+        ]
+      }
+    },
+    {
+      "title": "Static reaction and scaled drag correction",
+      "moduleName": "ExactBallparkProofs.Collision.Response",
+      "model": "Real arithmetic",
+      "rules": [
+        "COL-707",
+        "COL-711",
+        "COL-712"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark._reflect, _capsule_react, _obox_react",
+      "scope": "For nonzero inertia and friction and a cached factor other than one, applying a fraction of the source collision acceleration interpolates exactly between free end velocity and the reflected substep result, coordinate by coordinate. This includes the source response scale. A zero time ejects, a positive time reflects except for an outward-accelerating capsule contact, and the sentinel skips. The selected contact point, normal and ejection depth have their own geometric obligations.",
+      "theorems": [
+        "ExactBallpark.Collision.scaled_reflection",
+        "ExactBallpark.Collision.static_branches"
+      ],
+      "ruleTheorems": {
+        "COL-707": [
+          "scaled_reflection"
+        ],
+        "COL-711": [
+          "scaled_reflection"
+        ],
+        "COL-712": [
+          "scaled_reflection",
+          "static_branches"
+        ]
+      }
+    },
+    {
+      "title": "Zero-duration bit preservation",
+      "moduleName": "ExactBallparkProofs.Movement.Correspondence",
+      "model": "Lean logical binary64",
+      "rules": [
+        "MOV-702"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "scope": "For every binary64 position and velocity bit pattern, a duration comparing equal to zero returns both original bit patterns, independently of all other arithmetic inputs and the exponential implementation.",
+      "theorems": [
+        "ExactBallpark.Movement.zero_duration_bits"
+      ]
+    },
+    {
+      "title": "Phase barriers across different ball IDs",
+      "moduleName": "ExactBallparkProofs.Time.Schedule",
+      "model": "Ordered calls",
+      "rules": [
+        "TIME-706"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.evolve",
+      "scope": "For every snapshot of free IDs and live predicate, all behavior calls precede the optional responses pass, all calculations precede every commit, and proximity and clock advance come last. This projection tracks the ordering of these phase calls.",
+      "theorems": [
+        "ExactBallpark.Time.schedule_monotone"
+      ]
+    },
+    {
+      "title": "Missile collision event order",
+      "moduleName": "ExactBallparkProofs.Collision.Selection",
+      "model": "Discrete events",
+      "rules": [
+        "COL-719"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.evolve, _orphaned",
+      "scope": "After storage and iterative collider collection, only a missile crossing the movement threshold dispatches the list in order. A moving master-side orphan appends its own ID last. The moved Boolean is the result of the source displacement guard.",
+      "theorems": [
+        "ExactBallpark.Collision.dispatch_moving",
+        "ExactBallpark.Collision.dispatch_silent"
+      ]
+    },
+    {
+      "title": "Rounded follow range can miss exact radius cancellation",
+      "moduleName": "ExactBallparkProofs.Numerics.Agility",
+      "model": "Lean logical binary32 and binary64",
+      "rules": [
+        "MOV-724"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.missile_follow, _evolve_missile",
+      "scope": "For binary32 radii 1 and 2^-24, storing the negative rounded sum and then adding the two promoted radii leaves positive 2^-24 in binary64. This is a witness about the radial offset before projection into the pursuit target.",
+      "theorems": [
+        "ExactBallpark.Numerics.pursuit_offset_witness"
+      ]
+    },
+    {
+      "title": "A bubble traversal fills its connected component",
+      "moduleName": "ExactBallparkProofs.Space.Bubbles",
+      "model": "Finite graph and terminating depth-first traversal",
+      "rules": [
+        "SEN-707"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._traverse, _check_box",
+      "scope": "For a finite set of initially unlabeled top-level box keys, stepping to all 26 adjacent keys and marking each box before recursing terminates. A box is newly assigned exactly when a path from the seed reaches it using initially unlabeled boxes. Missing and previously labeled boxes are excluded from the pool. Fixed topology, one seed distinct from the unassigned sentinel, and the source\u2019s level-zero grid clamp after key addition. The 26 corner queries include the center and reach eight distinct keys. Other bubble bookkeeping and Python recursion limits remain separate.",
+      "theorems": [
+        "ExactBallpark.Space.bubble_component",
+        "ExactBallpark.Space.corner_neighbors"
+      ]
+    },
+    {
+      "title": "Long chord with a spurious binary64 contact",
+      "moduleName": "ExactBallparkProofs.Collision.FiniteSweep",
+      "model": "Real arithmetic and Lean logical binary64",
+      "rules": [
+        "COL-705"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.collide_two_spheres, _sub, _dot",
+      "scope": "One moving center travels from (-2^28,2,0) to (2^28,2,0), the other remains at the origin, and the combined radius is one. Every exact-real squared gap is at least three, so the real algorithm returns -1. The same exactly representable endpoints in the ordered binary64 program return t=0.5. This qualifies any general earliest-contact claim about the rounded predicate.",
+      "theorems": [
+        "ExactBallpark.Collision.long_chord_clear",
+        "ExactBallpark.Collision.long_chord_real_miss",
+        "ExactBallpark.Collision.long_chord_rounded_hit"
+      ]
+    },
+    {
+      "title": "When rounding preserves the discriminant sign",
+      "moduleName": "ExactBallparkProofs.Collision.Discriminant",
+      "model": "Lean logical binary64 and rational error bounds",
+      "rules": [
+        "COL-705"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.collide_two_spheres, _sub, _dot",
+      "scope": "Given finite decoded quadratic coefficients and bounds on their absolute errors, the exact discriminant lies within a computed margin of the ordered binary64 result. A strict margin certifies agreement on the negative-discriminant guard. With a positive leading coefficient, a negative certificate proves that the binary64 solver returns the miss sentinel and the exact gap polynomial stays positive at every real time.",
+      "theorems": [
+        "ExactBallpark.Collision.finite_negative_iff",
+        "ExactBallpark.Collision.discriminant_error",
+        "ExactBallpark.Collision.certified_sign",
+        "ExactBallpark.Collision.certified_miss"
+      ]
+    },
+    {
+      "title": "A certified miss from encoded sweep endpoints",
+      "moduleName": "ExactBallparkProofs.Collision.SweepCertificate",
+      "model": "Lean logical binary64 and exact straight chords",
+      "rules": [
+        "COL-705"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.collide_two_spheres, _sub, _dot",
+      "scope": "The offline certificate derives all three error bounds from the four binary64 endpoints and the supplied combined radius. Whenever it reports a negative discriminant, both the modeled binary64 solver and the exact straight-chord solver return -1. Early overlap, nonfinite data and an interval containing zero give no certificate. At a five-metre offset the long chord is a certified miss. At two metres the result is uncertain. A positive discriminant still requires checking the root against the tick interval.",
+      "theorems": [
+        "ExactBallpark.Collision.decoded_gap",
+        "ExactBallpark.Collision.certified_chord_miss",
+        "ExactBallpark.Collision.horizontal_margin_examples",
+        "ExactBallpark.Collision.positive_outside_tick"
+      ]
+    },
+    {
+      "title": "Bounding first contact at the tick boundaries",
+      "moduleName": "ExactBallparkProofs.Collision.Timing",
+      "model": "Exact straight chords and Lean logical binary64",
+      "rules": [
+        "COL-705"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.collide_two_spheres, _sub, _dot",
+      "scope": "For finite encoded endpoints with positive exact initial gap, positive relative speed squared and nonnegative discriminant, the checker validates a supplied rational bracket for the earlier exact root. It decides membership in the closed tick interval and records the decoded binary64 return when finite. The certified examples cover an early hit, an exact endpoint hit, and a late exact root that binary64 accepts at the endpoint.",
+      "theorems": [
+        "ExactBallpark.Collision.entry_comparisons",
+        "ExactBallpark.Collision.timing_sound",
+        "ExactBallpark.Collision.tick_boundary_examples",
+        "ExactBallpark.Collision.late_root_rounded_hit"
+      ]
+    },
+    {
+      "title": "Exact grazing contact and a binary64 miss",
+      "moduleName": "ExactBallparkProofs.Collision.Timing",
+      "model": "Exact straight chords and Lean logical binary64",
+      "rules": [
+        "COL-705"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.collide_two_spheres, _sub, _dot",
+      "scope": "For a moving quadratic sweep with zero exact discriminant, the gap reaches zero only at the vertex and is positive everywhere else. A six-metre tangent sweep at combined radius 2^28 touches halfway through the tick. The encoded endpoints give a binary64 discriminant of \u22121008 and a miss. Additional tangent sweeps exercise contact exactly at the end and beyond the end of a tick.",
+      "theorems": [
+        "ExactBallpark.Collision.tangent_contact_iff",
+        "ExactBallpark.Collision.tangent_rounded_miss",
+        "ExactBallpark.Collision.tangent_tick_boundaries"
+      ]
+    },
+    {
+      "title": "Normal and tangential components at a static or start contact",
+      "moduleName": "ExactBallparkProofs.Collision.Impact",
+      "model": "Real arithmetic in three dimensions",
+      "rules": [
+        "COL-716",
+        "COL-717"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._impact_static, SpaceBallpark._impact_free",
+      "scope": "For a unit normal, the guarded static impulse makes the outward projection equal to the absolute incoming projection and preserves every tangential component. When the source applies the start-contact correction, the total normal acceleration equals maxVel times friction divided by effective inertia and the tangential acceleration is unchanged. The engine interpretation of that division assumes nonzero mass and agility.",
+      "theorems": [
+        "ExactBallpark.Collision.static_velocity_components",
+        "ExactBallpark.Collision.start_contact_acceleration"
+      ],
+      "ruleTheorems": {
+        "COL-716": [
+          "static_velocity_components",
+          "start_contact_acceleration"
+        ],
+        "COL-717": [
+          "start_contact_acceleration"
+        ]
+      }
+    },
+    {
+      "title": "Three-dimensional conservation through the free-pair impulse",
+      "moduleName": "ExactBallparkProofs.Collision.Impact",
+      "model": "Real arithmetic in three dimensions",
+      "rules": [
+        "COL-717"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._impact_free",
+      "scope": "The velocity update includes the source impulse guard, opposite normals and positive base masses. It preserves vector momentum. With a unit normal it preserves kinetic energy and yields an outward relative normal speed equal to the incoming magnitude. Each tangential component is preserved. These are the local velocity changes before AddImpact limiting and later integration.",
+      "theorems": [
+        "ExactBallpark.Collision.pair_separates",
+        "ExactBallpark.Collision.pair_preserves_tangent",
+        "ExactBallpark.Collision.pair_momentum",
+        "ExactBallpark.Collision.pair_kinetic_energy"
+      ]
+    },
+    {
+      "title": "Clearance and centre of inertia in a free-free overlap re-test",
+      "moduleName": "ExactBallparkProofs.Collision.Impact",
+      "model": "Real arithmetic in three dimensions",
+      "rules": [
+        "COL-709",
+        "COL-710"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._potential",
+      "scope": "For positive collision inertias, the two temporary positions preserve the inertia-weighted centre. Given a nonnegative combined radius and a unit normal aligned with the displacement, the new centre distance is the combined radius plus one metre. Coincident centres satisfy the alignment premise at zero distance with either unit fallback direction. The source restores the original positions after its recursive test.",
+      "theorems": [
+        "ExactBallpark.Collision.overlap_clearance",
+        "ExactBallpark.Collision.overlap_inertia_center"
+      ],
+      "ruleTheorems": {
+        "COL-709": [
+          "overlap_clearance",
+          "overlap_inertia_center"
+        ],
+        "COL-710": [
+          "overlap_clearance",
+          "overlap_inertia_center"
+        ]
+      }
+    },
+    {
+      "title": "Magnitude bound for the ideal impact limiter",
+      "moduleName": "ExactBallparkProofs.Collision.Impact",
+      "model": "Real arithmetic in three dimensions",
+      "rules": [
+        "COL-718"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._add_impact",
+      "scope": "For every velocity-change vector and nonnegative maximum speed, the real limiter output has magnitude at most the smaller of its original magnitude and five times maxVel. This includes zero input. The binary32 threshold used in the engine is covered by the following witness.",
+      "theorems": [
+        "ExactBallpark.Collision.limited_speed_bound"
+      ]
+    },
+    {
+      "title": "Rounded impact threshold admits a change above five times maxVel",
+      "moduleName": "ExactBallparkProofs.Collision.FiniteImpact",
+      "model": "Lean logical binary32 and binary64",
+      "rules": [
+        "COL-718"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._add_impact, VELOCITY_LIMIT, _lensq",
+      "scope": "For binary32 maxVel = 4097 and a velocity change (20485 + 2\u207b\u00b9\u00b3, 0, 0), the binary32 numerator rounds from 419635225 to 419635232. The mixed-precision limiter leaves the x component above the ideal bound, with binary64 word 40d4014002000000.",
+      "theorems": [
+        "ExactBallpark.Collision.rounded_limiter_exceeds_bound"
+      ]
+    },
+    {
+      "title": "Inserting an earlier impact and cancelling the suffix",
+      "moduleName": "ExactBallparkProofs.Collision.ImpactHistory",
+      "model": "Impact history with logical binary64 time and a supplied translational integrator",
+      "rules": [
+        "COL-718"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "CollisionBallProperties.add_impact, SpaceBallpark._add_impact",
+      "scope": "The end-time guard rejects equality. Replaying a comparable impact time directly after insertion has no effect. The backward scan retains the last qualifying predecessor, including an equal-time record, then integrates from it and applies the velocity change. With no predecessor it applies the change to the starting state. Invalidations omit sentinel collider \u22121 and follow newest-first order. The model covers a single path before recursive notifications to other balls.",
+      "theorems": [
+        "ExactBallpark.Collision.History.insert_cutoff_and_retry",
+        "ExactBallpark.Collision.History.insert_after_predecessor",
+        "ExactBallpark.Collision.History.insert_before_all"
+      ]
+    },
+    {
+      "title": "Removing an impact and rebuilding the tick endpoint",
+      "moduleName": "ExactBallparkProofs.Collision.ImpactHistory",
+      "model": "Impact history with logical binary64 time and a supplied translational integrator",
+      "rules": [
+        "COL-714"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "CollisionBallProperties.remove_impact, CollisionBallProperties.calculate_end",
+      "scope": "Removal uses the first matching collider within the strict binary64 time tolerance. A later match retains the earlier prefix and reports subsequent non-sentinel colliders oldest first. Both a first-record match and a missing match reset the first record to the initial velocity, preserving its position. For a nonempty path, CalculateEnd preserves an already complete window, appends an integrated endpoint when needed, or signals the modeled capacity failure. The supplied capacity is the actual capacity after truncation. The undefined C++ reallocation path has no claimed C++ result.",
+      "theorems": [
+        "ExactBallpark.Collision.History.remove_first_matching_impact",
+        "ExactBallpark.Collision.History.remove_reset_at_zero",
+        "ExactBallpark.Collision.History.finish_window"
+      ]
+    },
+    {
+      "title": "Duplicate suppression and predecessor lookup",
+      "moduleName": "ExactBallparkProofs.Collision.ImpactHistory",
+      "model": "Impact history with logical binary64 time and a supplied translational integrator",
+      "rules": [
+        "COL-715"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "CollisionBallProperties.ignore_collision, CollisionBallProperties.find_index, CollisionBallProperties.position, FUZZY_DELTA",
+      "scope": "For the backward duplicate scan, the endpoint is skipped. A collider matches within the contiguous window ending at the penultimate location, including equality at the lower edge, provided the reported time passes the initial guard. For lookup, the strict scan chooses the predecessor or clamps to index zero. On a nonempty path the selected motion is copied or integrated according to the inclusive absolute-difference guard. Theorems use the stored binary64 tolerance and preserve the order of addition and subtraction.",
+      "theorems": [
+        "ExactBallpark.Collision.History.ignore_recent_colliders",
+        "ExactBallpark.Collision.History.index_prefix",
+        "ExactBallpark.Collision.History.position_from_prefix"
+      ]
+    },
+    {
+      "title": "A rounded lookup chooses the pre-impact state",
+      "moduleName": "ExactBallparkProofs.Collision.ImpactHistory",
+      "model": "Impact history with logical binary64 time and a supplied translational integrator",
+      "rules": [
+        "COL-715"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "CollisionBallProperties.find_index, CollisionBallProperties.position, FUZZY_DELTA",
+      "scope": "With stored times 0, 1/16 and 1, query word 3fb0068db8bac711 selects index zero. Applying the same strict guard to the exactly decoded values selects index one. The next binary64 query selects index one in the rounded model. At the boundary, direct Python and pinned C++ position queries returned positive-zero x velocity for the recorded unit impulse. The theorem covers the indices and the replay covers the observed velocity.",
+      "theorems": [
+        "ExactBallpark.Collision.History.rounded_history_lookup"
+      ]
+    },
+    {
+      "title": "Sphere against a box face",
+      "moduleName": "ExactBallparkProofs.Collision.Triangle",
+      "model": "Real Euclidean space in three dimensions",
+      "rules": [
+        "COL-712"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "_point_on_ball, _segment_plane, Triangle.contains, _sphere_triangle",
+      "scope": "For a unit normal and nonnegative radius the support point lies one radius from the centre with the expected normal projection. A nonparallel chord hits a plane exactly at its in-range root, including either endpoint. A parallel chord returns neither time nor point, even if coplanar. On a nondegenerate triangle in its plane, the barycentric face test excludes the edge opposite the first vertex. The caller tests rejected face points separately. These claims cover the box-face primitives before collision response.",
+      "theorems": [
+        "ExactBallpark.Collision.Triangle.support_geometry",
+        "ExactBallpark.Collision.Triangle.crossing_iff",
+        "ExactBallpark.Collision.Triangle.parallel_sweep",
+        "ExactBallpark.Collision.Triangle.face_membership"
+      ]
+    },
+    {
+      "title": "Distance threshold for a positive cruise phase",
+      "moduleName": "ExactBallparkProofs.Warp.Boundaries",
+      "model": "Real arithmetic",
+      "rules": [
+        "TRV-709"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark.warp_constants",
+      "scope": "For nonnegative distance and positive rates and requested speed, cruise duration is positive exactly when the distance-limited peak exceeds the requested speed. Equality gives zero duration.",
+      "theorems": [
+        "ExactBallpark.Warp.positive_cruise_iff"
+      ]
+    },
+    {
+      "title": "Local time at warp dropout",
+      "moduleName": "ExactBallparkProofs.Warp.Boundaries",
+      "model": "Real arithmetic and mathematical exp/log",
+      "rules": [
+        "TRV-713"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark._warp_distance",
+      "scope": "During deceleration at positive peak speed, deceleration rate and maximum ship speed, dropout occurs strictly after log(peak/cutoff)/rate in local phase time. The two speed thresholds and their equality boundary are included. Tick sampling and the host exponential are outside the claim.",
+      "theorems": [
+        "ExactBallpark.Warp.dropout_time_iff"
+      ]
+    },
+    {
+      "title": "Two short warps round zero cruise in opposite directions",
+      "moduleName": "ExactBallparkProofs.Warp.Boundaries",
+      "model": "Real arithmetic and Lean logical binary64",
+      "rules": [
+        "TRV-709"
+      ],
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark.warp_constants",
+      "scope": "At warp factor 1000 the exact cruise is zero from 100000 through 100001 metres. At the two endpoints, the binary64 duration has words 3caf75c000000000 and bcaa6dc000000000. The finite projection uses the stored rate constants and omits the unused log fields.",
+      "theorems": [
+        "ExactBallpark.Warp.short_cruise_words"
+      ]
+    },
+    {
+      "title": "Tick clock bounds and the next client deadline",
+      "moduleName": "ExactBallparkProofs.Time.Poll",
+      "model": "Integer clock in 100 ns units",
+      "rules": [
+        "TIME-702"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.on_tick",
+      "scope": "For any positive interval and monotone poll, on either master or client including initialization, the reported time lies between the prior time and the poll with less than one interval left over. For an initialized client the next deadline is inclusive and evolves at the previous stored timestamp.",
+      "theorems": [
+        "ExactBallpark.Time.clock_window",
+        "ExactBallpark.Time.next_client_deadline"
+      ]
+    },
+    {
+      "title": "Master backlog at the five-to-six tick boundary",
+      "moduleName": "ExactBallparkProofs.Time.Poll",
+      "model": "Integer clock and ordered call trace",
+      "rules": [
+        "TIME-703"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.on_tick",
+      "scope": "For an initialized master and any subinterval remainder, five whole intervals yield five ordered evolutions and preserve the remainder. Six yield one evolution at poll time minus one interval and reset the stored clock to the poll time.",
+      "theorems": [
+        "ExactBallpark.Time.master_boundary"
+      ]
+    },
+    {
+      "title": "First due sensor sample and discarded overshoot",
+      "moduleName": "ExactBallparkProofs.Space.SensorScan",
+      "model": "Real arithmetic and a discrete trace",
+      "rules": [
+        "SEN-701"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._check_sensor",
+      "scope": "For n waiting polls, nonnegative fixed dt and an elapsed clock still below the period after n increments, reaching or crossing the period at the next poll gives exactly n waits followed by one check. The returned clock is zero even after overshooting. Repeated binary64 clock addition is outside this real model.",
+      "theorems": [
+        "ExactBallpark.Space.SensorScan.first_due_poll"
+      ]
+    },
+    {
+      "title": "Proximity membership and events across a complete scan",
+      "moduleName": "ExactBallparkProofs.Space.SensorScan",
+      "model": "Candidate list and mixed binary32/binary64 arithmetic",
+      "rules": [
+        "SEN-702"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._check_sensor",
+      "scope": "Projects both passes onto one target in a complete due scan with stable membership inputs and no mid-scan deactivation. An absent remembered non-self target produces one leave. A once-listed live non-self target produces exactly the entry or exit implied by its previous membership and the strict outside guard. Self and listed moribund targets keep their prior membership. The model narrows the two radius sums in source order and takes the computed binary64 squared distance and the candidate list as inputs.",
+      "theorems": [
+        "ExactBallpark.Space.SensorScan.vanished_target",
+        "ExactBallpark.Space.SensorScan.present_target"
+      ]
+    },
+    {
+      "title": "Uncloak during alignment or active warp, and the next sensor entry",
+      "moduleName": "ExactBallparkProofs.Space.Uncloak",
+      "model": "Discrete state and mixed-precision sensor predicate",
+      "rules": [
+        "SEN-711"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.uncloak_ball, ModeBallpark._is_warping, SpaceBallpark._check_sensor",
+      "scope": "For an existing ship the cloak clears. Active warp preserves its massiveness flag, while alignment and ordinary flight restore it. Only master-side normal uncloak disables its sensor. For an observer that already holds the ship, erasure requires a registered live proximity observer in the same bubble outside active warp. Observer eligibility is taken after any sensor deregistration. A cleared observer emits a fresh entry on a subsequent complete scan if the ship is still live and inside. Partition candidate discovery is supplied.",
+      "theorems": [
+        "ExactBallpark.Space.Uncloak.warp_and_sensor",
+        "ExactBallpark.Space.Uncloak.erase_and_reenter"
+      ]
+    },
+    {
+      "title": "Ordinary event routing after a bubble change",
+      "moduleName": "ExactBallparkProofs.Space.Distribution",
+      "model": "Integer IDs, registration flags and an optional character mapping",
+      "rules": [
+        "SEN-712"
+      ],
+      "source": "src/exact_ballpark/server.py",
+      "symbols": "BaseTicker._find_bubble_id_for_event, BaseTicker._is_valid_event_bubble, Ticker._apply_history",
+      "scope": "For an entry reaching default distribution, bubble history receives it exactly for a positive existing uncloaked ball in its current registered, interactive bubble. A cloaked ball on the same valid path routes only to the mapped character if one exists. This includes a missing ball with a valid RemoveBall fallback. Known and interactive mean dictionary key presence. Special handlers, downstream batching and network delivery have separate obligations.",
+      "theorems": [
+        "ExactBallpark.Space.Distribution.bubble_destination",
+        "ExactBallpark.Space.Distribution.character_destination"
+      ]
+    },
+    {
+      "title": "Additions and removals for a pilot moving between bubbles",
+      "moduleName": "ExactBallparkProofs.Space.Distribution",
+      "model": "Per-ID projection of finite bubble dictionaries",
+      "rules": [
+        "SEN-712"
+      ],
+      "source": "src/exact_ballpark/server.py",
+      "symbols": "DestinyPark.AdditionsAndDeletions",
+      "scope": "For a pilot on the changed-bubble branch, the two membership equivalences cover every action code, the local-ID cutoff, optional ball flags, keys present in both snapshots and unavailable bubbles. They preserve the source\u2019s different global/cloak checks for old removals and the distinction between an absent and an empty old bubble. A single ID cannot be both added and removed in this per-pilot update. List order, stable-pilot lists and serialized delivery are outside this projection.",
+      "theorems": [
+        "ExactBallpark.Space.Distribution.pilot_add_iff",
+        "ExactBallpark.Space.Distribution.pilot_remove_iff",
+        "ExactBallpark.Space.Distribution.pilot_disjoint"
+      ]
+    },
+    {
+      "title": "Clients addressed by single- and dual-update bubble batches",
+      "moduleName": "ExactBallparkProofs.Space.Batches",
+      "model": "Finite client sets and ordered event tokens",
+      "rules": [
+        "SEN-712"
+      ],
+      "source": "src/exact_ballpark/server.py",
+      "symbols": "ParkUpdateBatcher.get_clients_with_character_history, ParkUpdateBatcher.send_batch",
+      "scope": "For a bubble-history entry, the recipients are the union of interests through its interactive balls. Each interested client gets the ONE group exactly when it has no mapped nonempty character history, otherwise the TWO group. Both groups carry the original ordered payload and a false wait flag. Missing interactive-bubble keys have an empty audience.",
+      "theorems": [
+        "ExactBallpark.Space.Batches.single_recipient",
+        "ExactBallpark.Space.Batches.dual_recipient"
+      ]
+    },
+    {
+      "title": "Private update flags and per-client packet order",
+      "moduleName": "ExactBallparkProofs.Space.Batches",
+      "model": "Ordered history entries, finite recipient sets and projected network calls",
+      "rules": [
+        "SEN-712"
+      ],
+      "source": "src/exact_ballpark/server.py",
+      "symbols": "ParkUpdateBatcher.get_clients_with_character_history, ParkUpdateBatcher.send_batch",
+      "scope": "A nonempty mapped character history waits exactly when that client also receives a bubble packet in this batch. Its count field is TWO while waiting and ONE otherwise. Across the three successful interface calls, a client sees its character entries first, then one packet per addressed bubble entry in iteration order, including shared interests or several characters per client. This counts the encoded flags separately from the number of packets a client can receive. Transport scheduling and serialization are outside the model.",
+      "theorems": [
+        "ExactBallpark.Space.Batches.character_wait",
+        "ExactBallpark.Space.Batches.client_trace"
+      ]
+    },
+    {
+      "title": "Snapshot retention and periodic save deadlines",
+      "moduleName": "ExactBallparkProofs.Time.Snapshots",
+      "model": "Integer stamps and distinct tokens for snapshot streams",
+      "rules": [
+        "TIME-715"
+      ],
+      "source": "src/exact_ballpark/client.py",
+      "symbols": "Ticker.store_state, Ticker.do_post_tick",
+      "scope": "At the eleventh running save, the client keeps its original base plus the five most recent streams. Any sequence of running or paused stores from a cache of at most ten stays within ten. Without a pending rebase, the post-tick stamp must exceed the last stored stamp by ten to invoke a save. Rebase takes precedence. The comparison uses the supplied post-tick stamp and storage uses the park clock.",
+      "theorems": [
+        "ExactBallpark.Time.Snapshots.eleventh_store",
+        "ExactBallpark.Time.Snapshots.stores_bounded",
+        "ExactBallpark.Time.Snapshots.post_deadline"
+      ]
+    },
+    {
+      "title": "Rebase with or without a new snapshot",
+      "moduleName": "ExactBallparkProofs.Time.Snapshots",
+      "model": "Snapshot identity, integer park clock and running flag",
+      "rules": [
+        "TIME-715"
+      ],
+      "source": "src/exact_ballpark/client.py",
+      "symbols": "Ticker.flush_simulation_history, Ticker.store_state",
+      "scope": "With a new base requested, the only previous stream eligible for retention is the final entry when it is a mid-tick snapshot from exactly one tick earlier. A running park appends the current full snapshot and updates the last-saved stamp. A paused park can retain the eligible mid-tick stream without appending. Releasing the cache clears all streams and preserves its last-saved stamp.",
+      "theorems": [
+        "ExactBallpark.Time.Snapshots.rebase_contents"
+      ]
+    },
+    {
+      "title": "Which stream the client restores for a late update",
+      "moduleName": "ExactBallparkProofs.Time.Snapshots",
+      "model": "Ordered readable streams and integer simulation steps",
+      "rules": [
+        "TIME-715"
+      ],
+      "source": "src/exact_ballpark/client.py",
+      "symbols": "Ticker.synchronize_to_simulation_time",
+      "scope": "For a rewind, the last eligible stream in list order wins, including ties in stamp or an unordered cache. The modeled evolve count is the requested stamp minus that stream\u2019s stamp, agreeing with the existing stamp-only model. Synchronization fails exactly for a past request with no stream at or before it. The stream tokens represent truthy, readable snapshots, and stream loading and evolve calls are assumed to succeed.",
+      "theorems": [
+        "ExactBallpark.Time.Snapshots.rewind_stream",
+        "ExactBallpark.Time.Snapshots.sync_failure"
+      ]
+    },
+    {
+      "title": "Formation slot allocation and release",
+      "moduleName": "ExactBallparkProofs.Movement.Formation",
+      "model": "Ordered slot scan, bit membership and unsigned 64-bit subtraction",
+      "rules": [
+        "MOV-726"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.reserve_formation_slot, FullBallpark.free_formation_slot",
+      "scope": "For a present leader with a resolved formation, a successful reservation sets only the lowest free bit. A full, empty or oversized formation returns failure and preserves the mask. Releasing a successful reservation immediately restores every bit. With a zero-length formation, subtracting one from the unsigned size wraps. Releasing an index below 16 then clears that bit, while any other size_t reaches the out-of-range bitset reset. The latter outcome models the scalar exception. The mask represents the 16 stored bits and the release index is taken after argument conversion.",
+      "theorems": [
+        "ExactBallpark.Formation.reserve_first",
+        "ExactBallpark.Formation.reserve_failure",
+        "ExactBallpark.Formation.reserve_release",
+        "ExactBallpark.Formation.release_empty"
+      ]
+    },
+    {
+      "title": "When a formation join preserves or cancels the previous command",
+      "moduleName": "ExactBallparkProofs.Movement.Formation",
+      "model": "Command guards and projected follower state",
+      "rules": [
+        "MOV-726"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.formation_follow, FullBallpark._stop",
+      "scope": "A missing source, self-target, unavailable destination formation or signed slot at or above its size skips STOP. After those guards pass, a different bubble or cloaked leader leaves the ship stopped. A successful join applies STOP and records the destination and signed slot in FORMATION mode. Inputs model the slot after signed-char narrowing, a length representable as a C++ int, and a successful internal STOP. The upper-bound check admits negative slots. The result covers the join command only. Subsequent indexing by a negative slot has no defined C++ trajectory.",
+      "theorems": [
+        "ExactBallpark.Formation.ignored_iff",
+        "ExactBallpark.Formation.refused_stops",
+        "ExactBallpark.Formation.joined_link"
+      ]
+    },
+    {
+      "title": "Reservations and followers across a formation resize",
+      "moduleName": "ExactBallparkProofs.Movement.Formation",
+      "model": "Ordered follower list and the leader\u2019s occupied slot bits",
+      "rules": [
+        "MOV-726"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.set_ball_formation, FullBallpark._stop, FullBallpark.reserve_formation_slot",
+      "scope": "When switching between assigned formation IDs with valid lengths, shrinking stops exactly the formation followers whose signed slot is at or above the new length. For the mask results, all listed formation followers are live, point to this leader and hold valid slots within the old formation of at most 16 slots. The master clears the bits of the stopped ships and the client retains them. An unclaimed reservation still blocks allocation after shrinking and growing back, in the absence of intervening commands. Explicitly leaving a formation takes a separate reset path.",
+      "theorems": [
+        "ExactBallpark.Formation.stopped_iff",
+        "ExactBallpark.Formation.resize_bit",
+        "ExactBallpark.Formation.regrow_skips_reserved"
+      ]
+    },
+    {
+      "title": "Which fixed obstacle wins an iterative search",
+      "moduleName": "ExactBallparkProofs.Collision.SearchWindow",
+      "model": "Real time comparisons and an encoded binary64 witness",
+      "rules": [
+        "COL-715"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._next_collision_static, SpaceBallpark.collide_two_spheres",
+      "scope": "With an empty incumbent, the full unit window selects the first minimum among eligible nonnegative sphere hits. For a partial window the source compares the new fraction to the incumbent\u2019s absolute time. The theorem characterizes exactly when that decision differs from comparing two absolute times. A kernel-evaluated binary64 sphere sweep on [0.5, 1] computes both winning IDs and times in the two enumeration orders.",
+      "theorems": [
+        "ExactBallpark.Collision.SearchWindow.full_tick_first_min",
+        "ExactBallpark.Collision.SearchWindow.partial_tick_selection"
+      ]
+    },
+    {
+      "title": "Static shape priority in a collision window",
+      "moduleName": "ExactBallparkProofs.Collision.SearchWindow",
+      "model": "Real-valued timestamps and source control flow",
+      "rules": [
+        "COL-715"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark._next_collision_static, FullBallpark._collision_response",
+      "scope": "Given eligible shape hits at or after the window start, the first minimum wins the static pass. A hit at the start preempts the fixed and free passes. Shape intersection tests and filtering supply the input list.",
+      "theorems": [
+        "ExactBallpark.Collision.SearchWindow.static_priority"
+      ],
+      "relatedSources": [
+        "src/exact_ballpark/space.py"
+      ]
+    },
+    {
+      "title": "Free-ball sweep intervals and ignored repeats",
+      "moduleName": "ExactBallparkProofs.Collision.SearchWindow",
+      "model": "Ordered real times and parameterized sweep operations",
+      "rules": [
+        "COL-715"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._next_collision_free, CollisionBallProperties.ignore_collision",
+      "scope": "Sorted partner history contributes exactly the interior cut times up to the smaller endpoint. The intervals cover the common window including its endpoints when it has positive length. On an otherwise winning, ignored repeat the clock advances while both start positions carry over. The second-step result states the resulting time for a subsequent accepted hit with an empty incumbent. CPU replay supplies a reversal in the partner history.",
+      "theorems": [
+        "ExactBallpark.Collision.SearchWindow.free_subintervals",
+        "ExactBallpark.Collision.SearchWindow.ignored_segment"
+      ]
+    },
+    {
+      "title": "The filing radius covers a regular drag trajectory",
+      "moduleName": "ExactBallparkProofs.Space.FilingRadius",
+      "model": "Euclidean three-space and exact real arithmetic",
+      "rules": [
+        "SEN-706"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.inflated_radius, SpaceBallpark.integrate",
+      "scope": "For a free ball with fixed positive effective mass and friction, constant acceleration, a correct full-tick decay cache and 0 \u2264 t \u2264 dt, the displacement from its starting position plus the body radius stays within its filing radius. Both the initial speed and the terminal speed for the applied force are at most speed_fraction times max_vel. This models the regular branch between impulses.",
+      "theorems": [
+        "ExactBallpark.Space.radius_covers_trajectory"
+      ]
+    },
+    {
+      "title": "Which neighboring cells receive a ball",
+      "moduleName": "ExactBallparkProofs.Space.Filing",
+      "model": "Binary64 face guards and integer cell coordinates",
+      "rules": [
+        "SEN-706"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._ball_insert_in_boxes",
+      "scope": "For ordinary unclamped interior filings, the explicit insert calls give exactly the Cartesian product of the one or two choices on each axis, hence 1, 2, 4 or 8 distinct cells. The low face is tested first. Equal boundaries alone do not activate either strict guard. The separate 27-cell top-level case is outside this model.",
+      "theorems": [
+        "ExactBallpark.Space.Filing.face_edge_corner"
+      ]
+    },
+    {
+      "title": "Which filed balls share a cell or an ancestor",
+      "moduleName": "ExactBallparkProofs.Space.Filing",
+      "model": "Integer coordinates and Cartesian filings",
+      "rules": [
+        "COL-703"
+      ],
+      "source": "src/exact_ballpark/vec_collide.py",
+      "symbols": "VecCollidePark._related",
+      "scope": "For two ordinary filings, the tensor per-axis disjunction succeeds exactly when a cell of the finer ball has an ancestor among the cells of the coarser ball. Equal levels use the cell itself. ID, bubble, eligibility and special-entity filters are separate inputs.",
+      "theorems": [
+        "ExactBallpark.Space.Filing.related_iff"
+      ],
+      "relatedSources": [
+        "src/exact_ballpark/space.py"
+      ]
+    },
+    {
+      "title": "First visit to a candidate across overlapping boxes",
+      "moduleName": "ExactBallparkProofs.Space.CandidateOrder",
+      "model": "Ordered eligible visits and a handled-ID set",
+      "rules": [
+        "COL-703"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark._nearby, FullBallpark._explode_children",
+      "scope": "After the ordinary eligibility filters, a walk emits each encountered ID once. Splitting the input at the first visit to an ID preserves the output preceding that visit and records that exact occurrence, even when later boxes contain the same ball.",
+      "theorems": [
+        "ExactBallpark.Space.CandidateOrder.first_visit_once"
+      ],
+      "relatedSources": [
+        "src/exact_ballpark/space.py"
+      ]
+    },
+    {
+      "title": "Scalar and batched candidate order",
+      "moduleName": "ExactBallparkProofs.Space.CandidateOrder",
+      "model": "Lexicographic tree addresses and exact packed integer sort keys",
+      "rules": [
+        "COL-703"
+      ],
+      "source": "src/exact_ballpark/vec_collide.py",
+      "symbols": "VecCollidePark._related, VecCollidePark._order_keys, VecCollidePark._sorted, FullBallpark._nearby",
+      "scope": "Given the same eligible ordinary interior filings, the scalar model traverses numbered boxes, near-to-far ancestors, descendants in child-before-parent order, then the box itself, with ascending IDs within a box. Keeping the first visit gives the entire same ID list as minimizing the packed address per ID and sorting by address and ID. Membership is equivalent to a related filing. Base-65 ordering agrees with lexicographic path digits at fixed length, and every valid packed address is below the tensor sentinel 2^62. Correspondence uses positive distinct IDs and levels 0\u20137. Edge clamps, huge top-level balls, static shapes, miniballs, eligibility filters and device execution are separate obligations.",
+      "theorems": [
+        "ExactBallpark.Space.CandidateOrder.ordered_candidates"
+      ],
+      "relatedSources": [
+        "src/exact_ballpark/full.py",
+        "src/exact_ballpark/space.py"
+      ]
+    }
+  ]
+}

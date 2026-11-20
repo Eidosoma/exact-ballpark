@@ -1,0 +1,98 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Eidosoma
+"""Translate the scalar integrator's guards and single-coordinate arithmetic into Lean."""
+import ast
+import struct
+from pathlib import Path
+
+SOURCE = Path(__file__).resolve().parents[2] / "src/exact_ballpark/ref.py"
+DEST = Path(__file__).resolve().parents[1] / "ExactBallparkProofs/Movement/Reference.lean"
+PARAMS = ["p", "v", "a", "m", "k", "time_factor", "t"]
+OPS = {ast.Add: "+", ast.Sub: "-", ast.Mult: "*", ast.Div: "/"}
+
+
+def render(func, floats):
+    names = set(PARAMS)
+    def expr(n):
+        if isinstance(n, ast.Constant) and type(n.value) in (int, float):
+            if floats:
+                bits = int.from_bytes(struct.pack(">d", float(n.value)), "big")
+                return f"(Float.ofBits 0x{bits:016x})"
+            num, den = n.value.as_integer_ratio()
+            return str(num) if den == 1 else f"({num}/{den})"
+        if isinstance(n, ast.Name) and n.id in names:
+            return n.id
+        if ast.unparse(n) == "self.dt":
+            return "dt"
+        if isinstance(n, ast.Subscript) and ast.unparse(n) in ("p[i]", "v[i]", "a[i]"):
+            return n.value.id
+        if isinstance(n, ast.UnaryOp) and isinstance(n.op, ast.USub):
+            return f"(-{expr(n.operand)})"
+        if isinstance(n, ast.BinOp) and type(n.op) in OPS:
+            return f"({expr(n.left)} {OPS[type(n.op)]} {expr(n.right)})"
+        if isinstance(n, ast.Compare) and len(n.ops) == 1:
+            cmp = {ast.Lt: "<", ast.Eq: "==" if floats else "=", ast.NotEq: "!=" if floats else "≠"}
+            return f"({expr(n.left)} {cmp[type(n.ops[0])]} {expr(n.comparators[0])})"
+        if isinstance(n, ast.Call) and ast.unparse(n.func) == "math.exp" and len(n.args) == 1 and not n.keywords:
+            return f"({'expFn' if floats else 'Real.exp'} {expr(n.args[0])})"
+        if isinstance(n, ast.ListComp) and len(n.generators) == 1 and ast.unparse(n.generators[0]) == " for i in range(3)":
+            return expr(n.elt)
+        if isinstance(n, ast.Tuple):
+            return "(" + ", ".join(map(expr, n.elts)) + ")"
+        raise ValueError(f"Unsupported integrator expression {ast.unparse(n)}")
+
+    def assign(stmt):
+        if not isinstance(stmt, ast.Assign) or len(stmt.targets) != 1 or not isinstance(stmt.targets[0], ast.Name):
+            raise ValueError(f"Unsupported integrator assignment {ast.unparse(stmt)}")
+        value = expr(stmt.value)
+        key = stmt.targets[0].id
+        names.add(key)
+        return key, value
+
+    initial, partial, k2, invk2, invk, branch, velocity, result = func.body
+    if not (isinstance(initial, ast.If) and len(initial.body) == 1 and not initial.orelse
+            and isinstance(initial.body[0], ast.Return) and isinstance(partial, ast.If)
+            and len(partial.body) == 1 and not partial.orelse and isinstance(branch, ast.If)
+            and len(branch.body) == 2 and len(branch.orelse) == 1 and isinstance(result, ast.Return)):
+        raise ValueError("Review integrator control flow")
+    kind = "Float" if floats else "ℝ"
+    signature = "def binary64 (expFn : Float → Float)" if floats else "noncomputable def real"
+    lines = [f"{signature} ({' '.join(PARAMS)} dt : {kind}) : {kind} × {kind} :=",
+             f"  if {expr(initial.test)} then {expr(initial.body[0].value)} else"]
+    key, value = assign(partial.body[0])
+    if key != "time_factor":
+        raise ValueError("Review partial-tick assignment")
+    lines.append(f"  let {key} := if {expr(partial.test)} then {value} else {key}")
+    for stmt in (k2, invk2, invk):
+        key, val = assign(stmt)
+        lines.append(f"  let {key} := {val}")
+    condition = expr(branch.test)
+    before_branch = names.copy()
+    local, init = assign(branch.body[0])
+    pos, then_val = assign(branch.body[1])
+    names = before_branch
+    other, else_val = assign(branch.orelse[0])
+    if pos != other:
+        raise ValueError("Position branches must write the same variable")
+    lines.extend([f"  let {pos} := if {condition} then", f"    let {local} := {init}",
+                  f"    {then_val}", f"    else {else_val}"])
+    key, value = assign(velocity)
+    lines.extend([f"  let {key} := {value}", f"  {expr(result.value)}"])
+    return "\n".join(lines)
+
+
+def extract():
+    mod = ast.parse(SOURCE.read_text(encoding="utf-8"))
+    cls, = (c for c in mod.body if isinstance(c, ast.ClassDef) and c.name == "Ballpark")
+    fn, = (f for f in cls.body if isinstance(f, ast.FunctionDef) and f.name == "integrate")
+    if ([a.arg for a in fn.args.args] != ["self", *PARAMS] or fn.args.posonlyargs or fn.args.kwonlyargs
+            or fn.args.defaults or fn.args.kwarg or fn.args.vararg or fn.decorator_list):
+        raise ValueError("Review integrator signature")
+    return "\n\n".join(["-- SPDX-License-Identifier: MIT\n-- Copyright (c) 2026 Eidosoma\nmodule", "public import Mathlib.Analysis.SpecialFunctions.ExpDeriv",
+                         "/-! Generated by scripts/integrator_reference.py from ref.Ballpark.integrate. -/",
+                         "@[expose] public section\nnamespace ExactBallpark.Movement.Reference",
+                         render(fn, False), render(fn, True), "end ExactBallpark.Movement.Reference\n"])
+
+
+if __name__ == "__main__":
+    DEST.write_text(extract(), encoding="utf-8")

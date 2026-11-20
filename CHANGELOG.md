@@ -5,6 +5,8 @@ upstream commits it is checked against (destiny, carbonengine/math, DirectXMath)
 
 ## [Unreleased]
 
+- Added the [Lean claim register](lean/CLAIMS.md), its pinned build and proof audit, and the [discrepancy log](lean/DISCREPANCIES.md) with CPU replays.
+- Corrected the formation-resize docstring to describe how stopping a follower releases its slot on the master.
 - The first public tree: the package (`src/exact_ballpark`), its tests, the conformance kit, the benchmark harness's
   core and an example.
   - Checked against destiny `114e89fa`, carbonengine/math `82733220` and DirectXMath `f5d82574`; qualified on GCC

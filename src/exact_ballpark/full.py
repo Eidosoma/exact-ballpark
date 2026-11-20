@@ -1862,8 +1862,8 @@ class FullBallpark(SpaceBallpark):
 
     def set_ball_formation(self, bid: int, formation_id: int) -> None:
         """PySetBallFormation ("Li", then a char) and SetBallFormation (Ballpark.cpp:6673). Leaving a formation stops
-        every follower and frees the slots; a smaller formation stops the followers in the slots it lacks but never
-        frees those slots' bits (its loop runs from the old size up to the new, smaller one)."""
+        every follower and clears all reservations. Shrinking stops formation followers in removed slots. Each master
+        stop releases its slot. The client keeps the bits, and the shrink loop never clears unclaimed reservations."""
         fid = _char(formation_id)
         b = self.balls.get(bid)
         if b is None or fid > len(self.formations) - 1:
