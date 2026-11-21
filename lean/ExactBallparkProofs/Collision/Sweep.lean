@@ -50,7 +50,7 @@ def FirstContact (g : ℝ → ℝ) (s : ℝ) : Prop :=
   (s = -1 ∧ ∀ t, 0 ≤ t → t ≤ 1 → 0 < g t) ∨
   (0 ≤ s ∧ s ≤ 1 ∧ g s ≤ 0 ∧ (0 < s → g s = 0) ∧ ∀ t, 0 ≤ t → t < s → 0 < g t)
 
-private theorem quadratic_correct {a b c : ℝ} (ha : 0 ≤ a) (hstill : a = 0 → b = 0) :
+theorem quadratic_correct {a b c : ℝ} (ha : 0 ≤ a) (hstill : a = 0 → b = 0) :
     FirstContact (fun t => a * t ^ 2 + b * t + c) (quadraticTime a b c) := by
   unfold quadraticTime
   split

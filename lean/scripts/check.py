@@ -239,7 +239,7 @@ def compare_history():
         raise SystemExit("COL-715 history lookup differs from the logged witness")
 
 
-def claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows):
+def claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows, combat_lanes, fma, mixed_rows, exp_lanes):
     claims = registry["claims"]
     linked = {rule for claim in claims for rule in claim["rules"]}
     families = defaultdict(list)
@@ -288,6 +288,25 @@ def claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows):
             lines += ["Host correspondence check — the scalar solver returns −1 for the five-metre offset and for the sweep whose roots lie outside the tick.", ""]
         if "ExactBallpark.Space.CandidateOrder.ordered_candidates" in claim["theorems"]:
             lines += [f"CPU correspondence — {candidate_rows} ordered candidate lists and their active packed keys agree with scalar Python traversal and PyTorch on the CPU across all eight tree levels.", ""]
+        if "ExactBallpark.Time.MixedHistory.merged_payload" in claim["theorems"]:
+            lines += [f"Lean and the scalar client agree on the complete ordered payloads and wait flags for {mixed_rows} mixed-stamp histories. [CPU probe](scripts/mixed_history_checks.py)", ""]
+        if "ExactBallpark.Time.MixedHistory.waiting_tail" in claim["theorems"]:
+            lines += ["The pinned Destiny Python client reproduces the extra wait and the reset-order trace. [Packet replays](DISCREPANCIES.md#time-715-extra-wait)", ""]
+        if "ExactBallpark.Collision.Capsule.shallow_crossing_missed" in claim["theorems"]:
+            lines += ["Scalar Python and the pinned Destiny C++ capsule check miss the shallow crossing and return half a tick on the faster control. [Capsule replay](DISCREPANCIES.md#col-712-shallow-crossing)", ""]
+        if "ExactBallpark.Collision.ReplayTick.four_ball_endpoint" in claim["theorems"]:
+            lines += ["The scalar replay matches the certified x and vx words for the engine and the earliest-hit control, and both words for the free-ball return. [Witness comparison](scripts/arithmetic_checks.py)", ""]
+        if "ExactBallpark.Numerics.ExpReduction.table_address" in claim["theorems"]:
+            lines += [f"The CPU exponential reads every tail and scale slot on {exp_lanes} non-tiny inputs. Each returned word matches a 100-digit decimal reference rounded to binary64. [Sampling checks](scripts/sampling_checks.py)", ""]
+        if "ExactBallpark.Numerics.Compensated.fma_single_round" in claim["theorems"]:
+            lines += [f"CPU comparison on the registered source — {fma}. "
+                      "The FMA oracle is CPython math.fma. Exact dyadic arithmetic checks the product "
+                      "widths and both rounding grids for each sampled call. [Probe](scripts/arithmetic_checks.py)", ""]
+        if "ExactBallpark.Combat.accuracy_overflow_input" in claim["theorems"]:
+            lines += [f"The scalar and PyTorch CPU checks cover {combat_lanes} combat lanes, including the same-ball guard. "
+                      "For the radial case, the scalar and pinned C++ square-root and power inputs match the certified words. "
+                      "The engine returns infinite accuracy, 11 m and NaN angular speed. "
+                      "[Lane checks](scripts/arithmetic_checks.py) · [Pinned C++ replay](DISCREPANCIES.md#cmb-702-tracking)", ""]
         if "ExactBallpark.Collision.SearchWindow.partial_tick_selection" in claim["theorems"]:
             lines += ["CPU replay — the scalar and pinned C++ selectors choose different obstacles when the same pair is enumerated in the opposite order. [Inputs and full-tick control](DISCREPANCIES.md#col-715-fixed-window)", ""]
         lines += [f"| [Theorems]({path}) | Transitive axioms |", "| --- | --- |"]
@@ -319,9 +338,12 @@ def main():
     if set(audit) != expected or len(rows) != len(expected):
         raise SystemExit("The audit did not return exactly one result per registered theorem")
     sys.path.insert(0, str(ROOT / "src"))
+    import arithmetic_checks
     import candidate_checks
     import contact_replay
     import formation_checks
+    import mixed_history_checks
+    import sampling_checks
     formation_cases = formation_checks.compare(run_lake)
     probes = compare_setters()
     coordinates = compare_integrator()
@@ -330,6 +352,11 @@ def main():
     compare_face_and_clock()
     contact_replay.static_order()
     candidate_rows = candidate_checks.compare(run_lake)
+    combat_lanes, fma = arithmetic_checks.compare(run_lake)
+    mixed_rows = mixed_history_checks.compare(run_lake)
+    exp_lanes = sampling_checks.exponential()
+    sampling_checks.warp()
+    sampling_checks.ranges()
     visibility = visibility_checks.compare(run_lake)
     batches, snapshot_steps = delivery_checks.compare(run_lake)
     from exact_ballpark.modes import ModeBallpark
@@ -346,19 +373,21 @@ def main():
             (formation_cases["reserve"], "reservations"), (formation_cases["free"], "releases"),
             (formation_cases["join"], "joins"), (formation_cases["resize"], "resize sequences"),
             (batches, "outgoing batches"), (snapshot_steps, "snapshot operations"),
-            (candidate_rows, "ordered candidate lists")]):
+            (candidate_rows, "ordered candidate lists"), (mixed_rows, "mixed-stamp histories"),
+            (exp_lanes, "non-tiny inputs")]):
         raise SystemExit("Update the theorem and CPU probe counts in lean/README.md")
     coverage = f"all {len(catalogue)}" if linked == catalogue.keys() else f"{len(linked)} of {len(catalogue)}"
     if not re.search(rf"(?<![0-9]){len(audit)} kernel-checked theorems across {coverage} engine rules\b",
                      (ROOT / "README.md").read_text(encoding="utf-8")):
         raise SystemExit("Update the theorem and law counts in README.md")
-    page = claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows)
+    page = claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows, combat_lanes, fma,
+                      mixed_rows, exp_lanes)
     path = LEAN / "CLAIMS.md"
     if args.write:
         path.write_text(page, encoding="utf-8")
     elif not path.exists() or path.read_text(encoding="utf-8") != page:
         raise SystemExit("Stale CLAIMS.md. Run python3 scripts/check.py --write and review the diff.")
-    print(f"Verified {len(audit)} theorems, source hashes, {probes} inputs each for mass and agility, {coordinates} integrator updates, {sweeps} sweep examples, the impact limiter, impact history, triangle faces, tick deadlines, short warps, {visibility['sensor']} sensor scans, 8 uncloaking cases, {visibility['pilot']} pilot transitions, {visibility['route']} event routes, {batches} outgoing batches, {snapshot_steps} snapshot operations, {sum(formation_cases.values())} formation cases, {candidate_rows} ordered candidate lists on PyTorch CPU, contact selection replays and CLAIMS.md.")
+    print(f"Verified {len(audit)} theorems, source hashes, {probes} inputs each for mass and agility, {coordinates} integrator updates, {sweeps} sweep examples, the impact limiter, impact history, triangle faces, tick deadlines, short warps, {visibility['sensor']} sensor scans, 8 uncloaking cases, {visibility['pilot']} pilot transitions, {visibility['route']} event routes, {batches} outgoing batches, {snapshot_steps} snapshot operations, {mixed_rows} mixed-stamp histories, {sum(formation_cases.values())} formation cases, {candidate_rows} ordered candidate lists on PyTorch CPU, capsule and contact selection replays, warp and range sampling, {exp_lanes} non-tiny exponentials, tiny-input checks, {combat_lanes} combat lanes, {fma} and CLAIMS.md.")
 
 
 if __name__ == "__main__":

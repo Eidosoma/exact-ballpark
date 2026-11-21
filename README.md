@@ -229,7 +229,7 @@ are in [`docs/exactness.md`](docs/exactness.md).
 
 [![Law map showing movement, warp, collisions, space and sensors, time and events, and combat.](lean/assets/law-map.webp)](lean/README.md)
 
-The register contains 238 kernel-checked theorems across all 105 engine rules. Each theorem covers a stated part of a rule’s behaviour. For example, the swept-sphere
+The register contains 278 kernel-checked theorems across all 105 engine rules. Each theorem covers a stated part of a rule’s behaviour. For example, the swept-sphere
 proof gives the earliest contact along two exact straight paths. With binary64 endpoints, rounding can produce a
 contact halfway through a tick even when the spheres stay apart. A second proof gives a condition that certifies a
 miss in both models. The register lists the assumptions, engine source and conformance evidence for each claim.
@@ -239,15 +239,19 @@ miss in both models. The register lists the assumptions, engine source and confo
 
 The local formation docstring now explains that shrinking a formation can free a stopped follower’s slot on the master. The original Destiny shrink-loop comment still suggests that it clears higher reservations. [Formation resize replay](lean/DISCREPANCIES.md#formation-resize-documentation)
 
-CPython 3.13.18 and pinned Destiny C++ reproduced two collision-search discrepancies and seven rounding cases on x86-64 Linux. The table ranks gameplay impact in the stated scenarios. The log explains how each case can arise and which effects the replay measured. It also includes exact inputs, output bits and the CPU replay command. [Gameplay impact review](lean/DISCREPANCIES.md#what-a-player-might-notice)
+On x86-64 Linux, CPython 3.13.18 and pinned Destiny C++ reproduced two collision-search discrepancies, eight rounding cases and a missed capsule crossing. Two mixed-stamp packet cases also reproduced in Destiny’s original Python client. The table ranks gameplay impact in the stated scenarios. The log explains how each case can arise and which effects the replay measured. It also includes exact inputs, output bits and the CPU replay command. [Gameplay impact review](lean/DISCREPANCIES.md#what-a-player-might-notice)
 
 | Severity | Rule | Exact result | Observed engine result |
 | --- | --- | --- | --- |
 | High | [COL-715 · wrong fixed obstacle](lean/DISCREPANCIES.md#col-715-fixed-window) | The nearer obstacle wins in either order | After a rebound, the farther obstacle can win. In a four-ball tick the ship finished moving in the opposite direction from the earliest-hit control. |
 | High | [COL-715 · impact-history lookup](lean/DISCREPANCIES.md#col-715-history-lookup) | Query selects the post-impact record | Query selects the pre-impact record. A second supplied contact changes the ship’s end-of-tick direction in a scalar control experiment. |
 | Moderate | [COL-715 · missed second hit](lean/DISCREPANCIES.md#col-715-free-repeat) | The returning ball touches again on the second chord | The search skips that contact in a supplied two-impact history. |
+| Moderate | [TIME-715 · extra bubble wait](lean/DISCREPANCIES.md#time-715-extra-wait) | A private packet expects one bubble reply at its first stamp | Two stamps wait. After the first reply the later stamp can still block the queue. |
+| Moderate | [TIME-715 · mixed update after reset](lean/DISCREPANCIES.md#time-715-reset-order) | Keep the event after the reset and discard the older one | Whichever stamp comes first determines whether both events enter history or both are discarded. |
+| Moderate | [COL-712 · shallow capsule crossing](lean/DISCREPANCIES.md#col-712-shallow-crossing) | The sphere crosses the capsule wall at half a tick | The shallow crossing returns a miss. A faster crossing of the same wall returns ½. |
 | Moderate | [COL-705 · long sweep](lean/DISCREPANCIES.md#col-705-long-sweep) | Spheres pass with one metre of clearance | Contact at half a tick |
 | Moderate | [COL-705 · tick endpoint](lean/DISCREPANCIES.md#col-705-tick-end) | First contact falls just after the tick | Contact at the tick endpoint |
+| Moderate | [CMB-702 · radial tracking](lean/DISCREPANCIES.md#cmb-702-tracking) | Squared angular speed is nonnegative and hit probability is at most one | NaN angular speed and, at a tracking ratio of 10³⁰, infinite hit probability |
 | Low | [COL-705 · grazing contact](lean/DISCREPANCIES.md#col-705-tangency) | Spheres touch at half a tick | Miss |
 | Low | [COL-718 · impact velocity limiter](lean/DISCREPANCIES.md#col-718-impact-limit) | Velocity change stays at or below 20485 | Engine accepts 20485 + 2⁻¹³ |
 | Negligible | [MOV-703 · special-branch rounding](lean/DISCREPANCIES.md#mov-703-position) | The first-order branch adds 100 m in the GOTO replays | The stored position falls short by 0.583 pm from the origin and 30.518 µm from one AU. The separate one-metre stress case prescribes extreme acceleration. |

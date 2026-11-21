@@ -6,6 +6,8 @@ upstream commits it is checked against (destiny, carbonengine/math, DirectXMath)
 ## [Unreleased]
 
 - Added the [Lean claim register](lean/CLAIMS.md), its pinned build and proof audit, and the [discrepancy log](lean/DISCREPANCIES.md) with CPU replays.
+- Registered 18 claims backed by 20 theorems covering combat tracking, collision replay, server and client behavior, and the software fused multiply-add. The CPU replay reproduces the radial-tracking discrepancy in compiled Destiny. [Claims](lean/CLAIMS.md) · [Tracking discrepancy](lean/DISCREPANCIES.md#cmb-702-tracking)
+- Registered 10 claims backed by 20 theorems covering capsule contact, client history, exponential reduction, warp sampling and ordered range queries. The discrepancy log includes a missed capsule crossing in pinned Destiny C++ and two mixed-stamp packet cases in the original Python client. [Law overview](lean/README.md) · [Replays](lean/DISCREPANCIES.md)
 - Corrected the formation-resize docstring to describe how stopping a follower releases its slot on the master.
 - The first public tree: the package (`src/exact_ballpark`), its tests, the conformance kit, the benchmark harness's
   core and an example.

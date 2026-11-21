@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Eidosoma
-"""Replay the logged inputs using the project's pinned Destiny C++ and scalar Python."""
+"""Replay logged inputs against Exact Ballpark and the pinned Destiny C++ and client Python."""
 import argparse
 from collections import Counter
 from fractions import Fraction
@@ -19,8 +19,11 @@ sys.path.insert(0, str(ROOT / "conformance"))
 sys.path.insert(0, str(ROOT / "src"))
 import contact_replay
 import discrepancy_sources
+import mixed_history_checks
 from build import BALLPARK, PINNED, PRELUDE, extract
 from build_modes import LINES, extract_line
+from exact_ballpark import full
+from exact_ballpark.full import Capsule, FullBallpark
 from exact_ballpark.modes import AU, ModeBallpark, WARP
 from exact_ballpark.ref import Ballpark, f32
 from exact_ballpark.space import CollisionImpact, CollisionItem, FUZZY_DELTA, SpaceBallpark
@@ -173,6 +176,38 @@ def special_error_scales():
     return round(lower)
 
 
+def radial_accuracy():
+    """CMB-702 at the fixed binary64 inputs used by Combat.Execution."""
+    park = FullBallpark()
+    park.add_ball(1, 1e6, 1, 100, is_free=True)
+    park.add_ball(2, 1e6, 1, 100, is_free=True, x=3, y=4, z=12)
+    park.set_velocity(2, 0.03, 0.04, 0.12)
+    return park.get_accuracy(1, 2, 1e30, 1.0, 1.0, 1.0, 1e30)
+
+
+def radial_intermediates():
+    """Record the arguments actually passed to sqrt and pow in the scalar radial witness."""
+    with patch.object(full, "_sqrt", wraps=full._sqrt) as sqrt, patch.object(math, "pow", wraps=math.pow) as power:
+        radial_accuracy()
+    if sqrt.call_count != 1 or power.call_count != 1 or power.call_args.args[0] != 2.0:
+        raise SystemExit("CMB-702 radial witness did not make the expected square-root and power calls")
+    return sqrt.call_args.args[0], power.call_args.args[1]
+
+
+CAPSULE_OFFSETS = (2.0**-20, 2.0**-16)
+
+
+def capsule_contacts():
+    park = FullBallpark()
+    capsule = Capsule()
+    capsule.initialize(1, 0, (0, 0, -1), (0, 0, 1), 0.5)
+    for offset in CAPSULE_OFFSETS:
+        found, normal, toi = park._capsule_check(capsule, (1+offset, 0, 0), (1-offset, 0, 0), 0.5)
+        if found and normal != [1.0, 0.0, 0.0]:
+            raise SystemExit(f"Unexpected barrel contact normal {normal}")
+        yield toi if found else -1.0
+
+
 def scalar_cases():
     origin = (0.0, 0.0, 0.0)
     cache = float.fromhex("0x1.fffffffffep-1")
@@ -197,10 +232,17 @@ def scalar_cases():
         ("TRV-709 · cruise duration at 100,000 and 100,001 m", ModeBallpark.warp_constants(1000, 100001)[1],
          float.fromhex("-0x1.a6dc000000000p-53")),
     ]
+    accuracy, distance, angular = radial_accuracy()
+    if not math.isnan(angular):
+        raise SystemExit("CMB-702 radial angular speed changed")
     return cases + [
         ("MOV-703 · GOTO positions", stored, float.fromhex(expected))
         for stored, expected in zip(special_goto_positions(),
                                     ("0x1.8ffffffffffd7p+6", "0x1.16a5d2d67ffffp+37"), strict=True)
+    ] + [("CMB-702 · radial accuracy and surface distance", accuracy, math.inf),
+         ("CMB-702 · radial accuracy and surface distance", distance, 11.0)] + [
+        ("COL-712 · shallow capsule crossing and control", value, expected)
+        for value, expected in zip(capsule_contacts(), (-1.0, 0.5), strict=True)
     ]
 
 
@@ -212,6 +254,10 @@ def check_rankings(log):
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     if not primary or primary != re.findall(row, readme, re.MULTILINE):
         raise SystemExit("Discrepancy rankings differ between README.md and the log")
+    if f"**{len(primary)} engine behaviors**" not in log:
+        raise SystemExit("The discrepancy headline differs from the severity table")
+    if not re.search(rf"^\[!\[{len(primary)} replayed cases\b", log, re.MULTILINE):
+        raise SystemExit("Update the discrepancy infographic and its caption for the ranked cases")
     tiers = [tier for tier, _, _ in primary]
     if any(tier not in levels for tier in tiers) or tiers != sorted(tiers, key=levels.index):
         raise SystemExit("Discrepancies must be in descending gameplay severity")
@@ -226,6 +272,7 @@ def check_log(destiny_repo=None):
     log = (ROOT / "lean/DISCREPANCIES.md").read_text(encoding="utf-8")
     discrepancy_sources.check(log, ROOT, PINNED, destiny_repo)
     check_rankings(log)
+    mixed_history_checks.check_log(log, destiny_repo, PINNED)
     cases = scalar_cases()
     regular_metres = special_error_scales()
     words = {}
@@ -235,7 +282,11 @@ def check_log(destiny_repo=None):
             raise SystemExit(f"{name} produced {word}, outside the expected regression result")
         words.setdefault(name, []).append(f"`{word}`")
     ordinary, control = history_second_contact()
-    rendered = [f"approximately **{regular_metres:,} m**", "above **1.5 × 10¹⁵ m/s**",
+    speed2, exponent = map(contact_replay.word, radial_intermediates())
+    rendered = [f"negative squared angular speed, word `{speed2}`", f"exponent, yielding binary64 word `{exponent}`",
+                f"about {CAPSULE_OFFSETS[0]*1e6:.3f} µm inside",
+                f"cutoff for 10⁻¹⁰ has word `{struct.pack('>d', 1e-10).hex()}`",
+                f"approximately **{regular_metres:,} m**", "above **1.5 × 10¹⁵ m/s**",
                 "u(6|V·t| + 13|v·t| + 5|p|)"]
     near, translated = [Fraction(actual) for name, actual, _ in cases if name == "MOV-703 · GOTO positions"]
     near_pm = abs(near - 100) * 10**12
@@ -260,8 +311,8 @@ def check_log(destiny_repo=None):
     words["COL-715 · fixed obstacle order"] = [f"`{bits}`" for _, bits in pairs]
     words["COL-715 · free-ball second contact"] = [f"`{contact_replay.word(t)}`" for t in (whole, leg)]
     for name, bits in words.items():
-        row, = (line for line in log.splitlines() if line.startswith(f"| {name} |"))
-        if row.split("|")[-2].strip() != ", ".join(bits):
+        rows = [line for line in log.splitlines() if line.startswith(f"| {name} |")]
+        if len(rows) != 1 or rows[0].split("|")[-2].strip() != ", ".join(bits):
             raise SystemExit(f"Discrepancy log has stale output bits for {name}")
     rendered.append(f"{leg:.9f} s")
     counts, samples = warp_impact_sample()
@@ -294,6 +345,7 @@ def replay(repo):
         return subprocess.check_output(["git", "-C", repo, "show", f"{PINNED}:src/{name}"], encoding="utf-8")
 
     collision = source("Collision.cpp")
+    capsule = source("Capsule.cpp")
     ballpark = source("Ballpark.cpp")
     add_impact = extract(ballpark, "void Ballpark::AddImpact(")
     # Only the velocity limiter is replayed here. Keep the expression and field types upstream.
@@ -304,15 +356,39 @@ def replay(repo):
     warp_sources = {"src/Ballpark.cpp": ballpark, "src/Ballpark.h": source("Ballpark.h")}
     constants = [extract_line(warp_sources[path], prefix, name) for path, name, prefix in LINES
                  if name == "AU" or name.startswith("WARP_FACTOR_TO_")]
+    accuracy = extract(ballpark, "double Ballpark::GetAccuracy(")
+    accuracy_decl = accuracy.split("{", 1)[0].replace("Ballpark::", "").strip() + ";"
     unit = "\n".join([
         PRELUDE, '#include "Vector3d.h"', "#include <vector>", "#include <algorithm>",
         *constants, BALLPARK.replace("struct Ballpark {", "struct Ballpark {\n" + declaration),
+        "namespace CombatProbe { using ID = long long;",
+        "struct Ball { Vector3d mNewPos, mNewVel; float mRadius; };",
+        "struct Ballpark { Ball* mBalls[3]; " + accuracy_decl + " };",
+        # GetAccuracy calls these two functions unqualified. Observe their inputs and forward to libm.
+        "double squaredAngularSpeed, powerExponent;",
+        "double sqrt(double x) { squaredAngularSpeed = x; return std::sqrt(x); }",
+        "double pow(double x, double y) { powerExponent = y; return std::pow(x, y); }",
+        "#define CCP_LOGWARN_CH(...) ((void)0)", accuracy, "#undef CCP_LOGWARN_CH", "}",
         setup,
         extract(ballpark, "void Ballpark::Integrate("),
         extract(ballpark, "Vector3d Ballpark::GotoThrust("),
         extract(ballpark, "void Ballpark::SetBallTimeFactor("),
         extract(collision, "bool Quadratic("),
         extract(collision, "double CollideTwoSpheres("),
+        """namespace CapsuleProbe { using ID = long long;
+struct Capsule {
+    ID mId, mParentBallId;
+    Vector3d mHemisphereA, mHemisphereB, mAB, mNewPos, mOldPos;
+    float mRadius;
+    void Initialize(ID, ID, double, double, double, double, double, double, float);
+    float GetBoundingRadius();
+    Vector3d GetCenter();
+    bool CheckCollision(const Vector3d&, const Vector3d&, float, Vector3d&, double&);
+};""",
+        *(extract(capsule, signature) for signature in (
+            "void Capsule::Initialize(", "float Capsule::GetBoundingRadius(",
+            "Vector3d Capsule::GetCenter(", "bool Capsule::CheckCollision(")),
+        "}",
         "struct ProbeImpact { Vector3d velocityChange; };",
         "void limitVelocity(ProbeImpact& impact, Ball* ball) {", limiter, "}",
         """struct HistoryBall : Ball { Ballpark* mPark; Vector3d mLastG, mLastC; };
@@ -371,6 +447,29 @@ int main() {
         park.Integrate(mover.mNewPos, mover.mNewVel, thrust, mover.mMass, park.mFriction, mover.mTimeFactor, park.dt);
         std::printf("%a\n", mover.mNewPos.x);
     }
+    CombatProbe::Ball src{origin, origin, 1.0f}, dst{Vector3d(3,4,12), Vector3d(0.03,0.04,0.12), 1.0f};
+    CombatProbe::Ballpark combat{{nullptr, &src, &dst}};
+    double optimal = 1e30, tracking = 1.0;
+    double chance = combat.GetAccuracy(1, 2, optimal, 1.0, tracking, 1.0, 1e30);
+    if (!std::isnan(tracking)) {
+        std::fprintf(stderr, "CMB-702 radial angular speed: expected NaN, got %a\n", tracking);
+        return 1;
+    }
+    std::printf("%a\n%a\n", chance, optimal);
+    CapsuleProbe::Capsule capsule;
+    capsule.Initialize(1, 0, 0, 0, -1, 0, 0, 1, 0.5f);
+    for (double offset : {0x1p-20, 0x1p-16}) {
+        Vector3d normal;
+        double toi;
+        const bool found = capsule.CheckCollision(Vector3d(1+offset,0,0), Vector3d(1-offset,0,0), 0.5f, normal, toi);
+        if (found && (normal.x != 1 || normal.y != 0 || normal.z != 0)) {
+            std::fprintf(stderr, "COL-712 capsule at offset %a: expected normal (1, 0, 0), got (%a, %a, %a)\n",
+                         offset, normal.x, normal.y, normal.z);
+            return 1;
+        }
+        std::printf("%a\n", found ? toi : -1.0);
+    }
+    std::printf("%a %a\n", CombatProbe::squaredAngularSpeed, CombatProbe::powerExponent);
     std::printf("%zu %zu\n", path.FindLocationsIndex(0x1.0068db8bac711p-4),
                 path.FindLocationsIndex(0x1.0068db8bac712p-4));
 }
@@ -381,15 +480,23 @@ int main() {
         cpp.write_text(unit, encoding="utf-8")
         subprocess.run(["g++", "-std=c++17", "-O2", "-ffp-contract=off", "-fno-fast-math",
                         str(cpp), "-o", str(binary)], check=True)
-        upstream = subprocess.check_output([binary], encoding="utf-8").splitlines()
+        result = subprocess.run([binary], capture_output=True, encoding="utf-8")
+        if result.returncode:
+            raise SystemExit(result.stderr.strip() or f"Destiny witness exited {result.returncode}")
+        upstream = result.stdout.splitlines()
 
     cpp_indices = tuple(map(int, upstream.pop().split()))
     if cpp_indices != (0, 1):
         raise SystemExit(f"Destiny fuzzy lookup changed: {cpp_indices}")
+    cpp_radial = [contact_replay.word(float.fromhex(x)) for x in upstream.pop().split()]
+    if cpp_radial != list(map(contact_replay.word, radial_intermediates())):
+        raise SystemExit(f"CMB-702 Destiny square-root and power inputs differ from the scalar replay: {cpp_radial}")
     cases = check_log(repo)
     gcc = subprocess.check_output(["g++", "-dumpfullversion"], encoding="utf-8").strip()
     print(f"Destiny {PINNED}, {platform.python_implementation()} {platform.python_version()}, "
           f"{platform.system()} {platform.machine()}, GCC {gcc}, -O2 -ffp-contract=off -fno-fast-math")
+    print("Pinned Destiny Python and scalar client matched both mixed-stamp packet traces in the log.")
+    print(f"CMB-702 squared angular speed and power exponent matched pinned C++: {' '.join(cpp_radial)}")
     for (name, scalar, expected), raw in zip(cases, upstream, strict=True):
         words = [struct.pack(">d", v).hex() for v in (scalar, float.fromhex(raw), expected)]
         print(f"{name}: scalar {words[0]}, Destiny {words[1]}, logged {words[2]}")
@@ -403,4 +510,7 @@ int main() {
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("destiny_repo", type=Path, help="Git clone containing the pinned Destiny commit")
-    replay(parser.parse_args().destiny_repo)
+    try:
+        replay(parser.parse_args().destiny_repo)
+    except subprocess.CalledProcessError as error:
+        raise SystemExit(f"Destiny replay: {Path(error.cmd[0]).name} exited {error.returncode}") from None

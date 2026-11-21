@@ -1,6 +1,6 @@
 # Exact Ballpark laws in Lean
 
-What happens when a ship stops thrusting, two swept spheres touch, or a server tick arrives late? Exact Ballpark gives each behavior a rule ID. This project links **105 engine laws** to **238 kernel-checked theorems**. Each entry records the part of the law covered, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
+What happens when a ship stops thrusting, two swept spheres touch, or a server tick arrives late? Exact Ballpark gives each behavior a rule ID. This project links **105 engine laws** to **278 kernel-checked theorems**. Each entry records the part of the law covered, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
 
 [![Exact Ballpark law map. Movement has 41 laws, warp 16, collisions 19, space and sensors 12, time and events 15, and combat 2.](assets/law-map.webp)](assets/law-map.webp)
 
@@ -13,17 +13,33 @@ What happens when a ship stops thrusting, two swept spheres touch, or a server t
 | **Collisions** · 19 · COL-701–719 | Candidate selection, straight sweeps, first contact, overlap correction, elastic response and iterative impacts. | For two spheres moving along straight chords over the reals, the solver returns the earliest contact in the tick, zero for initial overlap, or a miss. [Swept spheres](ExactBallparkProofs/Collision/Sweep.lean) |
 | **Space and sensors** · 12 · SEN-701–712 | Partition levels, connected bubbles, proximity events, visibility, cloaking and which clients receive an update. | Starting from a seed box, the bubble traversal labels exactly the initially unassigned boxes reachable through adjacent cells. [Bubble traversal](ExactBallparkProofs/Space/Bubbles.lean) |
 | **Time, server and clients** · 15 · TIME-701–715 | Tick duration, backlog, update order, command queues, removal and client synchronization. | In the modeled tick, every ball’s thrust calculation precedes collision responses, and every new state is calculated before the first commit. [Tick schedule](ExactBallparkProofs/Time/Schedule.lean) |
-| **Combat** · 2 · CMB-701–702 | How relative motion across the line of sight, tracking and range determine hit probability. | For distinct positions on the ordinary accuracy branch, the computed probability lies in (0, 1]. With zero transversal speed and a target inside optimal range, it is exactly one. [Accuracy](ExactBallparkProofs/Combat/Accuracy.lean) |
+| **Combat** · 2 · CMB-701–702 | How relative motion across the line of sight, tracking and range determine hit probability. | In real arithmetic, distinct positions on the ordinary branch give a hit probability in (0, 1]. With zero transversal speed inside optimal range it equals one. A binary64 radial replay produces +∞. [Real-valued accuracy](ExactBallparkProofs/Combat/Accuracy.lean) · [Finite-arithmetic replay](DISCREPANCIES.md#cmb-702-tracking) |
 
-The latest ten proofs follow collision candidates from spatial filing to the time-of-impact decision. For ordinary interior filings, the scalar tree and the tensor sort return the same ordered IDs. CPU probes compare **54 ordered candidate lists** and their packed keys across eight levels and both tensor sorting paths. They also run the face tests on the stored binary64 inputs. The movement bound explains when the filing radius covers the entire regular drag trajectory. The collision proofs cover minimum-time selection, ties, partial windows and repeated free-ball hits. [Candidate order](ExactBallparkProofs/Space/CandidateOrder.lean) · [Filing radius](ExactBallparkProofs/Space/FilingRadius.lean) · [Collision search](ExactBallparkProofs/Collision/SearchWindow.lean)
+The latest 20 proofs cover five parts of the engine.
+
+| Area | Proofs | What they establish |
+| --- | ---: | --- |
+| Capsule collisions | 5 | When a straight sweep reaches the barrel branch and the root lies between the caps, it gives first contact. A binary64 witness shows why the near-parallel guard can discard a real crossing. [Capsule proofs](ExactBallparkProofs/Collision/Capsule.lean) |
+| Client history | 5 | Merging preserves stamp and event order. The dispatch loop consumes a prefix and stops at its first blocked group. Lean and the scalar client agree on 112 mixed-stamp histories. [History proofs](ExactBallparkProofs/Time/MixedHistory.lean) |
+| Exponential arithmetic | 5 | The signed reduction index fits its integer operations, both table loads stay in bounds and the scale-word shifts preserve the significand. At magnitudes below 2⁻⁵⁴, the engine’s tiny-input result agrees with correctly rounded exp. [Reduction proofs](ExactBallparkProofs/Numerics/ExpReduction.lean) |
+| Warp sampling | 3 | The sampler can keep an incoming speed above the derivative of its position curve. During the extra deceleration second, a sample can pass the nominal exit by less than one metre and reverse the next sightline. [Warp samples](ExactBallparkProofs/Warp/Sampling.lean) |
+| Range queries | 2 | At a ball’s coordinates in the same bubble, querying by ID drops just that ball. The survivors retain dictionary order and the distance form returns squared center distances. [Range proofs](ExactBallparkProofs/Space/RangeScan.lean) |
+
+The CPU probe calls the engine’s exponential on 640 non-tiny inputs, records both table reads for every lane and compares the final binary64 words with a 100-digit decimal reference. All 128 slots are visited in each of five signed reduction ranges, including one with subnormal results. The sampling checks also cover eight tiny inputs, the sightline on either side of a warp exit and the range-query overloads. [Sampling checks](scripts/sampling_checks.py)
+
+Earlier proofs include the four-ball collision replay through its final position and velocity bits, a strict visibility-ray entry test, the server’s seven-ball cleanup budget and the client’s merge of private and bubble events. For combat, Lean checks the exact tracking calculation that sends a negative squared speed to the square root and a large positive exponent to the power function. [Collision replay](ExactBallparkProofs/Collision/ReplayTick.lean) · [Visibility](ExactBallparkProofs/Space/Occlusion.lean) · [Removal](ExactBallparkProofs/Time/RemovalMasks.lean) · [Client delivery](ExactBallparkProofs/Space/MergeDelivery.lean) · [Combat discrepancy](DISCREPANCIES.md#cmb-702-tracking)
+
+The floating-point proofs follow the CPU’s software fused multiply-add. Knuth’s six operations recover the exact addition residual in a 53-bit nearest-even model. For the partial-product widths and exponent grids stated in the register, composing Dekker’s product, TwoSum and the round-to-odd step yields the exact product-plus-add rounded once. Applying that result to every call inside the engine’s exponential still requires proving its operands meet those conditions. [TwoSum](ExactBallparkProofs/Numerics/TwoSum.lean) · [Product and limiter](ExactBallparkProofs/Numerics/Product.lean) · [Round-to-odd and FMA](ExactBallparkProofs/Numerics/OddFma.lean)
+
+The collision-order proofs follow candidates from spatial filing to the time-of-impact decision. For ordinary interior filings, the scalar tree and the tensor sort return the same ordered IDs. CPU probes compare **54 ordered candidate lists** and their packed keys across eight levels and both tensor sorting paths. They also run the face tests on the stored binary64 inputs. The movement bound explains when the filing radius covers the entire regular drag trajectory. The collision proofs cover minimum-time selection, ties, partial windows and repeated free-ball hits. [Candidate order](ExactBallparkProofs/Space/CandidateOrder.lean) · [Filing radius](ExactBallparkProofs/Space/FilingRadius.lean) · [Collision search](ExactBallparkProofs/Collision/SearchWindow.lean)
 
 The formation proofs cover flight commands under MOV-726. If a ship requests a slot beyond the end of a formation, it keeps following its old leader. If the slot fits but the new leader is cloaked or in another bubble, the ship stops. Shrinking a formation on the master releases the slots of the ships it stops. A reservation with no ship attached can survive the shrink and block that slot when the formation grows again. The CPU check compares Lean with the scalar engine on 147 reservations, 63 releases, 280 joins and 50 resize sequences. [Formation proofs](ExactBallparkProofs/Movement/Formation.lean) · [Resize documentation discrepancy](DISCREPANCIES.md#formation-resize-documentation)
 
 The server and client proofs follow an update from server batching to client rewind. A client with both private and bubble events receives the private updates first, with a flag telling it to wait for the bubble. On the client, an eleventh snapshot trims the cache to its original base and the five newest streams. If two saved streams have the requested stamp, a rewind restores the last eligible one in storage order. CPU checks compare Lean with the scalar engine on 50 outgoing batches and 133 snapshot operations. [Server batches](ExactBallparkProofs/Space/Batches.lean) · [Client snapshots](ExactBallparkProofs/Time/Snapshots.lean)
 
-## When the engine changes a collision or movement outcome
+## Observed engine discrepancies
 
-The log ranks two collision-search discrepancies and seven rounding cases by their observed gameplay consequences and describes the likelihood of each trigger. [Gameplay impact review](DISCREPANCIES.md#what-a-player-might-notice)
+The log ranks 13 behaviors by their gameplay consequences and describes the likelihood of each trigger. The latest replays show a shallow crossing missed at a capsule wall, an extra bubble wait after a mixed-stamp update, and an obsolete event admitted or a fresh event discarded depending on packet order after reset. [Gameplay impact review](DISCREPANCIES.md#what-a-player-might-notice) · [Capsule crossing](DISCREPANCIES.md#col-712-shallow-crossing) · [Extra wait](DISCREPANCIES.md#time-715-extra-wait) · [Reset order](DISCREPANCIES.md#time-715-reset-order)
 
 **COL-715 · A farther obstacle can win after a rebound.** In a one-second encounter with three fixed obstacles, changing just the time comparison reversed the ship’s final direction. The original scalar and pinned C++ engines agreed on the final position and velocity bits. [Four-ball replay](DISCREPANCIES.md#col-715-fixed-window)
 
@@ -39,7 +55,7 @@ The timing proof checks bounds on the first root against both tick endpoints. Fo
 
 **COL-718 · The impact limiter can admit an impulse just above its nominal bound.** For a maximum speed of 4097, five times that speed is 20485. The engine rounds the squared threshold in binary32 and accepts a change of 20485 + 2⁻¹³ along one axis. [Ideal response proofs](ExactBallparkProofs/Collision/Impact.lean) · [Mixed-precision witness](ExactBallparkProofs/Collision/FiniteImpact.lean) · [CPU replay](DISCREPANCIES.md#col-718-impact-limit)
 
-**MOV-703 · Position rounding depends on thrust and coordinate scale.** For the extreme prescribed acceleration in the Lean witness, the stored position is +0 m, the first-order branch gives 1 m over the reals, and the regular drag trajectory gives about 524,289 m. With full GOTO thrust at a configured 10,000 m/s, the measured branch error was 0.583 pm from the origin and 30.518 µm from one AU. [Branch proof, CPU measurements and rounding bound](DISCREPANCIES.md#mov-703-position)
+**MOV-703 · Position rounding depends on thrust and coordinate scale.** FloatLib bounds each of the 16 rounded operations in the branch. Together they give the documented error bound relative to the branch’s first-order position update. For the extreme prescribed acceleration in the Lean witness, the stored position is +0 m, the first-order branch gives 1 m over the reals, and the regular drag trajectory gives about 524,289 m. With full GOTO thrust at a configured 10,000 m/s, the measured branch error was 0.583 pm from the origin and 30.518 µm from one AU. [Rounding proof](ExactBallparkProofs/Movement/Roundoff.lean) · [CPU measurements](DISCREPANCIES.md#mov-703-position)
 
 **TRV-709 · Short warps can have a tiny negative cruise duration.** At factor 1000, trips of 100,000 and 100,001 metres both have zero cruise in exact arithmetic. The engine rounds them to opposite sides of zero. Both sampled ships exited warp on the same tick as their zero-cruise controls. [Warp discrepancy and replay](DISCREPANCIES.md#trv-709-short-cruise)
 
@@ -56,16 +72,18 @@ The Python-to-Lean translators are trusted. Applying a real-number theorem to a 
 
 ## Verify locally
 
-Use Python 3.13 or later with the package’s PyTorch dependency and Elan’s Lake from the repository root. On a fresh checkout, fetch the compiled mathlib dependencies used by this project. The following Linux commands use eight CPUs. Choose CPU IDs from the process’s allowed affinity set on other machines.
+Use Python 3.13 or later with the package’s PyTorch dependency and Elan’s Lake from the repository root. On a fresh checkout, ask Lake for the proof library’s transitive imports. This includes mathlib modules reached through the pinned FloatLib sources. The following Bash commands fetch the corresponding compiled mathlib files and run the gate on eight CPUs. Choose CPU IDs from the process’s allowed affinity set on other machines.
 
 ```bash
 cd lean
-mapfile -t modules < <(rg --no-filename '^public import Mathlib\.' ExactBallparkProofs | cut -d' ' -f3 | sort -u)
-taskset -c 0-7 lake exe cache get "${modules[@]}"
+set -o pipefail
+taskset -c 0-7 lake --json query +ExactBallparkProofs:transImports |
+  python3 -c 'import json, sys; print(*(m for m in json.load(sys.stdin) if m.partition(".")[0] == "Mathlib"), sep="\n")' |
+  xargs -r taskset -c 0-7 lake exe cache get
 taskset -c 0-7 python3 scripts/check.py
 ```
 
-The project pins Lean 4.36.0 and the mathlib revision in the Lake manifest. The checker prefers `.lake/toolchain/bin/lake`, falls back to Lake on PATH, and checks the selected Lean version against `lean-toolchain`. It runs the incremental build with warnings treated as errors, checks reviewed source hashes, regenerates the source models in memory, validates the theorem registry, audits transitive axioms, runs small scalar comparisons and checks the generated page. Use `python3 scripts/check.py --write` to refresh the page after changing a proof or claim.
+The project pins Lean 4.36.0 and the mathlib and FloatLib revisions in the Lake manifest. The checker prefers `.lake/toolchain/bin/lake`, falls back to Lake on PATH, and checks the selected Lean version against `lean-toolchain`. It runs the incremental build with warnings treated as errors, checks reviewed source hashes, regenerates the source models in memory, validates the theorem registry, audits transitive axioms, runs small scalar comparisons and checks the generated page. Use `python3 scripts/check.py --write` to refresh the page after changing a proof or claim.
 
 ## Extending the proofs
 

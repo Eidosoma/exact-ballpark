@@ -10,6 +10,11 @@ import subprocess
 
 # Each citation must cover its operation at the pinned line, even without a Destiny clone.
 DESTINY_OPERATIONS = {
+    "Capsule motion cutoff": ("src/Capsule.cpp", 146, "if (a < 1e-10)"),
+    "Client tail append": ("python/destiny/net/client/_util.py", 68, "time_list[tl_idx]], wait_for_bubble]"),
+    "Client admission": ("python/destiny/net/client/_ticker.py", 74, "if entry_time < self._latest_set_state_time:"),
+    "Client wait guard": ("python/destiny/net/client/_ticker.py", 95, "if wait_for_bubble:"),
+    "Tracking subtraction": ("src/Ballpark.cpp", 5207, "combined.LengthSq() - radialSpeed*radialSpeed"),
     "Fixed-ball guard": ("src/Ballpark.cpp", 2158, "timeOfImpact < collisionItem.timeOfImpact"),
     "History cutoff": ("src/CollisionBallProperties.cpp", 220, "m_locations[index].time + m_fuzzyDelta < time"),
     "Free-ball loop": ("src/Ballpark.cpp", 2275, "ballProp.IgnoreCollision(other->mId, timeOfImpact)"),
@@ -53,7 +58,8 @@ def check(log, root, destiny_pin, destiny_repo=None):
         local = target.startswith(engine)
         pin, path = target.removeprefix(engine if local else destiny).split("/", 1)
         span = re.fullmatch(r"L([1-9][0-9]*)(?:-L([1-9][0-9]*))?", anchor)
-        if pin != (engine_pin if local else destiny_pin) or not path.startswith("src/") or span is None:
+        allowed_path = path.startswith("src/") or (not local and path.startswith("python/destiny/net/client/"))
+        if pin != (engine_pin if local else destiny_pin) or not allowed_path or span is None:
             raise SystemExit(f"Invalid pinned source citation {url}")
         start, end = int(span[1]), int(span[2] or span[1])
         if start > end or (local and path not in registry["sources"]):
@@ -80,11 +86,14 @@ def check(log, root, destiny_pin, destiny_repo=None):
             source = data.decode("utf-8")
             files[key] = source.splitlines()
             if local:
+                body = ast.parse(source).body
                 scopes[key] = {
                     f"{cls.name}.{fn.name}": (fn.lineno, fn.end_lineno)
-                    for cls in ast.parse(source).body if isinstance(cls, ast.ClassDef)
+                    for cls in body if isinstance(cls, ast.ClassDef)
                     for fn in cls.body if isinstance(fn, ast.FunctionDef)
                 }
+                scopes[key].update({fn.name: (fn.lineno, fn.end_lineno)
+                                    for fn in body if isinstance(fn, ast.FunctionDef)})
         if end > len(files[key]):
             raise SystemExit(f"Source citation exceeds file length {url}")
         if local:

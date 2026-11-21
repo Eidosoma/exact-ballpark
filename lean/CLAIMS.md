@@ -1,6 +1,6 @@
 # Lean claim register
 
-238 kernel-checked theorems have claims linked to 105 of the 105 catalogue rules. A link covers the scope stated below.
+278 kernel-checked theorems have claims linked to 105 of the 105 catalogue rules. A link covers the scope stated below.
 
 Engine revision `098653233eb0f9910a3f02564e36b0641cbd4e0f`. The register identifies manually transcribed models and source-extracted definitions. The Python-to-Lean extractors are trusted. The Lean kernel checks the resulting theorems. The full.py digest includes a docstring correction to the pinned formation source.
 
@@ -23,7 +23,7 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | --- | --- | --- |
 | MOV-701 | Motion is viscous with friction k = 1e6 and effective mass = mass x agility | [refresh_positive](#claim-1), [source_regular, velocity_hasDerivAt](#claim-3), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49) |
 | MOV-702 | Closed-form exponential integration of position and velocity | [source_regular, flow_zero, decay_hasDerivAt, position_hasDerivAt, velocity_hasDerivAt, flow_compose](#claim-3), [integrate_zero, integrate_regular, integrate_velocity](#claim-4), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50), [zero_duration_bits](#claim-52) |
-| MOV-703 | Near-zero friction switches to a branch where acceleration does not move the ball | [special_position_eq, integrate_special](#claim-4), [extracted_integrator](#claim-49), [special_rounding_witness](#claim-50) |
+| MOV-703 | Near-zero friction switches to a branch where acceleration does not move the ball | [special_position_eq, integrate_special](#claim-4), [extracted_integrator](#claim-49), [special_rounding_witness](#claim-50), [special_position_error](#claim-105) |
 | MOV-704 | Each ball caches its one-tick decay factor exp(-k dt / (mass agility)) | [refresh_positive, stepFactor_eq](#claim-1), [addBall_valid, update_valid, history_valid, velocity_after_updates](#claim-2), [integrate_regular, integrate_velocity](#claim-4), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50) |
 | MOV-705 | Maximum thrust is k x speedFraction x maxVel / (mass x agility) | [goto_terminal_bound, goto_speed_bound](#claim-6) |
 | MOV-706 | Goto thrust is full thrust toward the target with an (L/D)^4 homing taper | [taper_bounds, goto_terminal_bound, goto_speed_bound](#claim-6) |
@@ -48,17 +48,17 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | MOV-725 | A launched missile starts at the launcher with launcher velocity plus 150 m/s | [launch_speeds](#claim-34) |
 | MOV-726 | Formation followers aim at the leader's rotated slot offset | [formation_distance](#claim-35), [reserve_first, reserve_failure, reserve_release, release_empty](#claim-87), [ignored_iff, refused_stops, joined_link](#claim-88), [stopped_iff, resize_bit, regrow_skips_reserved](#claim-89) |
 | MOV-727 | The agility turn-angle cap is disabled, so thrust can point anywhere | [cap_preserves](#claim-32) |
-| MOV-728 | Optional dynamical orientation steers thrust along the ship's heading | [orientation_bound](#claim-35) |
+| MOV-728 | Optional dynamical orientation steers thrust along the ship's heading | [orientation_bound](#claim-35), [normalized_heading](#claim-100) |
 | MOV-729 | Without dynamical orientation, heading is a smoothed function of velocity | [smooth_error](#claim-35) |
 | MOV-730 | Followers are released when their target warps, cloaks or is removed | [fly_on_iff](#claim-28) |
-| MOV-731 | Followers of a ball in another bubble are stopped at the next pre-tick | [remote_iff](#claim-40) |
+| MOV-731 | Followers of a ball in another bubble are stopped at the next pre-tick | [remote_iff](#claim-40), [remote_pending_stops](#claim-107) |
 | MOV-732 | Only free balls move; fixing a ball stops it and spawns its collision parts | [fixed_capsule](#claim-47) |
 | MOV-733 | Ball flags free, massive, global, interactive and space junk | [flags_roundtrip](#claim-48) |
 | MOV-734 | Thirteen ball modes; six compute thrust, STOP damps, the rest are inert | [thrust_modes](#claim-32) |
 | MOV-735 | Mode changes raise DoModeChange; leaving warp raises OnExitWarp | [exit_iff, exiting_order](#claim-28) |
 | MOV-736 | A troll ball turns rigid after a delay | [troll_due](#claim-36) |
-| MOV-737 | Force fields let balls with a matching harmonic, corporation or alliance through | [field_iff](#claim-47) |
-| MOV-738 | Destiny's exp is the C library's; exact on tensors and the GPU for glibc 2.34 on aarch64 | [exp_tiny_iff, exp_large_iff](#claim-22) |
+| MOV-737 | Force fields let balls with a matching harmonic, corporation or alliance through | [field_iff](#claim-47), [configured_field_filter](#claim-108) |
+| MOV-738 | Destiny's exp is the C library's; exact on tensors and the GPU for glibc 2.34 on aarch64 | [exp_tiny_iff, exp_large_iff](#claim-22), [two_sum_exact](#claim-103), [split_reconstructs](#claim-112), [dekker_product_exact](#claim-113), [add_odd_grid](#claim-114), [fma_single_round](#claim-115), [table_address, scale_reconstruction, special_rescaling](#claim-120), [reduction_index_bound, tiny_correct_round](#claim-121) |
 | MOV-739 | Destiny's float functions are the C library's; exact for glibc 2.34 on aarch64 | [powf_signaling_iff](#claim-23) |
 | MOV-740 | Destiny's double sin, cos and log are the C library's; exact for glibc 2.34 on aarch64 | [log_near_one_iff](#claim-24) |
 | MOV-741 | Destiny's double atan2 and asin are the C library's; exact for glibc 2.34 on aarch64 | [atan2_sign](#claim-25) |
@@ -70,11 +70,11 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | TRV-706 | Warp starts at 75% of max speed within about 8 degrees, or after 180 ticks | [alignment_after_waits](#claim-13) |
 | TRV-707 | Warp activation drops collisions and offsets the exit point by minRange | [exit_distance](#claim-13) |
 | TRV-708 | Warp speed, acceleration and deceleration rates scale with the warp factor | [rate_bounds](#claim-14), [source_constants](#claim-31) |
-| TRV-709 | Short warps lower the top speed so the cruise phase has zero length | [short_cruise_zero](#claim-14), [source_constants](#claim-31), [positive_cruise_iff](#claim-72), [short_cruise_words](#claim-74) |
+| TRV-709 | Short warps lower the top speed so the cruise phase has zero length | [short_cruise_zero](#claim-14), [source_constants](#claim-31), [positive_cruise_iff](#claim-72), [short_cruise_words](#claim-74), [cruise_exit_margin](#claim-101) |
 | TRV-710 | Warp phase durations and distances | [cruise_nonnegative, phase_distances_sum](#claim-14), [source_constants](#claim-31) |
-| TRV-711 | Warp proper follows an analytic exponential-then-cruise path | [phase_joins](#claim-15) |
-| TRV-712 | Warp deceleration decays exponentially | [phase_decel_iff, decel_velocity](#claim-15) |
-| TRV-713 | Ships drop out of warp below min(maxVel/2, 100 m/s) | [dropout_iff](#claim-15), [dropout_time_iff](#claim-73) |
+| TRV-711 | Warp proper follows an analytic exponential-then-cruise path | [phase_joins](#claim-15), [acceleration_sample](#claim-122), [placement_ray](#claim-124) |
+| TRV-712 | Warp deceleration decays exponentially | [phase_decel_iff, decel_velocity](#claim-15), [deceleration_extension](#claim-123), [placement_ray](#claim-124) |
+| TRV-713 | Ships drop out of warp below min(maxVel/2, 100 m/s) | [dropout_iff](#claim-15), [dropout_time_iff](#claim-73), [cruise_exit_margin](#claim-101) |
 | TRV-714 | The exit tick integrates one extra step from the drop-out point | [exit_regular, exit_special](#claim-37) |
 | TRV-715 | EntityWarpIn starts a warp already in progress | [entity_elapsed](#claim-37) |
 | TRV-716 | The ballpark warpSpeed attribute is not used by the warp model | [source_constants](#claim-31) |
@@ -89,13 +89,13 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | COL-709 | Overlapping balls are pushed apart by the overlap plus 1 m, split by inertia | [overlap_split](#claim-18), [overlap_clearance, overlap_inertia_center](#claim-64) |
 | COL-710 | Free-free overlaps are re-tested from separated positions, lighter ball boosted | [lighter_boost](#claim-45), [overlap_clearance, overlap_inertia_center](#claim-64) |
 | COL-711 | The applied collision response is 0.85 of the computed acceleration | [response_tie](#claim-45), [scaled_reflection](#claim-51) |
-| COL-712 | Static capsules and boxes reflect or eject balls with the same 0.85 response | [excluded_chord](#claim-10), [scaled_reflection, static_branches](#claim-51), [support_geometry, crossing_iff, parallel_sweep, face_membership](#claim-71) |
+| COL-712 | Static capsules and boxes reflect or eject balls with the same 0.85 response | [excluded_chord](#claim-10), [scaled_reflection, static_branches](#claim-51), [support_geometry, crossing_iff, parallel_sweep, face_membership](#claim-71), [axis_distance, bounding_rejection, cylinder_quadratic, first_barrel_contact](#claim-116), [shallow_crossing_missed](#claim-117) |
 | COL-713 | Fixed balls carry axis-aligned miniballs, minicapsules and miniboxes | [fixed_capsule](#claim-47) |
 | COL-714 | Iterative collisions re-examine colliding balls for up to 20 passes | [iteration_cap](#claim-44), [remove_first_matching_impact, remove_reset_at_zero, finish_window](#claim-68) |
-| COL-715 | Iterative search order is static, then fixed, then higher-ID free balls | [unique_pair](#claim-45), [ignore_recent_colliders, index_prefix, position_from_prefix](#claim-69), [rounded_history_lookup](#claim-70), [full_tick_first_min, partial_tick_selection](#claim-90), [static_priority](#claim-91), [free_subintervals, ignored_segment](#claim-92) |
+| COL-715 | Iterative search order is static, then fixed, then higher-ID free balls | [unique_pair](#claim-45), [ignore_recent_colliders, index_prefix, position_from_prefix](#claim-69), [rounded_history_lookup](#claim-70), [full_tick_first_min, partial_tick_selection](#claim-90), [static_priority](#claim-91), [free_subintervals, ignored_segment](#claim-92), [four_ball_endpoint, returning_ball_words](#claim-102), [compensated_history_cutoff](#claim-104) |
 | COL-716 | Iterative impacts on static objects are perfectly elastic impulses | [reflection](#claim-17), [static_velocity_components, start_contact_acceleration](#claim-62) |
 | COL-717 | Iterative impacts between free balls are elastic with base masses | [iterative_exchange](#claim-17), [start_contact_acceleration](#claim-62), [pair_separates, pair_preserves_tangent, pair_momentum, pair_kinetic_energy](#claim-63) |
-| COL-718 | Iterative velocity changes above 5 x maxVel are scaled by the squared ratio | [limitImpact_norm](#claim-18), [limited_speed_bound](#claim-65), [rounded_limiter_exceeds_bound](#claim-66), [insert_cutoff_and_retry, insert_after_predecessor, insert_before_all](#claim-67) |
+| COL-718 | Iterative velocity changes above 5 x maxVel are scaled by the squared ratio | [limitImpact_norm](#claim-18), [limited_speed_bound](#claim-65), [rounded_limiter_exceeds_bound](#claim-66), [insert_cutoff_and_retry, insert_after_predecessor, insert_before_all](#claim-67), [promoted_limiter_exact](#claim-106) |
 | COL-719 | Collision events are raised only for missiles; orphaned missiles hit themselves | [orphan_with_owner](#claim-44), [dispatch_moving, dispatch_silent](#claim-54) |
 | SEN-701 | Proximity sensors check every period seconds, default 2.0 s | [sensor_schedule](#claim-20), [first_due_poll](#claim-77) |
 | SEN-702 | A ball is inside a sensor when centre distance <= range + both radii | [sensor_inside, crossing, repeated_sample](#claim-20), [vanished_target, present_target](#claim-78) |
@@ -105,10 +105,10 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | SEN-706 | A ball is filed at the finest level whose box is at least 3x its inflated radius | [finest_level](#claim-21), [radius_covers_trajectory](#claim-93), [face_edge_corner](#claim-94) |
 | SEN-707 | Bubbles are clusters of top-level boxes joined through their 26 neighbours | [neighbor_offsets, neighbor_iff](#claim-46), [bubble_component, corner_neighbors](#claim-56) |
 | SEN-708 | Balls interact only within their bubble | [ordinary_candidate, missile_target](#claim-43) |
-| SEN-709 | Line of sight is blocked by the first massive, uncloaked sphere on the segment | [visibility_entry, first_occluder](#claim-46) |
-| SEN-710 | Range queries count balls whose centre is within range plus their own radius | [range_abs](#claim-46) |
+| SEN-709 | Line of sight is blocked by the first massive, uncloaked sphere on the segment | [visibility_entry, first_occluder](#claim-46), [ray_first_entry](#claim-111) |
+| SEN-710 | Range queries count balls whose centre is within range plus their own radius | [range_abs](#claim-46), [ordered_scan, query_by_id](#claim-125) |
 | SEN-711 | Cloaking makes a ball non-massive and drops its followers | [cloak_effect](#claim-47), [warp_and_sensor, erase_and_reenter](#claim-79) |
-| SEN-712 | Clients receive each tick's events only for balls in their bubble | [recipient_split](#claim-42), [bubble_destination, character_destination](#claim-80), [pilot_add_iff, pilot_remove_iff, pilot_disjoint](#claim-81), [single_recipient, dual_recipient](#claim-82), [character_wait, client_trace](#claim-83) |
+| SEN-712 | Clients receive each tick's events only for balls in their bubble | [recipient_split](#claim-42), [bubble_destination, character_destination](#claim-80), [pilot_add_iff, pilot_remove_iff, pilot_disjoint](#claim-81), [single_recipient, dual_recipient](#claim-82), [character_wait, client_trace](#claim-83), [private_bubble_history](#claim-110) |
 | TIME-701 | A ballpark tick is 1000 ms by default and dt = tickInterval/1000 s | [default_tick_seconds](#claim-38) |
 | TIME-702 | OnTick evolves once per whole tick interval elapsed and carries the remainder | [rounds_remainder, early, ordinary_tick](#claim-16), [clock_window, next_client_deadline](#claim-75) |
 | TIME-703 | The server drops a backlog of more than 5 ticks and evolves only one | [master_resync](#claim-16), [master_boundary](#claim-76) |
@@ -118,14 +118,14 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | TIME-707 | Free balls are always processed in ascending ID order | [phase_ordered](#claim-39) |
 | TIME-708 | Clients display ball positions two ticks behind their clock | [render_two_ticks](#claim-16) |
 | TIME-709 | Server movement commands are queued and applied at the next pre-tick | [last_enqueued, distinct_actions_kept](#claim-29) |
-| TIME-710 | An action identical to the last queued action is dropped | [duplicate_idempotent](#claim-29) |
+| TIME-710 | An action identical to the last queued action is dropped | [duplicate_idempotent](#claim-29), [remote_pending_stops](#claim-107) |
 | TIME-711 | Ball removal through Actions is immediate, not queued | [removal_calls](#claim-41) |
-| TIME-712 | Pre-tick order is follower cleanup, stamp, flush, apply, bubbles, cloaks | [pretick_calls](#claim-41) |
-| TIME-713 | Removed balls linger as moribund and are cleaned up between ticks | [cleanup_budget](#claim-40) |
+| TIME-712 | Pre-tick order is follower cleanup, stamp, flush, apply, bubbles, cloaks | [pretick_calls](#claim-41), [remote_pending_stops](#claim-107) |
+| TIME-713 | Removed balls linger as moribund and are cleaned up between ticks | [cleanup_budget](#claim-40), [removal_prefix_masks](#claim-109) |
 | TIME-714 | Balls in dead bubbles are not evolved on the server | [dead_iff](#claim-40) |
-| TIME-715 | A client applies each server update at its stamp, waiting, running ahead or rewinding to it | [sync_reaches_stamp, wait_iff](#claim-30), [eleventh_store, stores_bounded, post_deadline](#claim-84), [rebase_contents](#claim-85), [rewind_stream, sync_failure](#claim-86) |
-| CMB-701 | Angular velocity is transversal speed over centre distance | [angular_agrees](#claim-19) |
-| CMB-702 | Destiny's accuracy helper is 2 to the power of tracking and falloff terms | [accuracy_bounds, optimal_stationary](#claim-19) |
+| TIME-715 | A client applies each server update at its stamp, waiting, running ahead or rewinding to it | [sync_reaches_stamp, wait_iff](#claim-30), [eleventh_store, stores_bounded, post_deadline](#claim-84), [rebase_contents](#claim-85), [rewind_stream, sync_failure](#claim-86), [private_bubble_history](#claim-110), [merged_stamps, merged_payload](#claim-118), [waiting_tail, drain_frontier, reset_packet_order](#claim-119) |
+| CMB-701 | Angular velocity is transversal speed over centre distance | [angular_agrees](#claim-19), [rotating_observer](#claim-99) |
+| CMB-702 | Destiny's accuracy helper is 2 to the power of tracking and falloff terms | [accuracy_bounds, optimal_stationary](#claim-19), [accuracy_overflow_input, accuracy_early_lanes](#claim-98) |
 
 <a id="claim-1"></a>
 
@@ -1639,3 +1639,421 @@ CPU correspondence — 54 ordered candidate lists and their active packed keys a
 | [Theorems](ExactBallparkProofs/Space/CandidateOrder.lean) | Transitive axioms |
 | --- | --- |
 | `ExactBallpark.Space.CandidateOrder.ordered_candidates` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-98"></a>
+
+## Radial tracking cancellation and scalar early returns
+
+**Logical binary64 and Boolean control.** The fixed radial witness proves the negative squared angular speed and exponent input to the host power function. The mask theorem compares guarded returns word for word with the same ordinary output supplied. CPU execution checks pow and the tensor lane.
+
+Engine symbols `FullBallpark.get_accuracy, vec_accuracy.get_accuracy`. [Source](../src/exact_ballpark/full.py) · [vec_accuracy.py](../src/exact_ballpark/vec_accuracy.py)
+
+Recorded upstream evidence — CMB-702 passing (compiled code).
+
+The scalar and PyTorch CPU checks cover 8 combat lanes, including the same-ball guard. For the radial case, the scalar and pinned C++ square-root and power inputs match the certified words. The engine returns infinite accuracy, 11 m and NaN angular speed. [Lane checks](scripts/arithmetic_checks.py) · [Pinned C++ replay](DISCREPANCIES.md#cmb-702-tracking)
+
+| [Theorems](ExactBallparkProofs/Combat/Execution.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Combat.accuracy_overflow_input` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Combat.accuracy_early_lanes` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-99"></a>
+
+## Angular speed in a rotating observer frame
+
+**Real vector arithmetic.** Positive separation, supplied transversal velocity, observer angular velocity and unit sight direction. The theorem identifies the cancelling tangential velocity.
+
+Engine symbols `FullBallpark.relative_velocities, vec_accuracy.relative_velocities`. [Source](../src/exact_ballpark/full.py) · [vec_accuracy.py](../src/exact_ballpark/vec_accuracy.py)
+
+Recorded upstream evidence — CMB-701 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Combat/Execution.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Combat.rotating_observer` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-100"></a>
+
+## Normalized quaternion steering keeps thrust on its envelope
+
+**Real arithmetic.** Nonzero quaternion, nonnegative requested acceleration and an arbitrary supplied cosine. The forward row comes from the normalized rotation. Binary32 quaternion conversion is outside this proof.
+
+Engine symbols `q_len, FullBallpark._orient`. [Source](../src/exact_ballpark/full.py)
+
+Recorded upstream evidence — MOV-728 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Movement/Heading.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Movement.normalized_heading` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-101"></a>
+
+## Stability of the sampled warp exit under a cruise-duration perturbation
+
+**Real arithmetic.** Fixed acceleration and deceleration durations, positive peak, rate and maximum speed. Perturb only the cruise duration. Every eligible sample has the stated strict time margin at all three decision boundaries.
+
+Engine symbols `ModeBallpark._warp_distance`. [Source](../src/exact_ballpark/modes.py)
+
+Recorded upstream evidence — TRV-709 passing (compiled code), TRV-713 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Warp/ExitMargin.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Warp.cruise_exit_margin` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-102"></a>
+
+## Four-ball rebound and returning free-ball search
+
+**Logical binary64.** Fixed one-dimensional fixtures. The four-ball loop replays source order and the absolute-time control with nine supplied exp words. The free search uses supplied endpoints and prior-contact state.
+
+Engine symbols `SpaceBallpark._next_collision_static, SpaceBallpark._next_collision_free, Ballpark.integrate`. [Source](../src/exact_ballpark/space.py) · [ref.py](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — COL-715 passing (compiled code).
+
+The scalar replay matches the certified x and vx words for the engine and the earliest-hit control, and both words for the free-ball return. [Witness comparison](scripts/arithmetic_checks.py)
+
+| [Theorems](ExactBallparkProofs/Collision/ReplayTick.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Collision.ReplayTick.four_ball_endpoint` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Collision.ReplayTick.returning_ball_words` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-103"></a>
+
+## Error-free addition in the CPU FMA helper
+
+**Binary nearest-even, 53 significand bits.** Every represented input pair, either sign and order. FloatLib supplies the unbounded-exponent format and nearest-even semantics. IEEE execution requires matching intermediate grids. This value identity does not distinguish signed zeros.
+
+Engine symbols `two_sum`. [Source](../src/exact_ballpark/vec_exp.py)
+
+Recorded upstream evidence — MOV-738 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Numerics/TwoSum.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Numerics.Compensated.two_sum_exact` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-104"></a>
+
+## A compensated strict cutoff for impact histories
+
+**Binary nearest-even, 53 significand bits.** For representable times, tolerance and query, comparing the rounded sum and its signed residual retains exactly the ideal strict prefix. This verifies the proposed correction to the current rounded guard.
+
+Engine symbols `CollisionBallProperties.find_index, two_sum`. [Source](../src/exact_ballpark/space.py) · [vec_exp.py](../src/exact_ballpark/vec_exp.py)
+
+Recorded upstream evidence — COL-715 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Numerics/TwoSum.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Numerics.Compensated.compensated_history_cutoff` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-105"></a>
+
+## Error in the exceptional drag position update
+
+**Binary nearest-even, 53 significand bits.** Positive effective mass and friction on the taken special branch. FloatLib supplies rounding bounds for each of the 16 operations, including both uses of the same stored squared friction. The error is relative to p + v t on one coordinate. IEEE application requires matching rounding grids.
+
+Engine symbols `Ballpark.integrate`. [Source](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — MOV-703 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Movement/Roundoff.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Movement.Roundoff.special_position_error` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-106"></a>
+
+## Exact promoted numerator for the impact limiter
+
+**Binary32 dyadics and binary64 nearest-even.** Any finite binary32 input in signed significand and dyadic exponent form, including subnormals and zero. Promoting before both multiplications makes the numerator 25 × speed² exact. The current limiter evaluates it in binary32.
+
+Engine symbols `SpaceBallpark._add_impact, FullBallpark._add_impact`. [Source](../src/exact_ballpark/space.py) · [full.py](../src/exact_ballpark/full.py)
+
+Recorded upstream evidence — COL-718 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Numerics/Product.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Numerics.Compensated.promoted_limiter_exact` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-107"></a>
+
+## Remote followers become pending server stops
+
+**Discrete queue and mode transitions.** A unique set of free IDs, a fixed system stamp and the initial queue. Missing or different-bubble targets select followers in ascending order. Only the first request can match the previous tail. Applying its Stop to a still-following ship clears target, owner and stamp. Notification callbacks and changes by intervening events are outside the projection.
+
+Engine symbols `Actions.clean_up_followers, Actions.stop, Actions._add_to_system_history, SpaceBallpark.remote_followers`. [Source](../src/exact_ballpark/server.py) · [space.py](../src/exact_ballpark/space.py)
+
+Recorded upstream evidence — MOV-731 implemented, not passing (compiled code). Its two halves are held to two different oracles, destiny's compiled C++ and the published tests of its Python server layer. Holding them as one rule needs destiny's Python layer run against the compiled engine, which has not been done., TIME-710 passing (test vectors), TIME-712 implemented, not passing (test vectors). Destiny's published tests do not cover the pre-tick's first step (the follower clean-up). That part is checked only against the transcription of destiny's Python server layer, which has not been run itself..
+
+| [Theorems](ExactBallparkProofs/Time/ServerLaws.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Time.ServerLaws.remote_pending_stops` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-108"></a>
+
+## Force-field configuration through the candidate filter
+
+**Discrete action and candidate semantics.** A present, uncloaked force field after both parent calls. The query excludes non-massive objects, checks harmonics and has passed the other candidate filters. With no enabled tag the field is non-massive.
+
+Engine symbols `Actions.set_ball_harmonic, SpaceBallpark.set_harmonic, SpaceBallpark._nearby_balls`. [Source](../src/exact_ballpark/server.py) · [space.py](../src/exact_ballpark/space.py)
+
+Recorded upstream evidence — MOV-737 implemented, not passing (compiled code). Its two halves are held to two different oracles, destiny's compiled C++ and the published tests of its Python server layer. Holding them as one rule needs destiny's Python layer run against the compiled engine, which has not been done..
+
+| [Theorems](ExactBallparkProofs/Time/ServerLaws.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Time.ServerLaws.configured_field_filter` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-109"></a>
+
+## The seven-ball removal budget across scalar and batched lanes
+
+**Integer time and ordered Boolean masks.** Outside evolution, same ascending ID order, exact signed tick differences and prefix counts within int64. Overdue and stale entries consume no early quota. Padding has pending false. Destiny's pointer visitation order is external.
+
+Engine symbols `SpaceBallpark.bring_out_the_deads, DelayedRemoval.due`. [Source](../src/exact_ballpark/space.py) · [vec_space_removal.py](../src/exact_ballpark/vec_space_removal.py)
+
+Recorded upstream evidence — TIME-713 implemented, not passing (compiled code). Destiny cleans up moribund balls in an order that follows heap addresses, which no port can reproduce. The reference uses ascending id..
+
+| [Theorems](ExactBallparkProofs/Time/RemovalMasks.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Time.RemovalMasks.removal_prefix_masks` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-110"></a>
+
+## Server packets merge at a single client history stamp
+
+**Discrete packet and history transitions.** One intended recipient, one nonempty private and one nonempty bubble payload, in send order, at one admitted stamp. A group already present keeps its earlier events. The earlier and later history entries keep their payloads and wait flags. The model bypasses SetState resets and packet expansion.
+
+Engine symbols `ParkUpdateBatcher.send_batch, merge_state_into_history`. [Source](../src/exact_ballpark/server.py) · [client.py](../src/exact_ballpark/client.py)
+
+Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. That part is checked only against the transcription of destiny's Python server layer, which has not been run itself., TIME-715 passing (test vectors).
+
+| [Theorems](ExactBallparkProofs/Space/MergeDelivery.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Space.Batches.private_bubble_history` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-111"></a>
+
+## Strict first sphere entry in a visibility ray
+
+**Real Euclidean geometry.** Distinct sight endpoints, nonnegative obstacle radius and one eligible sphere. The entry must be the first surface intersection on the entire oriented line and strictly between the endpoints. Interior tangencies qualify. Starting inside the sphere does not block.
+
+Engine symbols `SpaceBallpark.check_visibility`. [Source](../src/exact_ballpark/space.py)
+
+Recorded upstream evidence — SEN-709 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Space/Occlusion.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Space.ray_first_entry` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-112"></a>
+
+## Reconstruction and residual scale of Veltkamp's split
+
+**Binary nearest-even, 53 significand bits.** Every represented operand of magnitude below 2⁹⁹⁶. The actual splitter is 2²⁷+1. The two rounded outputs sum exactly to the operand and the low component obeys an explicit magnitude bound. This is a value model with unbounded exponents.
+
+Engine symbols `split`. [Source](../src/exact_ballpark/vec_exp.py)
+
+Recorded upstream evidence — MOV-738 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Numerics/Product.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Numerics.Compensated.split_reconstructs` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-113"></a>
+
+## Dekker's product with certified partial widths
+
+**Binary nearest-even, 53 significand bits.** Both inputs satisfy the split range. Four exact partial products and three intermediate differences admit 53-bit dyadic significands. The theorem derives the final residual, including its representability, from those conditions. A supplied cached split must match splitting the operand.
+
+Engine symbols `split, two_product`. [Source](../src/exact_ballpark/vec_exp.py)
+
+Recorded upstream evidence — MOV-738 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Numerics/Product.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Numerics.Compensated.dekker_product_exact` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-114"></a>
+
+## Odd rounding from a signed residual and the stored low bit
+
+**Binary nearest-even and signed word steps on a specified grid.** The nearest result is decoded on the adjacent grid containing the exact sum, with an even encoding offset. Exact values stay fixed. For an inexact sum, the source parity and sign tests select the odd neighbor. The model concerns finite values.
+
+Engine symbols `two_sum, add_odd`. [Source](../src/exact_ballpark/vec_exp.py)
+
+Recorded upstream evidence — MOV-738 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Numerics/OddFma.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Numerics.Compensated.add_odd_grid` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-115"></a>
+
+## One rounding for the composed software FMA
+
+**Composition over two binary grids.** Product-width hypotheses hold, both split operands are in range, the low grid is at least two bits finer, the high sum is an even multiple of that unit, and the ideal result and final add input share a coarse grid. Signed zero, overflow, subnormal underflow and other binade configurations require separate results.
+
+Engine symbols `fma, two_product, two_sum, add_odd`. [Source](../src/exact_ballpark/vec_exp.py)
+
+Recorded upstream evidence — MOV-738 passing (compiled code).
+
+CPU comparison on the registered source — 68 software FMAs (67 inside the grid conditions, 14 with inexact low sums). The FMA oracle is CPython math.fma. Exact dyadic arithmetic checks the product widths and both rounding grids for each sampled call. [Probe](scripts/arithmetic_checks.py)
+
+| [Theorems](ExactBallparkProofs/Numerics/OddFma.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Numerics.Compensated.fma_single_round` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-116"></a>
+
+## Capsule rejection, radial distance and first barrel contact
+
+**Real Euclidean geometry.** Straight sweep, nonzero capsule axis and nonnegative combined radius for first contact. The bounding test uses a supplied enclosing radius. The barrel result applies when the exterior quadratic branch is reached, its earlier root is accepted and its projected foot lies on the finite axis. Contact with a cap outside this branch and the subsequent response require separate reasoning.
+
+Engine symbols `FullBallpark._capsule_check, Capsule.bounding_radius`. [Source](../src/exact_ballpark/full.py)
+
+Recorded upstream evidence — COL-712 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Collision/Capsule.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Collision.Capsule.axis_distance` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Collision.Capsule.bounding_rejection` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Collision.Capsule.cylinder_quadratic` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Collision.Capsule.first_barrel_contact` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-117"></a>
+
+## A sub-micrometre approach missed by the capsule cutoff
+
+**Binary64 guards and exact straight-chord geometry.** The capsule is aligned with z and both radii are one half. The witness starts and ends 2⁻²⁰ m on opposite sides of the combined surface. Its exact first contact is at half a tick. The projected source guards reach the near-parallel rejection with stored binary64 words.
+
+Engine symbols `FullBallpark._capsule_check`. [Source](../src/exact_ballpark/full.py)
+
+Recorded upstream evidence — COL-712 passing (compiled code).
+
+Scalar Python and the pinned Destiny C++ capsule check miss the shallow crossing and return half a tick on the faster control. [Capsule replay](DISCREPANCIES.md#col-712-shallow-crossing)
+
+| [Theorems](ExactBallparkProofs/Collision/Capsule.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Collision.Capsule.shallow_crossing_missed` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-118"></a>
+
+## Sorted client history and stable payload order
+
+**Discrete client history.** Existing history and the incoming groups each have strictly increasing stamps. The client has already grouped a nonempty raw packet by timestamp, retaining its original order within each group. The resulting ordered stamp set is their union and each payload is the old list followed by the incoming list, including duplicates.
+
+Engine symbols `merge_state_into_history`. [Source](../src/exact_ballpark/client.py)
+
+Recorded upstream evidence — TIME-715 passing (test vectors).
+
+Lean and the scalar client agree on the complete ordered payloads and wait flags for 112 mixed-stamp histories. [CPU probe](scripts/mixed_history_checks.py)
+
+| [Theorems](ExactBallparkProofs/Time/MixedHistory.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Time.MixedHistory.merged_stamps` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Time.MixedHistory.merged_payload` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-119"></a>
+
+## Waiting, dispatch and reset for mixed-stamp packets
+
+**Discrete packet and clock transitions.** The append case starts with empty history. One equal-stamp reply clears its group and later groups keep waiting. Tick dispatch assumes handlers return, represents time after each dispatch by a supplied clock function and advances a successful extra parent evolve by one. Reset is recognized by the first raw event. Admission of an ordinary packet depends on that first stamp before grouping.
+
+Engine symbols `merge_state_into_history, Ticker._flush_state, Ticker.do_pre_tick`. [Source](../src/exact_ballpark/client.py)
+
+Recorded upstream evidence — TIME-715 passing (test vectors).
+
+The pinned Destiny Python client reproduces the extra wait and the reset-order trace. [Packet replays](DISCREPANCIES.md#time-715-extra-wait)
+
+| [Theorems](ExactBallparkProofs/Time/MixedHistory.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Time.MixedHistory.waiting_tail` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Time.MixedHistory.drain_frontier` | propext, Quot.sound |
+| `ExactBallpark.Time.MixedHistory.reset_packet_order` | propext, Quot.sound |
+
+<a id="claim-120"></a>
+
+## Exponential table addressing and scale words
+
+**Signed integers, 64-bit words and real powers of two.** The table has 128 tail/scale pairs. Normal reconstruction assumes a 52-bit fraction for its positive scale and an in-range result exponent. The two special shifts and their sign-bit dispatch use the proved index range. Their powers of two cancel over the reals before the polynomial, overflow and subnormal result handling.
+
+Engine symbols `exp_table, exp`. [Source](../src/exact_ballpark/vec_exp.py)
+
+Recorded upstream evidence — MOV-738 passing (compiled code).
+
+The CPU exponential reads every tail and scale slot on 640 non-tiny inputs. Each returned word matches a 100-digit decimal reference rounded to binary64. [Sampling checks](scripts/sampling_checks.py)
+
+| [Theorems](ExactBallparkProofs/Numerics/ExpReduction.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Numerics.ExpReduction.table_address` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Numerics.ExpReduction.scale_reconstruction` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Numerics.ExpReduction.special_rescaling` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-121"></a>
+
+## Exponential reduction bounds and tiny-input rounding
+
+**FloatLib binary nearest-even with 53 significand bits.** The reduction uses the exact stored INVLN2N constant on sanitized inputs of magnitude at most 1024. Rounded multiply and half addition followed by truncation leave room for the signed shift product. For |x| < 2⁻⁵⁴ the normal result of rounding x+1 and of rounding exp(x) is exactly one. This covers that branch of the exponential.
+
+Engine symbols `exp, INVLN2N`. [Source](../src/exact_ballpark/vec_exp.py)
+
+Recorded upstream evidence — MOV-738 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Numerics/ExpReduction.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Numerics.ExpReduction.reduction_index_bound` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Numerics.ExpReduction.tiny_correct_round` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-122"></a>
+
+## Speed continuity during warp acceleration
+
+**Real trajectory and reported speed.** During the acceleration branch the scalar trajectory has derivative a·exp(a·t). The reported speed agrees with that derivative exactly when the incoming speed is at most the analytic speed.
+
+Engine symbols `ModeBallpark._warp_distance`. [Source](../src/exact_ballpark/modes.py)
+
+Recorded upstream evidence — TRV-711 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Warp/Sampling.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Warp.Sampling.acceleration_sample` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-123"></a>
+
+## The last second of warp deceleration
+
+**Real local deceleration coordinate.** Positive deceleration and peak speed. For a sample δ seconds past nominal deceleration, with 0 ≤ δ < 1, the signed remainder is exp(−bδ)−1 metres and the speed is b·exp(−bδ). This is conditional on the sampler reaching this phase before a prior dropout.
+
+Engine symbols `ModeBallpark.warp_constants, ModeBallpark._warp_distance`. [Source](../src/exact_ballpark/modes.py)
+
+Recorded upstream evidence — TRV-712 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Warp/Sampling.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Warp.Sampling.deceleration_extension` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-124"></a>
+
+## Direction after sampling either side of the warp exit
+
+**Real Euclidean geometry.** The current position differs from the exit, and the branch places the ship on the normalized sightline at a signed remainder. Its distance is the remainder's absolute value. Recomputing the sightline preserves, zeroes or reverses the direction according to the sign.
+
+Engine symbols `ModeBallpark._warp_distance, _normalized`. [Source](../src/exact_ballpark/modes.py) · [ref.py](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — TRV-711 passing (compiled code), TRV-712 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Warp/Sampling.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Warp.Sampling.placement_ray` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-125"></a>
+
+## Ordered range results for ID and coordinate queries
+
+**Ordered registry lookup and real Euclidean distance.** Successful argument parsing and a resolved bubble with one object per dictionary key. The scan retains live, eligible candidates in traversal order at squared center distance at most (range + candidate radius)². At the source ball's coordinates, when both overloads resolve the same bubble, the ID query removes exactly that source. Vacant keys contribute no result.
+
+Engine symbols `SpaceBallpark.ball_ids_in_range`. [Source](../src/exact_ballpark/space.py)
+
+Recorded upstream evidence — SEN-710 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Space/RangeScan.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Space.RangeScan.ordered_scan` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Space.RangeScan.query_by_id` | propext, Classical.choice, Quot.sound |
