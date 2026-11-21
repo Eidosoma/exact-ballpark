@@ -23,6 +23,8 @@ Each link of the chain is a separate set of tests.
 
 Some tests also skip a link: kernels run directly against destiny's compiled code, with no reference in between.
 
+The Lean claim register records mathematical and floating-point proofs by engine rule. Each entry identifies the model, its assumptions and the evidence connecting it to the source. For COL-705, the CPU replay compares the engine's straight-sweep result with a proved first-contact interval along the continuous drag path. [Claim register](../lean/CLAIMS.md#catalogue-coverage) · [Turning-ship replay](../lean/DISCREPANCIES.md#col-705-turning-path)
+
 Link 2 on the CPU for the flight-mode, combat and composed parks, a check of the GPU paths against the CPU path, and
 the space layer's two host compilers are in `devices.md`, section 4.
 
@@ -240,6 +242,8 @@ Tests: `tests/test_movement_vec_collide.py`, `tests/test_movement_vec_collide_cu
 `tests/test_movement_space_oracle.py`, `tests/test_movement_vec_static_collidables.py`,
 `tests/test_movement_vec_minis_and_fields.py`, `tests/test_movement_vec_space_collide.py`,
 `tests/test_movement_vec_global_balls.py`.
+
+Three isolated head-on ticks also have Lean proofs through the committed positions and velocities. The scalar iterative tick and pinned C++ `Evolve` both produce one reciprocal collision record per ball. The replay compares the raw and limited changes as well as the final words. The C++ harness reads the intermediate impulses from the original collision methods in a second park initialized with the same inputs. [Fixtures and results](../lean/README.md#one-impact-through-the-end-of-a-tick) · [Pinned CPU replay](../lean/scripts/contact_replay.py)
 
 ### 3.5 Space: the partition, bubbles, sensors and queries
 

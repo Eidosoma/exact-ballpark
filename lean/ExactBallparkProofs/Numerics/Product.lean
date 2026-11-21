@@ -50,7 +50,7 @@ theorem promoted_limiter_exact (m e : Int) (width : m.natAbs < 2^24)
   refine ⟨r1, ?_,w2, by omega, by omega⟩
   rw [r1,p]; exact exactValue (repDyadic _ _ w2)
 
-private theorem roundBound (x : ℝ) : |rn x-x| ≤ |x| / 2^53 := by
+theorem roundBound (x : ℝ) : |rn x-x| ≤ |x| / 2^53 := by
   obtain ⟨δ,bound,eq⟩ := round_relative_error_flx (β := Numerics.binaryRadix) 53 (by decide) nearestEven x
   have hδ : |δ| ≤ 1/2^53 := by norm_num [bpow_binaryRadix] at bound ⊢; exact bound
   change |round (β := Numerics.binaryRadix) (fexp := flxExp 53) nearestEven x-x| ≤ _

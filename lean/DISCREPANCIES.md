@@ -10,14 +10,14 @@ The scalar replay used **CPython 3.13.18** and a working tree based on Exact Bal
 
 The ranking describes the gameplay consequence in the stated scenario. **High** means a replay changed the ship’s direction. **Moderate** covers a distinct collision gained, lost or assigned to an earlier tick, an accuracy query outside the probability range, and client queue behavior that can delay or discard updates. **Low** covers a missed tangent with zero normal approach speed or a small excess impulse. **Negligible** covers the measured GOTO position rounding and the short warps that followed the same phases and exited on the same tick as their controls. MOV-703 also has a separate numerical stress case.
 
-The likelihood column gives the operating mode and input scales needed to reach each case. The replays measure outcomes on selected inputs. Live encounter rates would require telemetry.
+The likelihood column gives the operating mode and input scales needed to reach each case. The replays measure outcomes on selected inputs. Live encounter rates would require telemetry. A separate COL-705 example measures how far the documented straight sweep can pass from a turning ship’s continuous trajectory. [Turning flight and clear control](#col-705-turning-path)
 
 | Severity | Case | In plain terms | Likelihood of noticeable impact | How it could show up in play |
 | --- | --- | --- | --- | --- |
 | High | [COL-715 · wrong fixed obstacle](#col-715-fixed-window) | After a bump, the ship can select a farther obstacle along its path. | **Reachable in an ordinary four-ball tick with iterative collisions enabled.** It needs two eligible fixed obstacles in the remaining window. Frequency in live encounters is unknown. | The engine and the earliest-hit control ended the tick moving in opposite directions. |
-| High | [COL-715 · wrong side of a bump](#col-715-history-lookup) | A query just after an impact reads the velocity from before the bump. | **Narrow trigger, potentially material effect.** It requires iterative collisions, which default to off, and a query at the cutoff. The next representable query already selects the later record. | In a scalar replay with a second contact supplied at that time, the ship kept moving forward. With an exact cutoff comparison it rebounded. The two positions were 1.22 m apart by the end of the tick. |
+| High | [COL-715 · wrong side of a bump](#col-715-history-lookup) | A ship can use its velocity from before the first bump to respond to the second. | **Reachable from three starting ball states.** The 100 ms replay uses the optional iterative mode and finely spaced contact times. Live frequency is unmeasured. | The engine missed the rebound at the second contact. Changing just the lookup made the same ship finish 1.325268 m away, moving in the opposite direction. |
 | Moderate | [COL-715 · missed second hit](#col-715-free-repeat) | After two ships separate and one turns back, the second impact can disappear. | **Conditional on iterative collisions and a return within the same tick.** The replay supplies impact history. Its occurrence rate during ordinary play is unknown. | Both engines missed a distinct contact. A game response to that contact could have changed the subsequent paths. |
-| Moderate | [TIME-715 · extra bubble wait](#time-715-extra-wait) | One private update can leave two timestamps waiting for a bubble reply. | Requires empty history, a private packet with multiple stamps and no matching reply for the later stamp. Live incidence is unknown. | Even after the clock advances, the client holds that stamp and every update queued behind it. A matching reply releases it. |
+| Moderate | [TIME-715 · extra bubble wait](#time-715-extra-wait) | One private update can leave two timestamps waiting for a bubble reply. | A session with ordinary commands reproduced this after postponing a server send for one tick. Sending after each tick cleared the queue. Live incidence is unknown. | The client reports a fatal desync for the mixed packet. With the replay’s returning handler, the later command stays queued until a matching reply arrives. |
 | Moderate | [TIME-715 · mixed update after reset](#time-715-reset-order) | Reversing two events in the same update can admit an obsolete command or discard a fresh one. | Requires an ordinary packet containing events from both sides of the last state reset. Live incidence is unknown. | A movement command sent after the reset can disappear. If the fresh event arrives first, an older command can reach the dispatch queue. The replay measures admission. |
 | Moderate | [COL-712 · shallow capsule crossing](#col-712-shallow-crossing) | A ship crosses a capsule wall by less than one micrometre and the collision check misses it. | Requires the optional iterative path and very little motion across the capsule axis. The approach can also have an axial component. | The contact can be skipped for this tick. The replay measures the intersection test. A subsequent tick starting inside may detect overlap. |
 | Moderate | [COL-705 · false contact](#col-705-long-sweep) | Two spheres pass with a metre to spare, but the collision check reports a touch. | **Likely low for ordinary flight.** The example sweeps 536,870,912 m in a tick past a target with a combined radius of just 1 m. | If that pair reaches the collision solver, it could be processed as a contact. Whether it produces a bump depends on the response calculation and the other contacts that tick. |
@@ -28,7 +28,7 @@ The likelihood column gives the operating mode and input scales needed to reach 
 | Negligible | [MOV-703 · special-branch rounding](#mov-703-position) | A one-second GOTO ends a tiny distance short of the branch’s predicted position. | **Small at the tested thrust scale.** At default friction the branch requires effective mass above 10¹⁶ for a one-second step. | The measured error was 0.583 pm from the origin and 30.518 µm from one AU. The separate metre-loss stress case prescribes an extreme acceleration. |
 | Negligible | [TRV-709 · short warp](#trv-709-short-cruise) | The cruise phase should last zero seconds. The engine stores a tiny positive or negative duration. | **Very low for the sampled flights.** The arithmetic difference was present at all 1,000 tested distances. The two trajectory replays kept the same phase and exit tick. | A diagnostic can show a negative duration. In the two sampled flights the largest position change attributable to these cruise fields was under 0.000000000015 m. |
 
-The wrong-obstacle replay reaches the decision during a full tick from four initial ball states. The history-lookup and missed-second-hit replays exercise narrower questions by supplying an impact or its history. [Fixed and free collision replays](scripts/contact_replay.py) · [History replay](scripts/replay_discrepancies.py)
+The wrong-obstacle and history-lookup replays start full ticks from four and three ball states respectively. The missed second free-ball hit uses supplied impact history. [Fixed and free collision replays](scripts/contact_replay.py) · [History replay](scripts/replay_discrepancies.py)
 
 ## Where the result changes in Exact Ballpark and how to fix it
 
@@ -100,6 +100,8 @@ Over the second half of a tick a ship sweeps from x = 0 to 8 m. Fixed balls 3 an
 | Fixed balls, near first | 4 | `3fe8000000000000` |
 | Fixed balls, far first | 3 | `3fe4000000000000` |
 
+Physlib’s unit types let Lean reject the engine’s fraction-to-seconds comparison. The control converts each candidate to seconds before comparing it with the incumbent. Lean proves the control selects ball 3 at 0.625 s in both orders, and the CPU gate checks both IDs and timestamp words against the scalar control. [Typed comparison and binary64 witness](ExactBallparkProofs/Physics/Units.lean) · [Scalar replay](scripts/contact_replay.py)
+
 A one-second tick reaches the same decision after a rebound. Ball 1 starts at x = 105 m travelling at −16 m/s. Three fixed balls start at 100, 107 and 108 m. All share y = z = 100 m, radius 0.5 m, mass 16 and agility 1, with friction 1 and zero speed fraction. Scalar Python and pinned C++ reproduce the engine row bit for bit. The scalar control changes the fixed-ball comparison to select the earliest absolute time. The ship’s final positions in the two runs are **0.300768 m apart**. It finishes moving left in the engine run and right in the control. [Full-tick replay and control](scripts/contact_replay.py)
 
 | Selection | Final x | Final x velocity |
@@ -122,7 +124,16 @@ To measure the consequence, a second scalar probe supplies a static contact at t
 | Engine binary64 cutoff | −0 m/s | +0.608394 m | +0.391606 m/s |
 | Exact cutoff in that lookup only | −1.99980 m/s | −0.608194 m | −0.391606 m/s |
 
-Supplying the second contact isolates what happens after detection. The experiment measures a missed rebound and 1.22 m of separation under that condition. Natural detection of the timestamp, live frequency and C++ reproduction of the two-contact trajectory remain open. [Scalar control experiment](scripts/replay_discrepancies.py)
+The supplied contact isolates the response and gives 1.22 m of separation in that one-second experiment. [Scalar control experiment](scripts/replay_discrepancies.py)
+
+**A three-ball tick reaches the same cutoff through collision detection.** A free ball starts with x velocity 16,384 m/s and approaches two fixed spheres in a 100 ms tick. All three have radius 1/64 m. The sweep finds the first contact at 0.09970000000005665 s and the second at 0.09980000000005665 s. The gap between the second time and the exact cutoff is again 211/2⁶⁶ seconds. The ordinary lookup reads record 0 and applies zero impulse at that contact. It then detects the second obstacle again. The control reads record 1, rebounds immediately and finishes after two contacts. The small radii and tuned initial positions make this a stress case. [Starting states and scalar replay](scripts/contact_replay.py) · [Lean trace](ExactBallparkProofs/Collision/ReboundCutoff.lean)
+
+| Three-ball run | Contacts processed | Final x and vx | Binary64 words for x and vx |
+| --- | ---: | --- | --- |
+| Engine lookup | 3 | −0.994747 m, −3307.872551 m/s | `bfefd4f82e6ee100`, `c0a9d7bebefb4e15` |
+| Exact-cutoff control | 2 | +0.330521 m, +3307.872551 m/s | `3fd52741d8968a00`, `40a9d7bebefb4e15` |
+
+The ship’s final positions differ by **1.325268 m**. Lean and scalar Python agree on each contact time, selected record, applied impulse and both endpoint words in both runs. Pinned Destiny C++ agrees with scalar Python on the unmodified engine’s stored contact history and endpoint. [Word checks](scripts/arithmetic_checks.py) · [Compiled replay](scripts/contact_replay.py)
 
 <a id="col-715-free-repeat"></a>
 
@@ -146,6 +157,8 @@ Start with empty history and a private packet containing stamps 11 and 10 in tha
 | Private packet | [10, 11] |
 | Reply at 10, then advance the clock to 100 | [10] applied, [11] waiting |
 | Reply at 11 | [10, 11] applied, queue empty |
+
+A server-to-client replay reaches this case with ordinary mass-change commands. At stamp 3 the server records a private change for a cloaked pilot and a bubble change for a visible ship. At stamp 4 it records another private change for the pilot. Sending each tick leaves the client queue empty. Postponing the first send combines private stamps 3 and 4 with a bubble reply for stamp 3. The client reports one fatal desync. The session’s handler records it and returns, leaving stamp 4 waiting. This establishes one producer schedule that reaches the condition. [Server and client replay](scripts/mixed_history_checks.py) · [Two-stamp proof](ExactBallparkProofs/Time/BatchStamps.lean)
 
 <a id="time-715-reset-order"></a>
 
@@ -196,6 +209,8 @@ Let the combined radius R be 2²⁸ metres. One centre stays at the origin while
 
 Set the binary32 maximum speed to 4097 and the incoming velocity change to (20485 + 2⁻¹³, 0, 0). The exact squared threshold is 25 × 4097² = 419635225. The first product is exactly 102425 in binary32. Only the second multiplication rounds, producing 419635232 before division by the binary64 squared magnitude. The input magnitude falls between the ideal and rounded thresholds after taking square roots, so the scalar park stores the entire change. The x coordinate exceeds five times the configured maximum speed by 0.0001220703125. This measures the impact velocity change applied to a ball initially at rest. [Magnitude bound](ExactBallparkProofs/Collision/Impact.lean) · [Binary64 output proof](ExactBallparkProofs/Collision/FiniteImpact.lean)
 
+For an ordinary activation of the same limiter, the head-on replay uses a maximum speed of 0.5 m/s on the left ship. The proposed −4 m/s impulse becomes −1.5625 m/s while the other ship receives +4 m/s. Both engines agree on these words. Lean proves the spheres stay clear for the rest of the tick even though they finish moving closer together. [One-sided limiter control](README.md#one-impact-through-the-end-of-a-tick)
+
 <a id="mov-703-position"></a>
 
 ## MOV-703 · position rounding in the near-zero-friction branch
@@ -232,6 +247,23 @@ In a scalar check at factor 1000 across every whole metre from 100,000 to 100,99
 **MOV-726 · Formation resize documentation.** At Exact Ballpark commit `0986532` the scalar docstring said a shrink never freed the removed slots. The working copy corrects that wording. In Destiny commit `114e89fa`, the comment at `Ballpark.cpp:6719` still says the shrink clears higher slots. Its loop starts at the old length and stops below the smaller new length, so it runs zero times. Stopping a follower first releases its occupied slot on the master. The client keeps the bit, and an unclaimed reservation survives on either side. The evidence here is a scalar replay and inspection of the two sources. [FullBallpark.set_ball_formation](https://github.com/Eidosoma/exact-ballpark/blob/098653233eb0f9910a3f02564e36b0641cbd4e0f/src/exact_ballpark/full.py#L1863-L1866) · [FullBallpark._stop](https://github.com/Eidosoma/exact-ballpark/blob/098653233eb0f9910a3f02564e36b0641cbd4e0f/src/exact_ballpark/full.py#L1850-L1857) · [Working source hashes](claims.json) · [Destiny shrink comment and loop](https://github.com/carbonengine/destiny/blob/114e89fa584f0e1a81eb0a679aabf41af8870072/src/Ballpark.cpp#L6714-L6724) · [Destiny STOP](https://github.com/carbonengine/destiny/blob/114e89fa584f0e1a81eb0a679aabf41af8870072/src/Ballpark.cpp#L4629-L4633)
 
 In a scalar replay, a leader had all four slots reserved, formation followers in slots 0 and 3, and no ships in slots 1 or 2. Shrinking to one slot stopped the followers in slot 3. After expanding back to four, the next reservation returned slot 3 on the master. On the client it returned −1 because all four bits were still set. This is a documentation discrepancy with direct implications for predicting slot availability. The Lean model matched both scalar outcomes. [Formation proofs](ExactBallparkProofs/Movement/Formation.lean) · [CPU comparison](scripts/formation_checks.py)
+
+<a id="col-705-turning-path"></a>
+
+## COL-705 model comparison · a turning ship can cross an obstacle between endpoints
+
+COL-705 explicitly uses straight paths for time of impact. A tight turn can carry the continuous drag trajectory inside an obstacle even when the straight sweep passes clear. This is a consequence of the documented game rule. Its relevance to an encounter depends on the size of the turn relative to the available clearance. [Engine rule catalogue](../docs/rules.md) · [Trajectory and clearance proof](ExactBallparkProofs/Collision/TurningFlight.lean)
+
+One ship starts at the origin at (10, 0, 0) m/s and receives a GOTO to (0, 100, 0) m. Effective mass, friction, agility and speed fraction are all one, maximum speed is 10 m/s, and the tick lasts one second. The applied acceleration is (0, 10, 0) m/s². Both spheres have radius 0.25 m. Scalar Python and the compiled Destiny functions agree on the cache, thrust, half-tick position, endpoint and both miss words. [Scalar fixture](scripts/curve_checks.py) · [Pinned C++ replay](scripts/contact_replay.py)
+
+| Obstacle centre | Straight-sweep result | Continuous result |
+| --- | --- | --- |
+| (4, 1, 0) m | The minimum centre distance along the stored chord is **1.147695 m**. The engine returns `bff0000000000000` (miss). | At half a second the scalar partial step gives **0.092357 m** centre distance. Lean proves the real distance is below 0.1 m, inside the 0.5 m contact radius. |
+| (4, −4, 0) m | The engine returns `bff0000000000000` (miss). | Lean proves at least **3.094137999999 m** between the surfaces throughout the tick, including endpoint rounding. |
+
+Lean now encloses the **first** touch at (4, 1, 0) m in **[0.435661, 0.435662] s**. The certificate covers every earlier time. An independent 60-digit decimal calculation puts the crossing at **0.435661309892 s**. Scalar Python and pinned Destiny agree on all three partial-step position words at the binary64 times nearest the two decimal endpoints. For the lower obstacle, the same initial-state calculation proves a **3.5 m** surface gap throughout. Giving the obstacle at (4, 1, 0) m an initial velocity of (−0.5, −0.25, 0) m/s, a downward applied acceleration of 1 m/s² and an effective mass of two makes both bodies turn. Their first contact is in **[0.404889, 0.404890] s**. Both engines again return a chord miss. [First-contact certificates](ExactBallparkProofs/Collision/ContactExamples.lean) · [Run the checker](README.md#first-contact-along-a-turn)
+
+The full-tick x and y endpoint words are `401948ea1e23ea7d` and `400d6e2bc3b82b06`. For the clear control, Lean proves that 15 m/s² bounds the ship’s net acceleration and that the combined three-coordinate endpoint error is at most 10⁻¹² m. A shorter sweep reduces the curvature allowance quadratically when the acceleration bound stays fixed. [Run the offline checker](README.md#clearance-throughout-a-tick)
 
 ## Reproduce on a CPU
 

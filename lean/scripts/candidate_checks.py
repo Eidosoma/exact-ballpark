@@ -21,6 +21,40 @@ def worlds():
         yield [(103-i*3, r, p) for i, (r, p) in fixture]
 
 
+def swept_pairs():
+    """Reach a common interior point across a face, a corner, and two tree levels."""
+    from exact_ballpark.full import FullBallpark
+    from exact_ballpark.vec_collide import VecCollidePark
+
+    for first, second, velocity, radius in [
+        ((478., 100., 100.), (481., 100., 100.), (4., 0., 0.), 1.),
+        ((479.75,)*3, (480.25,)*3, (0., 0., 0.), 1.),
+        ((1918., 100., 100.), (1921., 100., 100.), (4., 0., 0.), 161.),
+    ]:
+        park = FullBallpark(friction=1)
+        objects = []
+        for i, pos, vel, r in [(1, first, velocity, 1.), (2, second, (0., 0., 0.), radius)]:
+            park.add_ball(i, 16., r, 10., i == 1, is_massive=True, x=pos[0], y=pos[1], z=pos[2],
+                          vx=vel[0], vy=vel[1], vz=vel[2], agility=1, speed_fraction=1.)
+            objects.append(dict(id=i, radius=r, pos=pos, vel=vel, mass=16., max_vel=10., free=i == 1,
+                                massive=True, agility=1, speed_fraction=1.))
+        moving, fixed = (park.balls[i] for i in (1, 2))
+        reached, _ = park.integrate(first, velocity, (0.,)*3, 16., 1., moving.time_factor, .5)
+        if (math.dist(reached, second) >= 1+radius or
+                math.dist(reached, first)+1 > park.inflated_radius(moving) or
+                (moving.my_box.level != fixed.my_box.level) != (radius > 1) or
+                moving.my_box == fixed.my_box):
+            raise SystemExit("Sweep fixture missed the interior overlap or the grid boundary")
+        batched = VecCollidePark(1, 2, friction=1, device="cpu")
+        batched.load([objects])
+        related = batched._related()[0]
+        for i, j in ((0, 1), (1, 0)):
+            b = park.balls[objects[i]["id"]]
+            ids = [n.id for n in park._nearby_balls(b, False, False, True, True, False)]
+            if objects[j]["id"] not in ids or not related[i, j]:
+                raise SystemExit(f"Broad phase omitted the contacting pair {i+1}, {j+1}")
+
+
 def compare(run_lake):
     import torch
     from exact_ballpark.full import FullBallpark
@@ -71,4 +105,5 @@ def compare(run_lake):
             raise SystemExit(f"Candidate model differs for {row[0]}: Lean {parsed}, CPU {row}")
     if sizes != {1, 2, 4, 8} or levels != set(range(8)):
         raise SystemExit(f"Candidate fixtures exercise cell counts {sizes} and tree levels {levels}")
+    swept_pairs()
     return len(expected)

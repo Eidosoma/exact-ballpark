@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "conformance"))
 sys.path.insert(0, str(ROOT / "src"))
 import contact_replay
+import curve_checks
 import discrepancy_sources
 import mixed_history_checks
 from build import BALLPARK, PINNED, PRELUDE, extract
@@ -305,6 +306,21 @@ def check_log(destiny_repo=None):
     for label, (x, v) in [("Engine comparison", engine), ("Earliest-time control", earliest)]:
         rendered.append(f"| {label} | {x:.6f} m | {v:+.6f} m/s |".replace(" | -", " | −"))
     rendered.append(f"{abs(engine[0]-earliest[0]):.6f} m apart")
+    def decode(word):
+        return struct.unpack(">d", bytes.fromhex(word))[0]
+    positions = []
+    for label, use_control in [("Engine lookup", False), ("Exact-cutoff control", True)]:
+        contacts, (xword, vword), _ = contact_replay.detected_rebound(use_control)
+        x, v = decode(xword), decode(vword)
+        positions.append(x)
+        values = f"{x:+.6f} m, {v:+.6f} m/s".replace("-", "−")
+        rendered.append(f"| {label} | {len(contacts)} | {values} | `{xword}`, `{vword}` |")
+        if not use_control:
+            a, b = (decode(hit[1]) for hit in contacts[:2])
+            if Fraction(b)-Fraction(a)-Fraction(FUZZY_DELTA) != Fraction(211, 2**66):
+                raise SystemExit("The two detected contacts no longer straddle the documented exact cutoff")
+            rendered.extend([f"first contact at {a:.17f} s", f"second at {b:.17f} s"])
+    rendered.append(f"positions differ by **{abs(positions[1]-positions[0]):.6f} m**")
     whole, leg = contact_replay.free_repeat()
     for label, value in [("Both free-ball subintervals", whole), ("Final subinterval alone", leg)]:
         rendered.append(f"| {label} | `{contact_replay.word(value)}` |")
@@ -332,7 +348,7 @@ def check_log(destiny_repo=None):
                  f"exceeds five times the configured maximum speed by {stored_limiter_velocity()-5*4097}"]
     if exit_a != exit_b or counts[0] or sum(counts.values()) != 1000:
         raise SystemExit("Short-warp grid or exit comparison changed")
-    for statement in rendered:
+    for statement in rendered + curve_checks.log_measurements():
         if statement not in log:
             raise SystemExit(f"Discrepancy measurement differs from the log: {statement}")
     return cases
@@ -503,7 +519,11 @@ int main() {
         if len(set(words)) != 1:
             raise SystemExit("Witness output changed")
     pairs, tick, free = contact_replay.upstream(repo)
+    print("Equal-mass, unequal-mass and limited one-impact ticks matched scalar Python on both balls' impulse and endpoint words.")
+    print("Turning GOTO matched pinned C++ on the cache, thrust, positions at half a tick and both window edges, "
+          "full-tick endpoints and all three sweep results.")
     print(f"Fixed-ball selection (ID, time bits) {pairs}, end-of-tick x and vx {tick}")
+    print("Three-ball cutoff replay matched pinned C++ at every stored contact and at the tick endpoint.")
     print(f"Free-ball repeat, complete search and final subinterval {free}")
 
 

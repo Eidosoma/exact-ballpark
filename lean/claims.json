@@ -2459,6 +2459,924 @@
         "ExactBallpark.Space.RangeScan.ordered_scan",
         "ExactBallpark.Space.RangeScan.query_by_id"
       ]
+    },
+    {
+      "title": "Scalar and batched movement produce the same coordinate words",
+      "moduleName": "ExactBallparkProofs.Movement.TensorLane",
+      "model": "Lean binary64 coordinate programs",
+      "rules": [
+        "MOV-702",
+        "MOV-703",
+        "MOV-704"
+      ],
+      "source": "src/exact_ballpark/vec_collide.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "VecCollidePark._integrate_t, VecCollidePark._integrate_dt, Ballpark.integrate",
+      "scope": "For every coordinate and cache word, the tensor masks select the same position and velocity words as the source-extracted scalar program. Only a nonzero partial tick needs an exponential result with matching bits. The cached full-tick tensor expression also agrees for a nonzero, non-NaN tick. The result covers the operation models and their signed-zero returns.",
+      "hostEvidence": "The gate compares 24 position and velocity pairs through scalar Python and PyTorch CPU, including both sides of the strict branch cutoff. It also exercises the cached full-tick tensor entry point. [Integrator comparison](scripts/check.py)",
+      "theorems": [
+        "ExactBallpark.Movement.TensorLane.coordinate_words"
+      ]
+    },
+    {
+      "title": "A missed rebound from three starting ball states",
+      "moduleName": "ExactBallparkProofs.Collision.ReboundCutoff",
+      "model": "Kernel-evaluated binary64 iterative tick",
+      "rules": [
+        "COL-705",
+        "COL-715",
+        "COL-718"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py",
+        "src/exact_ballpark/full.py"
+      ],
+      "symbols": "SpaceBallpark._next_collision_static, SpaceBallpark._impact_static, CollisionBallProperties.find_index, FullBallpark.evolve",
+      "scope": "One free ball and two fixed spheres on a line, zero thrust, a 100 ms tick, eight supplied exponential words and the fixture\u2019s scalar candidate order. Starting with an empty impact history, Lean checks each detected obstacle, time, selected record, impulse and final x and vx. The control changes only the cutoff comparison to exact arithmetic on the stored words.",
+      "hostEvidence": "Both scalar runs match the certified traces and endpoints. A separately compiled pinned Destiny run matches the unmodified engine\u2019s stored contact history and endpoint words. [Replay and measurements](DISCREPANCIES.md#col-715-history-lookup)",
+      "theorems": [
+        "ExactBallpark.Collision.ReboundCutoff.detected_rebound"
+      ]
+    },
+    {
+      "title": "Forward error of the ordinary drag step",
+      "moduleName": "ExactBallparkProofs.Movement.RegularError",
+      "model": "Source-extracted arithmetic with FloatLib 53-bit nearest-even rounding",
+      "rules": [
+        "MOV-702",
+        "MOV-704"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "scope": "For the ordinary branch with positive friction, a covered decay-factor error \u03b5 and fixed inputs, the bound accounts for each rounded operation before adding the sensitivity of position or velocity to \u03b5. The physical trajectory uses positive effective mass. The arithmetic model has unbounded exponents and applies to binary64 value operations when their grids agree and results stay finite. The cache accuracy is an input.",
+      "hostEvidence": "The gate re-extracts the ordinary expression from Python. Lean applies the bound directly to that expression evaluated with rounding after each source operation. [Translator](scripts/integrator_reference.py)",
+      "theorems": [
+        "ExactBallpark.Movement.RegularError.regular_step_error"
+      ]
+    },
+    {
+      "title": "An interior sweep overlap survives the collision broad phase",
+      "moduleName": "ExactBallparkProofs.Space.SweepCandidates",
+      "model": "Real travel, bounded face-test error and discrete filing",
+      "rules": [
+        "SEN-706",
+        "COL-703"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/full.py",
+        "src/exact_ballpark/vec_collide.py"
+      ],
+      "symbols": "SpaceBallpark.inflated_radius, SpaceBallpark._ball_insert_in_boxes, FullBallpark._nearby, VecCollidePark._related",
+      "scope": "For two eligible ordinary filings with unclamped, aligned cells, a common point inside both swept bodies by the stated face-rounding margins survives in both candidate lists in either query direction. Travel may be bounded directly or by the regular drag theorem with positive coefficients, a valid cache and the stated speed and thrust limits. Each filing reach is at most a third of its level\u2019s cell width. Boundary tangencies and special top-level filings remain open.",
+      "hostEvidence": "Scalar and PyTorch CPU probes check a moving face crossing, a corner overlap and a mixed-level pair in both directions. [Spatial probes](scripts/candidate_checks.py)",
+      "theorems": [
+        "ExactBallpark.Space.SweepCandidates.sweep_candidate"
+      ]
+    },
+    {
+      "title": "Which response the default gradient retains",
+      "moduleName": "ExactBallparkProofs.Collision.GradientWinner",
+      "model": "Real-valued fold over eligible ordinary ball hits",
+      "rules": [
+        "COL-701",
+        "COL-711"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/full.py"
+      ],
+      "symbols": "SpaceBallpark._potential, FullBallpark._gradient",
+      "scope": "With an empty incumbent and supplied successful positive-time ball responses, the fold picks the latest contact fraction, then the largest squared norm after the stored response scale, then the first candidate in traversal order. The selected ID identifies the source of the vector in the model. The engine stores the vector and time. Overlap recursion and static shapes are separate paths.",
+      "hostEvidence": "CPU runs use actual candidate traversal and sphere contacts in both orders, including equal-strength contacts with different response directions. [Gradient checks](scripts/geometry_checks.py)",
+      "theorems": [
+        "ExactBallpark.Collision.GradientWinner.gradient_winner"
+      ]
+    },
+    {
+      "title": "A certified interior hit time for the binary64 chord solver",
+      "moduleName": "ExactBallparkProofs.Collision.HitCertificate",
+      "model": "Binary64 solver and exact rational bisection",
+      "rules": [
+        "COL-705"
+      ],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.collide_two_spheres",
+      "scope": "Given the endpoint and radius words and a chosen depth d, a successful certificate encloses both the exact first contact of the straight chords and the decoded binary64 result strictly inside the tick, within 2\u207b\u1d48 of each other. The checker can decline a case. It requires finite inputs, nonnegative radius, initial clearance and nonzero relative motion.",
+      "hostEvidence": "Host probes check the reported word, bracket width and endpoints for interior hits and verify that a known false hit and ambiguous tick endpoints receive no certificate. [Certificate checks](scripts/geometry_checks.py)",
+      "theorems": [
+        "ExactBallpark.Collision.certified_chord_hit"
+      ]
+    },
+    {
+      "title": "A remote follower has stopped before the bubble update",
+      "moduleName": "ExactBallparkProofs.Time.FollowerTick",
+      "model": "Master pre-tick queue and ordinary follower state",
+      "rules": [
+        "MOV-731",
+        "TIME-710",
+        "TIME-712"
+      ],
+      "source": "src/exact_ballpark/server.py",
+      "relatedSources": [
+        "src/exact_ballpark/space.py",
+        "src/exact_ballpark/modes.py"
+      ],
+      "symbols": "Actions.clean_up_followers, Actions.flush_history, Ticker._pre_update_bubbles, ModeBallpark._stop",
+      "scope": "For an eligible remote follower, successful queued actions, and the ordinary master Stop path, the state at the bubble hook equals applying the old queue then that follower\u2019s Stop. A duplicate tail Stop has the same effect. A still-following ship releases its current leader\u2019s membership and clears its target, pointer, owner, effect stamp and range. Formation slots, external callbacks and a missing master pointer are outside the model.",
+      "hostEvidence": "The gate observes the actual state on entry to the bubble hook with a prior mass change and with a duplicate Stop. It checks both ships in the leader\u2019s original follower set. [Server checks](scripts/mixed_history_checks.py)",
+      "theorems": [
+        "ExactBallpark.Time.FollowerTick.stopped_before_bubbles"
+      ]
+    },
+    {
+      "title": "Sending private and bubble updates across two stamps",
+      "moduleName": "ExactBallparkProofs.Time.BatchStamps",
+      "model": "Server packet delivery and client history merge",
+      "rules": [
+        "SEN-712",
+        "TIME-715"
+      ],
+      "source": "src/exact_ballpark/server.py",
+      "relatedSources": [
+        "src/exact_ballpark/client.py"
+      ],
+      "symbols": "Ticker._apply_history, ParkUpdateBatcher.send_batch, merge_state_into_history",
+      "scope": "One dual recipient, an initially empty client history and ordinary admitted events. A private packet carries an earlier group and an optional later group. A bubble packet at the earlier stamp releases that group in private-then-bubble order. Only the later group, when present, stays waiting. Production cadence and a fatal-desync handler\u2019s recovery policy are external.",
+      "hostEvidence": "A three-ball session sends actual mass changes for a cloaked pilot and a visible ship. Sending each tick clears the client queue. Postponing one send reports a fatal desync and leaves the later change waiting when the handler returns. [Producer replay](scripts/mixed_history_checks.py)",
+      "theorems": [
+        "ExactBallpark.Time.BatchStamps.delayed_private_flush"
+      ]
+    },
+    {
+      "title": "The first exponential reduction FMA on negative drag inputs",
+      "moduleName": "ExactBallparkProofs.Numerics.ExpFirstFma",
+      "model": "FloatLib binary precision 53 with gradual underflow",
+      "rules": [
+        "MOV-738"
+      ],
+      "source": "src/exact_ballpark/vec_exp.py",
+      "symbols": "exp, fma, split, two_product, two_sum, add_odd, INVLN2N, NEGLN2HIN",
+      "scope": "For every stored binary64 value x in [\u22121, \u22122\u207b\u2075\u2074], the rounded multiply, half adjustment and truncation determine the index. With the source\u2019s split high coefficient, the emulated first FMA returns exactly x + kd\u00b7NEGLN2HIN, which is also the once-rounded value. Its two low tails vanish. This is a value theorem for this call and interval. Later FMA calls, final exp rounding and the sign bit of a zero require separate reasoning.",
+      "hostEvidence": "The gate observes the first call inside the PyTorch CPU exponential at all 186 reached indices, including transition neighbors and exact cancellations. It checks the stored constants, exact dyadic result and the result bits against CPython math.fma. [Arithmetic checks](scripts/arithmetic_checks.py)",
+      "theorems": [
+        "ExactBallpark.Numerics.ExpFirstFma.first_reduction_exact"
+      ]
+    },
+    {
+      "title": "When transversal motion keeps the tracking square root in range",
+      "moduleName": "ExactBallparkProofs.Combat.TrackingMargin",
+      "model": "Exact rational error certificate for the binary64 tracking input",
+      "rules": [
+        "CMB-702"
+      ],
+      "source": "src/exact_ballpark/full.py",
+      "relatedSources": [
+        "src/exact_ballpark/vec_accuracy.py"
+      ],
+      "symbols": "FullBallpark.get_accuracy, get_accuracy",
+      "scope": "For finite relative velocity and nonzero sightline, the certificate measures errors in the two squared speeds and bounds the final subtraction and division. With a positive stored squared distance, a sideways-speed squared at least as large as the returned threshold guarantees a nonnegative input to the angular-speed square root. The threshold is in squared velocity units. This covers the successful scalar tracking branch.",
+      "hostEvidence": "Four CPU fixtures compare the actual square-root input with Lean, including a clear transversal, small margins on either side of the test, and the logged radial input. [Tracking checks](scripts/geometry_checks.py)",
+      "theorems": [
+        "ExactBallpark.Combat.TrackingMargin.sideways_margin"
+      ]
+    },
+    {
+      "title": "Cache writes during scalar movement commands",
+      "moduleName": "ExactBallparkProofs.Movement.ScalarCommands",
+      "rules": [
+        "MOV-704",
+        "MOV-708",
+        "MOV-709",
+        "MOV-711",
+        "MOV-712"
+      ],
+      "symbols": "Ballpark.add_ball, set_mass, set_agility, set_max_velocity, set_radius, set_speed_fraction, stop, goto_point, goto_direction, _refresh_time_factor",
+      "model": "Binary64 ball state and logical binary32 property conversion",
+      "scope": "Construction or replacement establishes the cached decay. From a valid cache, each modeled edit preserves equality to the source calculation for the new mass and agility, including refused writes and NaN inputs. Configuration and the supplied exponential stay fixed. The command dispatch and property guards are transcribed from the scalar API.",
+      "theorems": [
+        "ExactBallpark.Movement.Scalar.edit_preserves_cache"
+      ],
+      "source": "src/exact_ballpark/ref.py"
+    },
+    {
+      "title": "One scalar tick preserves IDs and agrees with immediate per-ball integration",
+      "moduleName": "ExactBallparkProofs.Movement.ScalarTrace",
+      "rules": [
+        "MOV-702",
+        "MOV-703",
+        "MOV-705",
+        "MOV-706",
+        "MOV-710",
+        "TIME-706",
+        "TIME-707"
+      ],
+      "symbols": "Ballpark.evolve, goto_thrust, integrate, _normalized",
+      "model": "Source-extracted three-pass tick and a single-ball binary64 update",
+      "scope": "For a duration that compares equal to itself, every ID lookup after the staged tick equals an immediate update of that ball with the cached-factor lane. Both paths use the same mode preparation. Zero duration preserves the prepared coordinates, including STOP damping. The ordered list of IDs is unchanged. The proof concerns observable state at the boundary of a returning collision-free tick.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "tick_lookup"
+        ],
+        "MOV-703": [
+          "tick_lookup"
+        ],
+        "MOV-705": [
+          "tick_lookup"
+        ],
+        "MOV-706": [
+          "tick_lookup"
+        ],
+        "MOV-710": [
+          "tick_lookup"
+        ],
+        "TIME-706": [
+          "tick_lookup"
+        ],
+        "TIME-707": [
+          "tick_order"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Movement.Scalar.tick_lookup",
+        "ExactBallpark.Movement.Scalar.tick_order"
+      ],
+      "source": "src/exact_ballpark/ref.py"
+    },
+    {
+      "title": "Scalar GOTO and STOP across a finite command trace",
+      "moduleName": "ExactBallparkProofs.Movement.ScalarTrace",
+      "rules": [
+        "MOV-704",
+        "MOV-708",
+        "MOV-709",
+        "MOV-710",
+        "MOV-711",
+        "MOV-712",
+        "TIME-706"
+      ],
+      "symbols": "Ballpark.evolve and the scalar ball creation, command and property APIs",
+      "model": "Binary64 transition system with an explicit admitted execution domain",
+      "scope": "From any modeled park, the runner succeeds exactly when the fixed configuration and each successive action meet the stated guards. At any admitted prefix each ball equals a run of its own commands and all ticks. The stamp advances once per tick. Running two consecutive segments agrees with running their concatenation, including rejection of an out-of-domain suffix. The theorem uses one common exponential function. Runtime correspondence covers calls on API-created, unaliased ball state in this domain.",
+      "ruleTheorems": {
+        "MOV-704": [
+          "trace_refines"
+        ],
+        "MOV-708": [
+          "trace_refines"
+        ],
+        "MOV-709": [
+          "trace_refines"
+        ],
+        "MOV-710": [
+          "trace_refines"
+        ],
+        "MOV-711": [
+          "run_accepts_iff",
+          "trace_refines"
+        ],
+        "MOV-712": [
+          "run_accepts_iff",
+          "trace_refines"
+        ],
+        "TIME-706": [
+          "trace_refines",
+          "trace_append"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Movement.Scalar.run_accepts_iff",
+        "ExactBallpark.Movement.Scalar.trace_refines",
+        "ExactBallpark.Movement.Scalar.trace_append"
+      ],
+      "source": "src/exact_ballpark/ref.py"
+    },
+    {
+      "title": "The cached decay stays valid across complete scalar traces",
+      "moduleName": "ExactBallparkProofs.Movement.ScalarTrace",
+      "rules": [
+        "MOV-704"
+      ],
+      "symbols": "Ballpark._refresh_time_factor, add_ball, set_mass, set_agility, evolve",
+      "model": "Binary64 cache invariant over arbitrary finite admitted traces",
+      "scope": "Starting with a valid park, every live ball has exactly the source cache value for its current mass and agility after the trace. The empty park discharges the initial premise, including for traces that replace an existing ID. This establishes consistency with the supplied exponential function. Its accuracy is a separate input to trajectory error bounds.",
+      "theorems": [
+        "ExactBallpark.Movement.Scalar.trace_preserves_cache",
+        "ExactBallpark.Movement.Scalar.cache_from_empty"
+      ],
+      "source": "src/exact_ballpark/ref.py"
+    },
+    {
+      "title": "Accumulated error along the ordinary drag trajectory",
+      "moduleName": "ExactBallparkProofs.Movement.RegularTrajectory",
+      "rules": [
+        "MOV-701",
+        "MOV-702",
+        "MOV-704"
+      ],
+      "symbols": "Ballpark.integrate",
+      "model": "Ordinary source expression under 53-bit nearest-even rounding with unbounded exponents",
+      "scope": "For any finite sequence of positive-mass, positive-friction, positive-duration ordinary steps, the per-coordinate budget bounds both position and velocity against the piecewise constant-force drag ODE. Both paths use the same supplied acceleration and coefficients in each interval. The budget uses the incoming rounded state, a bound on each decay-factor error, and the incoming position and speed errors. Applying it to binary64 requires finite operations on matching rounding grids and selection of the ordinary branch.",
+      "theorems": [
+        "ExactBallpark.Movement.RegularTrajectory.regular_trajectory_error"
+      ],
+      "source": "src/exact_ballpark/ref.py"
+    },
+    {
+      "title": "Five-second coast against the continuous drag equation",
+      "moduleName": "ExactBallparkProofs.Movement.CoastWitness",
+      "rules": [
+        "MOV-701",
+        "MOV-702",
+        "MOV-704",
+        "TIME-706"
+      ],
+      "symbols": "Ballpark.add_ball, _refresh_time_factor, evolve, integrate",
+      "model": "Five binary64 ticks, exact rational decoding and a certified real exponential enclosure",
+      "scope": "Starting at the origin with horizontal velocity 100 m/s, effective mass and friction both 1 and one-second ticks, the finite scalar model finishes within 1e-14 m in position and 1e-15 m/s in velocity of the continuous horizontal drag solution. The sole elementary-function input is the supplied binary64 word for exp(-1). The proof evaluates the whole modeled command trace, decodes both returned values and compares them to the exact solution at five seconds.",
+      "hostEvidence": "The CPU gate compares the actual scalar cache word and both exact endpoint ratios to the Lean witness. A separate x86-64 replay with GCC 11.4 and Destiny at 114e89fa matches all six scalar motion words at each tick. [Coast replay](scripts/scalar_trace_checks.py) · [Harness and command](README.md#verify-locally)",
+      "theorems": [
+        "ExactBallpark.Movement.CoastWitness.five_second_coast"
+      ],
+      "source": "src/exact_ballpark/ref.py"
+    },
+    {
+      "title": "Work and kinetic energy along the three-dimensional drag trajectory",
+      "moduleName": "ExactBallparkProofs.Movement.Energy",
+      "rules": [
+        "MOV-701",
+        "MOV-702",
+        "MOV-703",
+        "MOV-704"
+      ],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "model": "Real three-dimensional velocity from the translated scalar integrator",
+      "scope": "For fixed positive effective mass m = mass × agility, positive friction k and constant applied acceleration a, kinetic energy m‖v‖²/2 changes at the rate m⟪v,a⟫ − k‖v‖². The integral of that power gives the energy difference over any interval. With zero thrust the energy scales by the squared decay factor and strictly decreases for every nonzero initial velocity. The velocity connection covers both position branches given an exact full-tick cache. Interpreting integrated power as work along the position trajectory uses the ordinary branch where p′ = v. Command damping and collision impulses lie outside this interval.",
+      "ruleTheorems": {
+        "MOV-701": ["velocity3_hasDerivAt", "drag_energy_rate", "drag_work_energy", "coast_energy", "coast_energy_strictAnti"],
+        "MOV-702": ["extracted_velocity3", "velocity3_hasDerivAt", "drag_energy_rate", "drag_work_energy", "coast_energy", "coast_energy_strictAnti"],
+        "MOV-703": ["extracted_velocity3"],
+        "MOV-704": ["extracted_velocity3"]
+      },
+      "theorems": [
+        "ExactBallpark.Movement.extracted_velocity3",
+        "ExactBallpark.Movement.velocity3_hasDerivAt",
+        "ExactBallpark.Movement.drag_energy_rate",
+        "ExactBallpark.Movement.drag_work_energy",
+        "ExactBallpark.Movement.coast_energy",
+        "ExactBallpark.Movement.coast_energy_strictAnti"
+      ]
+    },
+    {
+      "title": "Physical dimensions of the drag exponent and cached factor",
+      "moduleName": "ExactBallparkProofs.Physics.Units",
+      "rules": ["MOV-701", "MOV-704"],
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark._refresh_time_factor, Ballpark.integrate",
+      "model": "Physlib quantities over real numbers",
+      "scope": "Giving friction dimension mass/time, duration dimension time and agility dimension one makes −k Δt / (mass × agility) dimensionless. Its real exponential equals the integrator decay. Positive effective mass selects this value in the real cache refresh.",
+      "theorems": [
+        "ExactBallpark.Physics.drag_exponent_decay",
+        "ExactBallpark.Physics.refresh_factor_units"
+      ]
+    },
+    {
+      "title": "From a sweep fraction to a collision time in seconds",
+      "moduleName": "ExactBallparkProofs.Physics.Units",
+      "rules": ["COL-715"],
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": ["src/exact_ballpark/full.py"],
+      "symbols": "SpaceBallpark._next_collision_static, FullBallpark._next_collision_static",
+      "model": "Physlib quantities over real numbers",
+      "scope": "Removing units from the typed timestamp gives the source expression. On every positive-length window, two fractions are in strict order exactly when their timestamps are. For the half-tick fixture the absolute-time scan selects ball 3 at 5/8 s in both orders, ahead of ball 4 at 3/4 s. Lean also checks that comparing a dimensionless fraction directly with seconds fails to typecheck.",
+      "theorems": [
+        "ExactBallpark.Physics.contact_time_value",
+        "ExactBallpark.Physics.contact_time_lt_iff",
+        "ExactBallpark.Physics.half_tick_absolute_selection"
+      ]
+    },
+    {
+      "title": "Binary64 control for the fixed-obstacle comparison",
+      "moduleName": "ExactBallparkProofs.Physics.Units",
+      "rules": ["COL-715"],
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._next_collision_static",
+      "model": "Physlib time and fraction types over Lean binary64",
+      "scope": "For all binary64 inputs the typed control computes the same decision as evaluating start + fraction × (end − start) < held in that order. In the half-tick fixture the engine comparison chooses ball 4 or 3 depending on enumeration. Comparing in seconds selects ball 3 at the exact binary64 word for 0.625 s in both orders. The two policies use the same modeled sphere sweeps and timestamp storage.",
+      "hostEvidence": "The CPU gate compares the selected ID and every timestamp bit for both orders against the scalar engine and the earliest-time control. The pinned Destiny replay exercises the engine policy. [Scalar control](scripts/contact_replay.py) · [Recorded discrepancy](DISCREPANCIES.md#col-715-fixed-window)",
+      "theorems": [
+        "ExactBallpark.Physics.earlier64_eq",
+        "ExactBallpark.Physics.half_tick_selection_words"
+      ]
+    },
+    {
+      "title": "Uniqueness of the ordinary three-dimensional drag trajectory",
+      "moduleName": "ExactBallparkProofs.Movement.DragChord",
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "model": "Real ordinary integration with constant inputs",
+      "rules": [
+        "MOV-701",
+        "MOV-702",
+        "MOV-704"
+      ],
+      "scope": "The three position and velocity coordinates start at the supplied state. Position has the modeled velocity as its derivative. With positive effective mass and friction, any trajectory continuous on the interval that satisfies both differential equations from the right before the endpoint and shares the initial state agrees throughout. The real source translation yields this position when the ordinary guard holds and a full tick reads the exact decay.",
+      "ruleTheorems": {
+        "MOV-701": [
+          "trajectory_unique"
+        ],
+        "MOV-702": [
+          "pos_zero",
+          "vel_zero",
+          "position_derivative",
+          "extracted_position",
+          "trajectory_unique"
+        ],
+        "MOV-704": [
+          "extracted_position"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Movement.DragChord.pos_zero",
+        "ExactBallpark.Movement.DragChord.vel_zero",
+        "ExactBallpark.Movement.DragChord.position_derivative",
+        "ExactBallpark.Movement.DragChord.extracted_position",
+        "ExactBallpark.Movement.DragChord.trajectory_unique"
+      ]
+    },
+    {
+      "title": "Maximum acceleration and deviation from the endpoint chord",
+      "moduleName": "ExactBallparkProofs.Movement.DragChord",
+      "source": "src/exact_ballpark/ref.py",
+      "relatedSources": [
+        "src/exact_ballpark/space.py"
+      ],
+      "symbols": "Ballpark.integrate, SpaceBallpark.collide_two_spheres",
+      "model": "Real three-dimensional motion over one interval",
+      "rules": [
+        "MOV-701",
+        "MOV-702",
+        "COL-705"
+      ],
+      "scope": "For fixed positive effective mass and friction and held thrust, net acceleration has magnitude exp(−kt/m) times its initial magnitude. Any twice differentiable path whose acceleration magnitude is bounded by A stays within A T²/8 of its endpoint chord at the same time throughout a nonnegative duration T. Instantiating the result with the ordinary drag trajectory uses A = ‖a − (k/m)v₀‖. Split the motion at force changes and impulses.",
+      "ruleTheorems": {
+        "MOV-701": [
+          "acceleration_bound"
+        ],
+        "MOV-702": [
+          "acceleration_bound",
+          "flight_chord_deviation"
+        ],
+        "COL-705": [
+          "chord_deviation",
+          "flight_chord_deviation"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Movement.DragChord.acceleration_bound",
+        "ExactBallpark.Movement.DragChord.chord_deviation",
+        "ExactBallpark.Movement.DragChord.flight_chord_deviation"
+      ]
+    },
+    {
+      "title": "Two moving spheres stay clear throughout the tick",
+      "moduleName": "ExactBallparkProofs.Collision.CurveClearance",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "SpaceBallpark.collide_two_spheres, Ballpark.integrate",
+      "model": "Real ordinary trajectories and same-time straight sweeps",
+      "rules": [
+        "MOV-702",
+        "COL-705"
+      ],
+      "scope": "For every nonnegative real duration, strict chord separation above the combined radius plus both curvature bounds excludes contact even at the endpoints. With approximate endpoints, a certified lower bound also subtracts each body's larger start or end Euclidean position error. Each body may have its own effective mass, friction and acceleration.",
+      "theorems": [
+        "ExactBallpark.Collision.CurveClearance.pair_no_contact",
+        "ExactBallpark.Collision.CurveClearance.pair_clearance"
+      ]
+    },
+    {
+      "title": "Certified clearance in metres from binary64 endpoints",
+      "moduleName": "ExactBallparkProofs.Collision.CurveClearance",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "SpaceBallpark.collide_two_spheres, Ballpark.integrate",
+      "model": "Logical binary64 sphere solver, exact rational geometry and real motion bounds",
+      "rules": [
+        "MOV-702",
+        "MOV-704",
+        "COL-705"
+      ],
+      "scope": "The checker requires the engine miss word and decodes the endpoints and combined radius exactly. It minimizes the squared centre distance on the relative segment, validates a micrometre-rounded lower bound and subtracts the radius, both curvature bounds and both endpoint error allowances. A positive returned margin is guaranteed between the surfaces throughout every ordinary trajectory covered by the supplied budgets. The three-coordinate adapter converts existing ordinary-step rounding budgets to Euclidean error bounds. Applying those budgets to binary64 requires matching rounding grids and certified decay errors.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "position_error_from_axes",
+          "rounded_endpoint_budget"
+        ],
+        "MOV-704": [
+          "rounded_endpoint_budget"
+        ],
+        "COL-705": [
+          "certified_clearance"
+        ]
+      },
+      "hostEvidence": "The CPU gate compares the checker with the scalar sphere solver and an independent rational closest-point calculation. Cases include two moving bodies, closest endpoints, zero relative motion, touching, invalid bounds, nonfinite geometry and a rounded false hit. [CPU comparisons](scripts/curve_checks.py) · [Run the checker](README.md#clearance-throughout-a-tick)",
+      "theorems": [
+        "ExactBallpark.Collision.CurveClearance.position_error_from_axes",
+        "ExactBallpark.Collision.CurveClearance.rounded_endpoint_budget",
+        "ExactBallpark.Collision.CurveClearance.certified_clearance"
+      ]
+    },
+    {
+      "title": "A turning GOTO ship and a certified clear control",
+      "moduleName": "ExactBallparkProofs.Collision.TurningFlight",
+      "source": "src/exact_ballpark/ref.py",
+      "relatedSources": [
+        "src/exact_ballpark/space.py"
+      ],
+      "symbols": "Ballpark.add_ball, goto_point, goto_thrust, evolve, integrate, SpaceBallpark.collide_two_spheres",
+      "model": "One full scalar-model tick, exact endpoint words and a certified continuous drag trajectory",
+      "rules": [
+        "MOV-702",
+        "MOV-704",
+        "MOV-705",
+        "MOV-706",
+        "MOV-708",
+        "COL-705"
+      ],
+      "scope": "The ship starts at the origin at 10 m/s along x and receives a GOTO along y with mass, agility and friction all one. Given the recorded full-tick decay word, the modeled scalar command trace produces the cached factor, thrust and endpoint words used by the sweep. The ordinary position branch applies throughout. The obstacle at (4,1,0) is more than 0.5 m from the ideal chord everywhere and less than 0.1 m from the true centre at half a second. Both binary64 sweeps report a miss. Moving the obstacle to (4,−4,0) yields 3.094137999999 m of certified surface clearance, with the actual acceleration and endpoint budgets proved for both bodies.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "turning_overlap",
+          "goto_sweep_inputs",
+          "turning_clearance"
+        ],
+        "MOV-704": [
+          "goto_sweep_inputs"
+        ],
+        "MOV-705": [
+          "goto_sweep_inputs"
+        ],
+        "MOV-706": [
+          "goto_sweep_inputs"
+        ],
+        "MOV-708": [
+          "goto_sweep_inputs"
+        ],
+        "COL-705": [
+          "turning_overlap",
+          "turning_words",
+          "turning_clearance"
+        ]
+      },
+      "hostEvidence": "On x86-64 Linux, CPython and the pinned Destiny C++ functions agree on the cache, three thrust words, all three half-tick and endpoint coordinates, and both solver results. [Fixture and replay](DISCREPANCIES.md#col-705-turning-path)",
+      "theorems": [
+        "ExactBallpark.Collision.TurningFlight.turning_overlap",
+        "ExactBallpark.Collision.TurningFlight.goto_sweep_inputs",
+        "ExactBallpark.Collision.TurningFlight.turning_words",
+        "ExactBallpark.Collision.TurningFlight.turning_clearance"
+      ]
+    },
+    {
+      "title": "Earliest contact of continuous sphere paths",
+      "moduleName": "ExactBallparkProofs.Collision.FirstContact",
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.collide_two_spheres, SpaceBallpark._next_collision_static",
+      "model": "Continuous centre distance on a closed time interval",
+      "rules": [
+        "COL-705",
+        "COL-715"
+      ],
+      "scope": "On a common clock, a nonempty set of sphere contacts has a unique earliest time. Initial overlap gives time zero. A positive first time lies on the surface. Strict clearance before a lower endpoint and overlap at the upper endpoint enclose the first time even when distance later increases. Strictly disjoint windows order two eligible contacts before any response changes the trajectory.",
+      "ruleTheorems": {
+        "COL-705": [
+          "exists_first",
+          "initial_contact",
+          "first_unique",
+          "first_on_surface",
+          "first_in_window"
+        ],
+        "COL-715": [
+          "disjoint_first_contacts"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Collision.FirstContact.exists_first",
+        "ExactBallpark.Collision.FirstContact.initial_contact",
+        "ExactBallpark.Collision.FirstContact.first_unique",
+        "ExactBallpark.Collision.FirstContact.first_on_surface",
+        "ExactBallpark.Collision.FirstContact.first_in_window",
+        "ExactBallpark.Collision.FirstContact.disjoint_first_contacts"
+      ]
+    },
+    {
+      "title": "Intermediate positions from a drag initial state",
+      "moduleName": "ExactBallparkProofs.Movement.PositionEnclosure",
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "model": "Rational enclosures of the real ordinary drag solution",
+      "rules": [
+        "MOV-702",
+        "MOV-704"
+      ],
+      "scope": "From positive effective mass and friction and constant applied acceleration, the checker bounds exp(−kt/m) and all three position coordinates throughout every nonnegative time slab. The coefficients on initial and terminal velocity are monotone even when a velocity component reverses. A twelve-term exponential series uses mathlib’s remainder bound, range reduction through 64 decay times and a monotone tail bound beyond 64. The ideal decay factor here is evaluated from time and coefficients. A measured cache word or host exp can have rounding error.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "decay_enclosed",
+          "weights_monotone",
+          "position_enclosed"
+        ],
+        "MOV-704": [
+          "decay_enclosed"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Movement.PositionEnclosure.decay_enclosed",
+        "ExactBallpark.Movement.PositionEnclosure.weights_monotone",
+        "ExactBallpark.Movement.PositionEnclosure.position_enclosed"
+      ]
+    },
+    {
+      "title": "A CPU certificate for the first contact of two ordinary drag paths",
+      "moduleName": "ExactBallparkProofs.Collision.ContactCertificate",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "SpaceBallpark.collide_two_spheres, Ballpark.integrate",
+      "model": "Exact rational tests for whole-interval real geometry",
+      "rules": [
+        "MOV-702",
+        "MOV-703",
+        "COL-705"
+      ],
+      "scope": "The guard is checked over the full duration using the exact source coefficient. Coordinate boxes enclose the squared Euclidean separation of both moving centres. Every accepted prefix covers contiguous time slabs with strict surface clearance. A contact certificate also bounds the separation by the exact combined radius at its upper endpoint. A reported whole-interval surface margin holds in metres. Unresolved inputs or unsuccessful searches make no geometric claim. The two COL-705 trajectories here continue under their initial forces until the first impact.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "ordinary_throughout",
+          "squared_distance_enclosed"
+        ],
+        "MOV-703": [
+          "ordinary_throughout"
+        ],
+        "COL-705": [
+          "squared_distance_enclosed",
+          "prefix_clear",
+          "whole_interval_margin",
+          "verified_result",
+          "classify_sound"
+        ]
+      },
+      "hostEvidence": "The CPU gate compares the separate binary64 chord word with the scalar engine and checks curved-path results for turning, grazing, two moving bodies, interval subdivision and invalid inputs. [Checker and examples](README.md#first-contact-along-a-turn)",
+      "theorems": [
+        "ExactBallpark.Collision.ContactCertificate.ordinary_throughout",
+        "ExactBallpark.Collision.ContactCertificate.squared_distance_enclosed",
+        "ExactBallpark.Collision.ContactCertificate.prefix_clear",
+        "ExactBallpark.Collision.ContactCertificate.whole_interval_margin",
+        "ExactBallpark.Collision.ContactCertificate.verified_result",
+        "ExactBallpark.Collision.ContactCertificate.classify_sound"
+      ]
+    },
+    {
+      "title": "First-contact times and obstacle order from initial states",
+      "moduleName": "ExactBallparkProofs.Collision.ContactExamples",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "SpaceBallpark.collide_two_spheres, SpaceBallpark._next_collision_static, Ballpark.integrate",
+      "model": "Kernel-evaluated rational certificates and ideal 3D drag trajectories",
+      "rules": [
+        "MOV-702",
+        "COL-705",
+        "COL-715"
+      ],
+      "scope": "On the existing one-second GOTO fixture, first contact with the obstacle at (4,1,0) m occurs in [0.435661, 0.435662] s. The control at (4,−4,0) m stays at least 3.5 m clear. When the second body also turns with a different drag time, their first touch is in [0.404889, 0.404890] s. Two ships approaching at 2 m/s each first meet in [0.499999, 0.5] s. A later overlap sample fails first-contact verification. On the fixed-obstacle partial tick, disjoint windows put the obstacle at x = 3 m before the one at x = 5 m. Both candidate paths are evaluated before a response to either obstacle.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "turning_window",
+          "clear_control",
+          "two_turning_bodies"
+        ],
+        "COL-705": [
+          "turning_window",
+          "clear_control",
+          "two_turning_bodies",
+          "moving_pair_window",
+          "late_window_rejected"
+        ],
+        "COL-715": [
+          "obstacle_order"
+        ]
+      },
+      "hostEvidence": "The scalar engine and pinned Destiny agree on all three partial-step coordinates at the binary64 times nearest the turning window edges. Both engines report a chord miss for the fixed obstacle and for the independently turning second ship. The independent 60-digit decimal calculation estimates the first contact at 0.435661309892 s. [Turning replay](DISCREPANCIES.md#col-705-turning-path)",
+      "theorems": [
+        "ExactBallpark.Collision.ContactExamples.turning_window",
+        "ExactBallpark.Collision.ContactExamples.clear_control",
+        "ExactBallpark.Collision.ContactExamples.two_turning_bodies",
+        "ExactBallpark.Collision.ContactExamples.moving_pair_window",
+        "ExactBallpark.Collision.ContactExamples.late_window_rejected",
+        "ExactBallpark.Collision.ContactExamples.obstacle_order"
+      ]
+    },
+    {
+      "title": "Exact incoming state of the half-second head-on contact",
+      "moduleName": "ExactBallparkProofs.Collision.ReboundFlight",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "SpaceBallpark.collide_two_spheres, Ballpark.integrate, Ballpark.goto_thrust",
+      "model": "Real ordinary drag for the isolated two-sphere fixture",
+      "rules": [
+        "MOV-702",
+        "MOV-705",
+        "COL-705"
+      ],
+      "scope": "Two free spheres of radius 0.5 m begin at x = 0 and 3 m. Opposite full-strength GOTO thrusts sustain speeds of 2 m/s. Each effective mass and the friction are one in all three variants, including the left constructor speed fraction of four in the limited case. The ordinary position guard holds for the entire one-second tick. Lean identifies the previous continuous-contact fixture with these axial paths and proves that their first touch is exactly 0.5 s, at x = 1 and 2 m.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "ordinary_inputs",
+          "incoming"
+        ],
+        "MOV-705": [
+          "ordinary_inputs"
+        ],
+        "COL-705": [
+          "incoming_distance",
+          "exact_first_contact"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Collision.ReboundFlight.ordinary_inputs",
+        "ExactBallpark.Collision.ReboundFlight.incoming",
+        "ExactBallpark.Collision.ReboundFlight.incoming_distance",
+        "ExactBallpark.Collision.ReboundFlight.exact_first_contact"
+      ]
+    },
+    {
+      "title": "Impulse, velocity limiter and restart at positive contact time",
+      "moduleName": "ExactBallparkProofs.Collision.ReboundFlight",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "SpaceBallpark._impact_free, SpaceBallpark._add_impact, CollisionBallProperties.add_impact, Ballpark.integrate",
+      "model": "Three-dimensional real translational impulse followed by ordinary drag",
+      "rules": [
+        "MOV-702",
+        "COL-706",
+        "COL-717",
+        "COL-718"
+      ],
+      "scope": "At positive contact time, the two-body elastic update uses the normal from the actual centre positions and both base masses. Each body applies its own squared-ratio limiter. The restart keeps position continuous, adds the applied velocity change and retains the original acceleration. Lean gives all positions and velocities on the remainder. In the 1:2 base-mass example the applied changes are −16/3 and +8/3 m/s. In the equal-mass limited example they are −25/16 and +4 m/s. The latter changes the pair momentum by +39/16 kg m/s at impact.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "restart_state",
+          "remainder"
+        ],
+        "COL-706": [
+          "raw_impulse"
+        ],
+        "COL-717": [
+          "raw_impulse",
+          "restart_state",
+          "momentum_change"
+        ],
+        "COL-718": [
+          "applied_impulse",
+          "momentum_change"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Collision.ReboundFlight.restart_state",
+        "ExactBallpark.Collision.ReboundFlight.remainder",
+        "ExactBallpark.Collision.ReboundFlight.raw_impulse",
+        "ExactBallpark.Collision.ReboundFlight.momentum_change",
+        "ExactBallpark.Collision.ReboundFlight.applied_impulse"
+      ]
+    },
+    {
+      "title": "A single touch through the end of an iterative collision tick",
+      "moduleName": "ExactBallparkProofs.Collision.ReboundFlight",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "SpaceBallpark._next_collision_free, SpaceBallpark._impact_free, Ballpark.integrate",
+      "model": "Signed separation on collinear real drag trajectories",
+      "rules": [
+        "MOV-702",
+        "COL-705",
+        "COL-718"
+      ],
+      "scope": "For two collinear ordinary flights starting at contact with common positive drag parameters, a nonnegative excess of outgoing relative velocity over terminal relative velocity and a strictly positive signed endpoint gap suffice for strict separation throughout the open remainder. The proof uses convexity of the exponential and an independent rational enclosure of exp(−1/2). All three joined paths touch only at 0.5 s on the closed tick. The limited pair is already closing again at one second.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "half_decay",
+          "positive_gap",
+          "shared_drag_separation"
+        ],
+        "COL-705": [
+          "no_recontact",
+          "only_contact"
+        ],
+        "COL-718": [
+          "limited_closing_at_end"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Collision.ReboundFlight.half_decay",
+        "ExactBallpark.Collision.ReboundFlight.positive_gap",
+        "ExactBallpark.Collision.ReboundFlight.shared_drag_separation",
+        "ExactBallpark.Collision.ReboundFlight.no_recontact",
+        "ExactBallpark.Collision.ReboundFlight.only_contact",
+        "ExactBallpark.Collision.ReboundFlight.limited_closing_at_end"
+      ]
+    },
+    {
+      "title": "Binary64 replay from head-on contact to both committed endpoints",
+      "moduleName": "ExactBallparkProofs.Collision.ReboundTick",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py",
+        "src/exact_ballpark/modes.py"
+      ],
+      "symbols": "SpaceBallpark._next_collision_free, SpaceBallpark._impact_free, SpaceBallpark._add_impact, CollisionBallProperties.position, SpaceBallpark._position_velocity",
+      "model": "Logical binary32 limiter and binary64 translational replay",
+      "rules": [
+        "MOV-702",
+        "MOV-704",
+        "COL-705",
+        "COL-715",
+        "COL-717",
+        "COL-718"
+      ],
+      "scope": "The projection admits one eligible free pair, no static candidates, spin, initial overlap or other interactions. It calculates the GOTO thrust and cached decay, solves the endpoint chord, computes both impulses, inserts the two records, checks the zero-time duplicate on the next search and samples both final histories. The exponential model supplies the two host words at −1 and −1/2. Each returned history has one reciprocal contact. The kernel checks three complete fixture traces, including transverse signed zeros.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "replay_words"
+        ],
+        "MOV-704": [
+          "replay_words"
+        ],
+        "COL-705": [
+          "replay_words"
+        ],
+        "COL-715": [
+          "replay_words"
+        ],
+        "COL-717": [
+          "replay_words"
+        ],
+        "COL-718": [
+          "replay_words"
+        ]
+      },
+      "hostEvidence": "On x86-64 Linux, the scalar Evolve entry point and compiled pinned Destiny agree with Lean on 29 words for each of the six ball records. These cover the cache, contact time, thrust, incoming state, raw and applied impulses, stored contact state and committed tick state. A second C++ park exposes the original impulse helpers so intermediate changes can be observed. [Rebounds and reproduction](README.md#one-impact-through-the-end-of-a-tick)",
+      "theorems": [
+        "ExactBallpark.Collision.ReboundTick.replay_words"
+      ]
+    },
+    {
+      "title": "Error of the committed state after the rebound",
+      "moduleName": "ExactBallparkProofs.Collision.ReboundAccuracy",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "SpaceBallpark._position_velocity, CollisionBallProperties.calculate_end, Ballpark.integrate",
+      "model": "Rational enclosures compared with decoded binary64 words",
+      "rules": [
+        "MOV-702",
+        "COL-717",
+        "COL-718"
+      ],
+      "scope": "For each of the three replays, all four axial outputs are compared with the real trajectory after the same impulse and limiter. A rational interval for exp(−1/2) bounds each ideal value. The kernel decodes the committed word and proves absolute x-position error at most 10⁻¹⁵ m and x-velocity error at most 10⁻¹⁵ m/s. The bound is specific to these inputs and the two supplied exponential words.",
+      "ruleTheorems": {
+        "MOV-702": [
+          "ideal_endpoint_enclosed",
+          "endpoint_error"
+        ],
+        "COL-717": [
+          "endpoint_error"
+        ],
+        "COL-718": [
+          "endpoint_error"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Collision.ReboundAccuracy.ideal_endpoint_enclosed",
+        "ExactBallpark.Collision.ReboundAccuracy.endpoint_error"
+      ]
     }
   ]
 }

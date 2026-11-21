@@ -3,6 +3,8 @@
 This document lists what exact-ballpark does not cover, or covers only on some paths. Section 1 covers the port as a
 whole, section 2 the scalar reference, and the later sections each park in turn.
 
+For cases where a supported engine path gives an unexpected result, the discrepancy log records the inputs, likely effects in play and replay evidence. [Discrepancy log](../lean/DISCREPANCIES.md)
+
 **How refusals work.** A batched park checks its domain as it runs. A world that leaves the domain gets a flag on its
 rows, and the park's `check()` raises. A flagged world is never computed approximately and passed off as exact. The
 tests count flagged worlds apart and never count them as equal. One exception: a replay of the combat park's CUDA

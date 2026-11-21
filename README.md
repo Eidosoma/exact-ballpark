@@ -229,11 +229,16 @@ are in [`docs/exactness.md`](docs/exactness.md).
 
 [![Law map showing movement, warp, collisions, space and sensors, time and events, and combat.](lean/assets/law-map.webp)](lean/README.md)
 
-The register contains 278 kernel-checked theorems across all 105 engine rules. Each theorem covers a stated part of a rule’s behaviour. For example, the swept-sphere
-proof gives the earliest contact along two exact straight paths. With binary64 endpoints, rounding can produce a
-contact halfway through a tick even when the spheres stay apart. A second proof gives a condition that certifies a
-miss in both models. The register lists the assumptions, engine source and conformance evidence for each claim.
+The register contains 367 kernel-checked theorems across all 105 engine rules. Each theorem covers a stated part of a rule’s behaviour. For collision-free scalar GOTO and STOP, Lean checks that each ball has the same state after any admitted command sequence as it would have if it received its own commands and every tick. The CPU gate compares every stored field with Python. In one five-second horizontal coast starting at 100 m/s, Lean bounds the final position error against the continuous drag equation below 10⁻¹⁴ m, using the observed decay word. [Scalar movement and its assumptions](lean/README.md#scalar-movement-across-ticks)
+
+For the ideal three-dimensional drag law, Lean proves that thrust supplies energy at the rate force · velocity and drag removes it at the rate friction × speed². Physlib’s unit types also expose a fixed-obstacle selection error by distinguishing the fraction of a sweep from its contact time in seconds. [Energy and physical units](lean/README.md#energy-and-physical-units) · [Collision replay](lean/DISCREPANCIES.md#col-715-fixed-window)
+
+A turning ship can touch an obstacle between the two positions used by the engine’s straight sweep. In a one-second GOTO replay, scalar Python and pinned Destiny both report a miss. From the same initial state, Lean proves that the continuous drag path first touches the obstacle **between 0.435661 and 0.435662 seconds**. Moving the obstacle five metres sideways gives at least **3.5 m of surface clearance** throughout the tick. [Run the first-contact checker](lean/README.md#first-contact-along-a-turn) · [Turning-ship replay](lean/DISCREPANCIES.md#col-705-turning-path)
+
+The collision proofs give a test for when the binary64 solver and exact straight paths agree on a hit inside the tick, with a bound on the difference in contact time. The movement register also covers roundoff across ordinary drag steps and scalar and tensor position and velocity words for a supplied decay factor.
 [Law overview and local checks](lean/README.md) · [Claim register](lean/CLAIMS.md)
+
+Three head-on replays follow both ships from launch through contact at **0.5 s** to the end of the tick. Lean proves they touch exactly once and bounds their final axial position and velocity errors by 10⁻¹⁵ m and 10⁻¹⁵ m/s. With a limiter on one ship, the ships are already approaching each other again when the tick ends. Scalar Python and pinned Destiny agree on both impulses and committed states. [Rebound results and assumptions](lean/README.md#one-impact-through-the-end-of-a-tick)
 
 #### Observed engine discrepancies
 
@@ -244,7 +249,7 @@ On x86-64 Linux, CPython 3.13.18 and pinned Destiny C++ reproduced two collision
 | Severity | Rule | Exact result | Observed engine result |
 | --- | --- | --- | --- |
 | High | [COL-715 · wrong fixed obstacle](lean/DISCREPANCIES.md#col-715-fixed-window) | The nearer obstacle wins in either order | After a rebound, the farther obstacle can win. In a four-ball tick the ship finished moving in the opposite direction from the earliest-hit control. |
-| High | [COL-715 · impact-history lookup](lean/DISCREPANCIES.md#col-715-history-lookup) | Query selects the post-impact record | Query selects the pre-impact record. A second supplied contact changes the ship’s end-of-tick direction in a scalar control experiment. |
+| High | [COL-715 · impact-history lookup](lean/DISCREPANCIES.md#col-715-history-lookup) | Query selects the post-impact record | In a three-ball tick the engine detects the next contact and reads the pre-impact velocity. Changing the cutoff comparison makes the ship finish 1.325268 m away and moving in the opposite direction. |
 | Moderate | [COL-715 · missed second hit](lean/DISCREPANCIES.md#col-715-free-repeat) | The returning ball touches again on the second chord | The search skips that contact in a supplied two-impact history. |
 | Moderate | [TIME-715 · extra bubble wait](lean/DISCREPANCIES.md#time-715-extra-wait) | A private packet expects one bubble reply at its first stamp | Two stamps wait. After the first reply the later stamp can still block the queue. |
 | Moderate | [TIME-715 · mixed update after reset](lean/DISCREPANCIES.md#time-715-reset-order) | Keep the event after the reset and discard the older one | Whichever stamp comes first determines whether both events enter history or both are discarded. |

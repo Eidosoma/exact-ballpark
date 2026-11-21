@@ -10,6 +10,10 @@ possible:
 
 `exactness.md` gives the evidence that the rules hold.
 
+The ordinary drag error bound accounts for arithmetic rounding and error in the supplied decay factor. The software FMA proof states the conditions on the operands and rounding grids under which the composed operations round once. [Ordinary drag error bound](../lean/CLAIMS.md#forward-error-of-the-ordinary-drag-step) · [Software FMA proof](../lean/CLAIMS.md#one-rounding-for-the-composed-software-fma)
+
+For three head-on rebound fixtures, Lean decodes the final binary64 words and compares them with the corresponding real drag trajectories. The permitted absolute error is 10⁻¹⁵ m for position and 10⁻¹⁵ m/s for velocity along the collision axis. The binary64 replay receives the observed full-tick and half-tick exponential words. The mathematical bound uses a rational enclosure of exp(−1/2). [Rebound endpoint proof](../lean/ExactBallparkProofs/Collision/ReboundAccuracy.lean)
+
 ## 1. The rules in one list
 
 - **Correctly rounded operations only:** `+`, `-`, `*`, `/` and `sqrt`, each rounded once to nearest. Comparisons and

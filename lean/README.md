@@ -1,6 +1,6 @@
 # Exact Ballpark laws in Lean
 
-What happens when a ship stops thrusting, two swept spheres touch, or a server tick arrives late? Exact Ballpark gives each behavior a rule ID. This project links **105 engine laws** to **278 kernel-checked theorems**. Each entry records the part of the law covered, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
+What happens when a ship stops thrusting, two swept spheres touch, or a server tick arrives late? Exact Ballpark gives each behavior a rule ID. This project links **105 engine laws** to **367 kernel-checked theorems**. Each entry records the part of the law covered, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
 
 [![Exact Ballpark law map. Movement has 41 laws, warp 16, collisions 19, space and sensors 12, time and events 15, and combat 2.](assets/law-map.webp)](assets/law-map.webp)
 
@@ -15,7 +15,138 @@ What happens when a ship stops thrusting, two swept spheres touch, or a server t
 | **Time, server and clients** · 15 · TIME-701–715 | Tick duration, backlog, update order, command queues, removal and client synchronization. | In the modeled tick, every ball’s thrust calculation precedes collision responses, and every new state is calculated before the first commit. [Tick schedule](ExactBallparkProofs/Time/Schedule.lean) |
 | **Combat** · 2 · CMB-701–702 | How relative motion across the line of sight, tracking and range determine hit probability. | In real arithmetic, distinct positions on the ordinary branch give a hit probability in (0, 1]. With zero transversal speed inside optimal range it equals one. A binary64 radial replay produces +∞. [Real-valued accuracy](ExactBallparkProofs/Combat/Accuracy.lean) · [Finite-arithmetic replay](DISCREPANCIES.md#cmb-702-tracking) |
 
-The latest 20 proofs cover five parts of the engine.
+## Scalar movement across ticks
+
+Start a scalar park, add two ships, send them different commands, and stop after any completed operation. Lean proves that each ship has exactly the state obtained by replaying its own commands and every tick in isolation. This includes position, velocity, target, last thrust, mode, properties and the stored decay factor. The clock counts ticks even in an empty park. Splitting a trace and resuming from the intermediate state gives the same result. [Trace theorems](ExactBallparkProofs/Movement/ScalarTrace.lean)
+
+| Scope | What the result covers |
+| --- | --- |
+| Commands and ticks | Add or replace a ball, GOTO by point or direction, STOP and the five scalar property setters. Each full tick prepares every ball, stages the three-coordinate results and commits. STOP damps vertical velocity even at zero duration. An accepted mass or agility write refreshes the cache. [Commands](ExactBallparkProofs/Movement/ScalarCommands.lean) · [Source translation](ExactBallparkProofs/Movement/ScalarReference.lean) |
+| Admitted inputs | The configuration uses a fixed finite nonnegative stored duration and a fixed positive finite friction whose binary64 square is nonzero. Commands target live IDs except when adding a ball. Binary32 setter conversion must succeed, and a GOTO tick requires a nonzero effective mass. The runtime comparison starts at the scalar API with three-component vectors and no external mutation. [Domain and runner](ExactBallparkProofs/Movement/ScalarTrace.lean) |
+| CPU evidence | The gate compares 202 movement trace prefixes and 3 rejected suffixes with CPython. It checks the stamp, ordered IDs, mode and every stored floating-point word after each completed operation, with both NaNs treated as equal. The traces exercise both drag branches, interleaved commands, replacement, signed zeros and a zero-duration tick. [Replay](scripts/scalar_trace_checks.py) |
+
+**Connection to physics.** Start at 100 m/s horizontally, with effective mass and friction both 1, no thrust and one-second ticks. After five seconds the continuous drag law gives velocity `100 exp(−5)` and displacement `100 (1 − exp(−5))`. Using the CPU’s word for `exp(−1)`, Lean evaluates the five binary64 ticks and proves that the final errors are below **10⁻¹⁴ m** and **10⁻¹⁵ m/s**. A second theorem propagates position and velocity error over any finite sequence of ordinary steps given the same force inputs, decay-error bounds and matching rounding grids. These claims use an ideal linear-drag model. Predicting measured motion would also require physical data for the forces and coefficients. [Five-second coast](ExactBallparkProofs/Movement/CoastWitness.lean) · [Trajectory error](ExactBallparkProofs/Movement/RegularTrajectory.lean)
+
+The scalar proofs use a source translation for tick arithmetic, reviewed transcriptions for commands and a supplied exponential function. In the five-second coast, the pinned Destiny C++ movement functions also matched all three position words and all three velocity words at each tick on x86-64 Linux with GCC 11.4. Collision response, other flight modes and fused CUDA ticks have separate evidence. [Claim register](CLAIMS.md) · [Platform qualification](../docs/platform.md)
+
+## Energy and physical units
+
+For an ordinary flight interval, let `m = mass × agility`, let `k` be friction, and hold the applied acceleration `a` constant. Lean proves that the change in kinetic energy equals the time integral of thrust power minus drag loss. The proof starts from the three velocity components in the translated scalar integrator and uses mathlib’s derivative of the squared norm and fundamental theorem of calculus. It assumes positive constant `m` and `k`, with the exact decay when the engine reads its full-tick cache. [Energy proof](ExactBallparkProofs/Movement/Energy.lean) · [Squared-norm derivative](https://github.com/leanprover-community/mathlib4/blob/fc4f59e577feb1a4956671bc04ac18aaaf8cd842/Mathlib/Analysis/InnerProductSpace/Calculus.lean#L216) · [Integral theorem](https://github.com/leanprover-community/mathlib4/blob/fc4f59e577feb1a4956671bc04ac18aaaf8cd842/Mathlib/MeasureTheory/Integral/IntervalIntegral/FundThmCalculus.lean#L1148)
+
+| Quantity | What Lean establishes |
+| --- | --- |
+| Kinetic energy | For `E = m ‖v‖² / 2`, the instantaneous rate is `m (v · a) − k ‖v‖²`. An unforced ship with nonzero initial speed loses energy on every positive interval. If its speed halves, it retains one quarter of its initial kinetic energy. This describes the continuous drag interval between commands and collision impulses. |
+| Decay factor | Assigning units of mass per time to friction makes `−k Δt / m` dimensionless. Taking its real exponential gives the positive-mass cache refresh. [Typed decay](ExactBallparkProofs/Physics/Units.lean) |
+| Fixed-obstacle contact | Physlib gives sweep fractions and seconds distinct types. In a window from 0.5 to 1 s, fractions ¼ and ½ become 0.625 and 0.75 s. Comparing timestamps selects the earlier obstacle in either order. The scalar engine and pinned Destiny can select the later obstacle by comparing ½ directly with 0.625. [Typed comparisons](ExactBallparkProofs/Physics/Units.lean) · [Replay](DISCREPANCIES.md#col-715-fixed-window) |
+
+The velocity proof also applies to MOV-703, which shares the ordinary velocity update. The interpretation of work along the ship’s path uses the ordinary position formula where the derivative of position equals velocity. Binary64 trajectory errors have separate bounds. [Integration branches](ExactBallparkProofs/Movement/SpecialBranch.lean) · [Trajectory bounds](ExactBallparkProofs/Movement/RegularTrajectory.lean)
+
+## Clearance throughout a tick
+
+COL-705 sweeps a straight line between the two positions stored for each body. A turning ship follows a curve under the ordinary drag equation. Lean now proves when a straight-sweep miss guarantees that the two spherical surfaces stayed apart for the entire interval. [Movement proof](ExactBallparkProofs/Movement/DragChord.lean) · [Clearance proof](ExactBallparkProofs/Collision/CurveClearance.lean)
+
+For effective mass `m = mass × agility`, fixed positive friction `k` and held acceleration `a`, the initial net acceleration has magnitude `A = ‖a − (k/m)v₀‖`. Its magnitude then decays exponentially. At every common time in a tick of duration `T`, the distance from the straight interpolation is at most **A T²/8 metres**. Halving the interval quarters this bound for the same acceleration limit. This applies between changes of thrust or coefficients and between impacts. The ordinary integrator supplies the positions when its branch guard holds and its full-tick cache has the stated decay. [Trajectory uniqueness and chord bound](ExactBallparkProofs/Movement/DragChord.lean)
+
+The CPU checker reads the four binary64 endpoint positions, combined radius, duration and a budget for each body. It checks the engine miss word, finds the closest point on the relative straight segment using exact rationals, and rounds the centre-distance lower bound down to a micrometre. It subtracts the combined radius, each body's curvature allowance and the larger of that body's start and end errors. **Certified clear** gives the remaining surface gap in metres, conditional on the supplied bounds covering both motions. **Insufficient clearance** means the checker could not establish a positive gap. The existing ordinary-step rounding proof can supply coordinate errors, and the new theorem combines them into a Euclidean bound. [Checker](scripts/CurveClearance.lean) · [Endpoint budgets](ExactBallparkProofs/Collision/CurveClearance.lean)
+
+| Fixed obstacle | Scalar and Destiny sweep | Continuous motion for a one-second GOTO turn |
+| --- | --- | --- |
+| (4, 1, 0) m | Miss | The centres are less than 0.1 m apart at half a second, inside the 0.5 m combined radius. |
+| (4, −4, 0) m | Miss | The surfaces stay at least **3.094137999999 m** apart. Lean discharges the acceleration and endpoint error assumptions for both bodies. |
+
+The gate runs 13 curve clearance checks, including two moving bodies, touching endpoints, invalid input and a floating-point false hit. The full turning fixture and its pinned C++ replay are recorded in the discrepancy log. [Witness proof](ExactBallparkProofs/Collision/TurningFlight.lean) · [Game rule and replay](DISCREPANCIES.md#col-705-turning-path)
+
+From `lean/`, run the two examples or give the checker a JSON file.
+
+```bash
+lake env lean --run scripts/CurveClearance.lean --demo
+lake env lean --run scripts/CurveClearance.lean --file request.json
+```
+
+This input describes two stationary centres 5 m apart with a combined radius of 1 m. The checker returns a 4 m surface margin.
+
+```json
+{
+  "radius": 1, "duration": 1,
+  "first":  {"start": [0,0,0], "end": [0,0,0], "accelerationBound": 0, "startError": 0, "endError": 0},
+  "second": {"start": [3,4,0], "end": [3,4,0], "accelerationBound": 0, "startError": 0, "endError": 0}
+}
+```
+
+Coordinates, radius and endpoint errors are in metres, duration in seconds, and acceleration bounds in m/s². The supplied radius must cover the sum of the physical radii for the reported surface margin to apply. Budget and duration decimals are read as exact rationals. Coordinates and radius are read as binary64. To supply an original binary64 word, use an object such as `{"bits": 4602678819172646912}` for 0.5. The checker reports the engine's time-of-impact word and returns certified margins as exact fractions of a metre.
+
+### First contact along a turn
+
+The first-contact checker takes each sphere’s initial position, velocity, constant applied acceleration, effective mass and friction. It bounds both centres throughout each time interval using rational arithmetic and mathlib’s exponential remainder bound. A hit requires a sample at or inside the combined radius and proof that the entire earlier prefix was clear. This works even when the spheres separate again before the tick ends. [Position bounds](ExactBallparkProofs/Movement/PositionEnclosure.lean) · [First-contact proof](ExactBallparkProofs/Collision/ContactCertificate.lean)
+
+| CPU result | What it establishes |
+| --- | --- |
+| `first contact in window` | The earliest touch or overlap occurs between `loSeconds` and `hiSeconds`, inclusive. Initial contact gives [0, 0]. |
+| `certified clear` | The surfaces stay strictly apart for the whole interval. When present, `marginMetres` is a lower bound on their gap. |
+| `unresolved` | The checker could not certify either outcome. A graze between samples can produce this result. |
+
+Run the one-second GOTO replay from `lean/`.
+
+```bash
+lake env lean --run scripts/CurveClearance.lean --contact-demo
+```
+
+The engine chord reports a miss for both obstacles. At (4, 1, 0) m, the continuous path first touches in **[0.435661, 0.435662] s**. At (4, −4, 0) m, the position bounds give **3.5 m** of surface clearance. The endpoint-and-acceleration certificate above gives 3.094137999999 m on the same control. [Kernel-checked examples](ExactBallparkProofs/Collision/ContactExamples.lean) · [Scalar and Destiny replay](DISCREPANCIES.md#col-705-turning-path)
+
+For two moving spheres, pass the following JSON using `--file`. Each moves at 2 m/s towards the other. The reported first-contact window is **[0.499999, 0.500000] s**.
+
+```json
+{
+  "mode": "firstContact", "radius": 1, "duration": 1, "cells": 1000000,
+  "first":  {"start": [0,0,0], "end": [2,0,0], "velocity": [2,0,0], "applied": [2,0,0], "effectiveMass": 1, "friction": 1},
+  "second": {"start": [3,0,0], "end": [1,0,0], "velocity": [-2,0,0], "applied": [-2,0,0], "effectiveMass": 1, "friction": 1}
+}
+```
+
+Times are seconds from the start of the interval. The default grid has one million cells, also the maximum. The search skips intervals it proves clear and stops at the first undecidable cell. The model requires positive effective mass and friction, the ordinary position branch throughout, a fixed applied acceleration in m/s² and the exact **sum of the radii** in metres. State and radius words decode to exact rationals. The supplied `end` positions feed the engine chord comparison. Its `sweepDecision` and `sweepTimeBits` describe the binary64 contact fraction on that chord. The continuous result starts from the two initial states. Apply it up to the first impact or command that changes either trajectory.
+
+The gate runs 23 first-contact checks. When both ships turn with different drag coefficients per unit mass, the checker proves first contact in **[0.404889, 0.404890] s**. The binary64 sweep misses. Other cases cover grazing contact, a prefix that needs subdivision, and a hit after one decay time. For two eligible obstacles on one clock, disjoint first-contact windows establish which one is reached earlier. In the COL-715 half-tick fixture this selects the obstacle at x = 3 m before the one at x = 5 m. Overlapping windows leave their order open. [CPU checks](scripts/curve_checks.py) · [Obstacle-order proof](ExactBallparkProofs/Collision/FirstContact.lean) · [COL-715 engine replay](DISCREPANCIES.md#col-715-fixed-window)
+
+### One impact through the end of a tick
+
+The CPU gate replays **3 one-impact ticks** in iterative collision mode. Two free spheres of radius 0.5 m start at x = 0 and 3 m, heading towards each other at 2 m/s. Distant GOTO targets keep their incoming velocities constant. Lean proves the first contact is exactly **0.5 s**, at x = 1 and 2 m, then uses the collision normal and base masses to calculate the impulses. Each ball resumes drag from its contact position and updated velocity for the remaining half-second. [Incoming paths and rebound](ExactBallparkProofs/Collision/ReboundFlight.lean)
+
+| Case | Left x (m) | Left vx (m/s) | Right x (m) | Right vx (m/s) |
+| --- | ---: | ---: | ---: | ---: |
+| Equal | 0.426123 | -0.426123 | 2.573877 | 0.426123 |
+| Unequal | -0.098503 | -1.234830 | 2.049252 | -0.382585 |
+| Limited | 1.385204 | 1.052296 | 2.573877 | 0.426123 |
+
+The table shows committed values at one second, rounded to six decimals. In the equal-mass case the ships exchange velocities. Doubling the right ship's base mass and halving its agility preserves its incoming drag but changes the impulses to −16/3 and +8/3 m/s. The limited case uses equal unit masses and sets the left ship's maximum speed to 0.5 m/s with a constructor speed fraction of four. Its proposed −4 m/s change becomes −1.5625 m/s. The right ship receives +4 m/s, so the pair gains 2.4375 kg m/s of momentum at impact. [Impulse and limiter proofs](ExactBallparkProofs/Collision/ReboundFlight.lean)
+
+**All three pairs touch only once.** In the limited case the ships are closing again at the end, with about 0.189 m between their surfaces. The proof covers the intervening times by bounding the signed separation under drag. For collinear flights starting at contact with shared drag parameters, it suffices that the outgoing right-minus-left velocity is at least its terminal value and the right centre finishes more than the combined radius ahead of the left centre. [Separation proof](ExactBallparkProofs/Collision/ReboundFlight.lean)
+
+Lean, scalar Python and pinned Destiny C++ agree on 29 binary64 words per ball, including the raw and applied changes, the stored contact and the final state. The Lean replay takes the two host exponential words as inputs. A separate proof encloses the real exponential and bounds the final x-position error by **10⁻¹⁵ m** and x-velocity error by **10⁻¹⁵ m/s** for both balls in each fixture. The scenarios use one eligible pair, constant applied acceleration and disabled spin. [Word replay](ExactBallparkProofs/Collision/ReboundTick.lean) · [Endpoint error proof](ExactBallparkProofs/Collision/ReboundAccuracy.lean) · [Scalar comparison](scripts/rebound_checks.py)
+
+From `lean/`, print the six records with their original binary64 words.
+
+```bash
+lake env lean --run scripts/ReboundTick.lean
+```
+
+## Ten new proofs
+
+| Rules | What the proof establishes |
+| --- | --- |
+| MOV-702–704 | With matching partial-tick decay bits, every tensor coordinate returns the scalar position and velocity words, including a zero-length step and the special branch. [Tensor lanes](ExactBallparkProofs/Movement/TensorLane.lean) |
+| COL-705, 715, 718 | A full 100 ms tick from three starting states finds the contact that reads the wrong velocity. Lean checks all contact times, indices, impulses and the two final states. [Rebound replay](DISCREPANCIES.md#col-715-history-lookup) |
+| MOV-702, 704 | Position and velocity each have a forward error bound for the ordinary formula extracted from Python. The calculation accounts for operation rounding and an error in the supplied decay factor. [Regular drag](ExactBallparkProofs/Movement/RegularError.lean) |
+| SEN-706, COL-703 | Given an interior overlap with enough margin for face-test rounding, the two bodies appear in each other’s candidate lists, including across filing levels. The regular-drag speed envelope supplies one bound on travel. [Swept candidates](ExactBallparkProofs/Space/SweepCandidates.lean) |
+| COL-701, 711 | The default gradient keeps the latest ordinary ball hit. At equal times it keeps the stronger scaled response, retaining the first candidate at equal strength. [Gradient winner](ExactBallparkProofs/Collision/GradientWinner.lean) |
+| COL-705 | A successful certificate brackets the exact first contact and the binary64 answer inside the tick. At depth 24 the maximum time difference is 2⁻²⁴ of a tick. [Hit certificate](ExactBallparkProofs/Collision/HitCertificate.lean) |
+| MOV-731, TIME-710, 712 | On the master, cleanup applies a remote follower’s Stop before the bubble update. It clears the follow fields and releases the leader’s membership, including when a Stop was already queued. [Follower cleanup](ExactBallparkProofs/Time/FollowerTick.lean) |
+| SEN-712, TIME-715 | When the private and bubble packets share an earlier stamp, their events merge there. A later private stamp in that same packet stays waiting. A server/client replay compares normal and postponed sends. [Packet proof](ExactBallparkProofs/Time/BatchStamps.lean) |
+| MOV-738 | On stored negative drag arguments from −1 to −2⁻⁵⁴, the first software FMA in the exponential gives the exact reduction value. The CPU gate exercises 743 first-reduction inputs across all 186 reachable indices. [First reduction](ExactBallparkProofs/Numerics/ExpFirstFma.lean) |
+| CMB-702 | A certificate computes how much transversal speed is enough to keep the angular-speed square root in range. The logged radial input falls below that margin. [Tracking margin](ExactBallparkProofs/Combat/TrackingMargin.lean) |
+
+## Earlier proof batches
+
+The previous 20 proofs cover five parts of the engine.
 
 | Area | Proofs | What they establish |
 | --- | ---: | --- |
@@ -43,7 +174,7 @@ The log ranks 13 behaviors by their gameplay consequences and describes the like
 
 **COL-715 · A farther obstacle can win after a rebound.** In a one-second encounter with three fixed obstacles, changing just the time comparison reversed the ship’s final direction. The original scalar and pinned C++ engines agreed on the final position and velocity bits. [Four-ball replay](DISCREPANCIES.md#col-715-fixed-window)
 
-**COL-715 · A lookup can select the pre-impact velocity.** With an impact at 1/16 of a second, rounding the sum of its time and the lookup tolerance changes which record the engine reads at one representable query. In a scalar replay with a supplied second contact, the ordinary lookup missed a rebound and the ship ended the tick 1.22 m from the control. The impact-history proofs also cover insertion, removal, invalidation order and reconstruction of the tick endpoint. [History proofs](ExactBallparkProofs/Collision/ImpactHistory.lean) · [Lookup discrepancy and replay](DISCREPANCIES.md#col-715-history-lookup)
+**COL-715 · A lookup can select the pre-impact velocity.** The first scalar replay supplied a second contact and measured 1.22 m of separation. A three-ball replay now reaches the cutoff through the engine’s sphere sweeps. In 100 ms, the ship finishes 1.325268 m from the exact-cutoff control and moving in the opposite direction. Pinned Destiny C++ reproduces the unmodified trajectory. [History proofs](ExactBallparkProofs/Collision/ImpactHistory.lean) · [Lookup discrepancy and replay](DISCREPANCIES.md#col-715-history-lookup)
 
 **COL-715 · A second free-ball hit can disappear.** With a supplied turn in the other ball’s history, the engine kept the old start positions after suppressing a repeat. The two-chord search missed a hit that the final chord alone reported at 0.708901778 s. [Repeat-contact replay](DISCREPANCIES.md#col-715-free-repeat)
 
@@ -64,6 +195,7 @@ The timing proof checks bounds on the first root against both tick endpoints. Fo
 | Python source | How it enters Lean | Scope |
 | --- | --- | --- |
 | `Ballpark.integrate` | A restricted translator reads the guards, cached decay factor and order of arithmetic for one coordinate. | The extracted real program equals the integrator used in the trajectory proofs. A second translation models binary64 operations with the exponential supplied as an input function. |
+| `Ballpark.evolve` and its GOTO, STOP and cache calculations | A translator checks the order of the three loops and their state access, and extracts the vector arithmetic, comparisons and binary64 constants. | Staging by ID agrees with advancing each ball independently, across repeated ticks with interleaved scalar commands. [Translation](scripts/scalar_reference.py) |
 | `ModeBallpark.warp_constants` | A translator reads the scalar expressions and constants. | All nine returned real-valued expressions agree with the independently defined warp parameters. |
 | `BaseTicker.tick` and `Actions.remove_ball` | A translator extracts ordered calls and the guard for global removal notifications. | The six pre-tick hooks run in order. After a successful lookup, removal ends with the parent call after any global notification, assuming the calls return. |
 | Other registered methods | Contributors transcribe the relevant expressions or transitions and pin the reviewed source by hash. | Each theorem states the property of that model and the inputs or state it requires. |
@@ -72,7 +204,7 @@ The Python-to-Lean translators are trusted. Applying a real-number theorem to a 
 
 ## Verify locally
 
-Use Python 3.13 or later with the package’s PyTorch dependency and Elan’s Lake from the repository root. On a fresh checkout, ask Lake for the proof library’s transitive imports. This includes mathlib modules reached through the pinned FloatLib sources. The following Bash commands fetch the corresponding compiled mathlib files and run the gate on eight CPUs. Choose CPU IDs from the process’s allowed affinity set on other machines.
+Use Python 3.13 or later with the package’s PyTorch dependency and Elan’s Lake from the repository root. On a fresh checkout, ask Lake for the proof library’s transitive imports. This includes mathlib modules reached through FloatLib and Physlib. The following Bash commands fetch the corresponding compiled mathlib files and run the gate on eight CPUs. Choose CPU IDs from the process’s allowed affinity set on other machines.
 
 ```bash
 cd lean
@@ -83,11 +215,21 @@ taskset -c 0-7 lake --json query +ExactBallparkProofs:transImports |
 taskset -c 0-7 python3 scripts/check.py
 ```
 
-The project pins Lean 4.36.0 and the mathlib and FloatLib revisions in the Lake manifest. The checker prefers `.lake/toolchain/bin/lake`, falls back to Lake on PATH, and checks the selected Lean version against `lean-toolchain`. It runs the incremental build with warnings treated as errors, checks reviewed source hashes, regenerates the source models in memory, validates the theorem registry, audits transitive axioms, runs small scalar comparisons and checks the generated page. Use `python3 scripts/check.py --write` to refresh the page after changing a proof or claim.
+The project pins Lean 4.36.0, mathlib, FloatLib and Physlib. The units proofs import Physlib’s `WithDim.Basic` module. [Pinned dependencies](lake-manifest.json) · [Physlib quantity types](https://github.com/leanprover-community/physlib/blob/56430c65b76f73c7c25fc03eed46be1d888520bb/Physlib/Units/WithDim/Basic.lean)
+
+The checker prefers `.lake/toolchain/bin/lake`, falls back to Lake on PATH, and checks the selected Lean version against `lean-toolchain`. It runs the incremental build with warnings treated as errors, checks reviewed source hashes, regenerates the source models in memory, validates the theorem registry, audits transitive axioms, runs small scalar comparisons and checks the generated page. Use `python3 scripts/check.py --write` to refresh the page after changing a proof or claim.
+
+To replay the five-second coast with the pinned C++ movement harness, run these commands from the repository root with a Destiny checkout at `114e89fa`. The first command builds the four extracted movement functions. The second compares all six motion words at every tick. [Harness builder](../conformance/build.py) · [Trace replay](scripts/scalar_trace_checks.py)
+
+```bash
+python3 -I conformance/build.py /path/to/destiny /tmp/eb-coast
+PYTHONPATH=src python3 lean/scripts/scalar_trace_checks.py /tmp/eb-coast/harness
+```
 
 ## Extending the proofs
 
 1. Choose a remaining obligation in the [register](CLAIMS.md). Add a source-shaped definition or extend an existing source translation. Import the module from `ExactBallparkProofs.lean`.
 2. State a theorem with explicit input, mode, numerical and cache assumptions. Record the declaration, source symbols, rule IDs and remaining obligations in `claims.json`. Use `ruleTheorems` to associate individual rules with their supporting declarations when a claim group spans several laws.
 3. Run the checker. The allowed transitive axioms are `propext`, `Quot.sound` and `Classical.choice`. The audit checks project theorems outside the registry, rejects project-declared axioms and verifies that every proof module is imported. For a source change, review the affected code and its correspondence before updating the source hash.
-4. For an implementation claim, identify the operations and backend it covers. Outstanding work includes full scalar state transitions, floating-point geometry near contact, whole elementary functions, and correspondence to the batched and fused kernels. Device qualification is recorded separately in the engine’s [platform](../docs/platform.md) and [evidence](../docs/exactness.md) documents.
+4. For an implementation claim, identify the operations and backend it covers. Beyond the scalar GOTO/STOP trace, outstanding work includes coupled motion and collision transitions, floating-point geometry near contact, whole elementary functions, and correspondence to the batched and fused kernels. Device qualification is recorded in the engine’s [platform](../docs/platform.md) and [evidence](../docs/exactness.md) documents.
+5. For each proof batch, update the theorem totals in both READMEs, summarize the result in the changelog and regenerate the claim page with `python3 scripts/check.py --write` from `lean/`. When a replay establishes a discrepancy, record its impact and evidence in the severity-ranked log. Update the relevant engine guide when the result changes how readers should interpret a rule or its evidence. [Project README](../README.md#engine-laws-in-lean) · [Changelog](../CHANGELOG.md) · [Discrepancy log](DISCREPANCIES.md) · [Engine guides](../docs/README.md)

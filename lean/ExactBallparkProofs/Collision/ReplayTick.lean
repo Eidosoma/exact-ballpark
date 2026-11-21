@@ -39,10 +39,11 @@ structure FixedHit where
   time : Float
   normal : Float
 
-def fixedHit (absolute : Bool) (path : Path) (p q : Motion) : Option FixedHit := Id.run do
+def fixedCandidates (obstacles : List (Int × Float)) (radius : Float) (absolute : Bool)
+    (path : Path) (p q : Motion) : Option FixedHit := Id.run do
   let mut best : Option FixedHit := none
-  for (id, x) in ([(2,100), (3,107), (4,108)] : List (Int × Float)) do
-    let u := contact64 p.pos q.pos (axis x) (axis x) 1
+  for (id, x) in obstacles do
+    let u := contact64 p.pos q.pos (axis x) (axis x) radius
     if 0 ≤ u && !ignoreCollision path.locations id u then
       let t := path.startTime + u * (path.endTime-path.startTime)
       if best.all (fun hit => decide ((if absolute then t else u) < hit.time)) then
@@ -51,6 +52,8 @@ def fixedHit (absolute : Bool) (path : Path) (p q : Motion) : Option FixedHit :=
         best := some ⟨id,t,if length == 0 then dx else dx * (1/length)⟩
     if best.any (fun hit => hit.time == path.startTime) then break
   return best
+
+def fixedHit := fixedCandidates [(2,100), (3,107), (4,108)] 1
 
 /-- A separating contact returns the value-initialised impact with collider zero.
 At a start contact the acceleration has already been written at that point. -/

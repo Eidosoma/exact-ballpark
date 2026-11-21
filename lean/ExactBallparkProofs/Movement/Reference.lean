@@ -35,4 +35,12 @@ def binary64 (expFn : Float → Float) (p v a m k time_factor t dt : Float) : Fl
   let vn := (((m * a) - (((m * a) - (v * k)) * time_factor)) * ook)
   (pn, vn)
 
+noncomputable def ordinaryRounded (rnd : ℝ → ℝ) (p v a m k time_factor t : ℝ) : ℝ × ℝ :=
+  let k2 := (rnd (k * k))
+  let ook2 := (rnd (1 / k2))
+  let ook := (rnd (1 / k))
+  let pn := (rnd ((rnd ((rnd (m * (rnd ((rnd ((rnd (m * a)) * (rnd (time_factor - 1)))) + (rnd (k * (rnd ((rnd ((rnd (a * t)) + v)) - (rnd (time_factor * v)))))))))) + (rnd (p * k2)))) * ook2))
+  let vn := (rnd ((rnd ((rnd (m * a)) - (rnd ((rnd ((rnd (m * a)) - (rnd (v * k)))) * time_factor)))) * ook))
+  (pn, vn)
+
 end ExactBallpark.Movement.Reference

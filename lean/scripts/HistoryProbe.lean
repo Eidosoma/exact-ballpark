@@ -1,7 +1,7 @@
 -- SPDX-License-Identifier: MIT
 -- Copyright (c) 2026 Eidosoma
 import ExactBallparkProofs.Collision.ImpactHistory
-import ExactBallparkProofs.Collision.SearchWindow
+import ExactBallparkProofs.Physics.Units
 
 open ExactBallpark.Collision.History
 
@@ -36,6 +36,7 @@ def main : IO Unit := do
     let some result := result | throw (IO.userError "unexpected removal failure")
     emit result dropped
   IO.println s!"{ignoreCollision path.locations 12 delta} {ignoreCollision path.locations 11 delta}"
-  for order in [[(3,3),(4,5)],[(4,5),(3,3)]] do
-    let (id,t) := ExactBallpark.Collision.SearchWindow.fixedReplay order
-    IO.println s!"{id} {t}"
+  for replay in [ExactBallpark.Collision.SearchWindow.fixedReplay, ExactBallpark.Physics.fixedReplaySeconds] do
+    for order in [[(3,3),(4,5)],[(4,5),(3,3)]] do
+      let (id,t) := replay order
+      IO.println s!"{id} {t}"

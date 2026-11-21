@@ -33,20 +33,28 @@ def width(value):
 
 
 def check_decay():
-    path = Path(__file__).resolve().parents[1] / "ExactBallparkProofs/Collision/ReplayTick.lean"
-    pairs = re.findall(r"\| 0x(\w{16}) => 0x(\w{16})", path.read_text(encoding="utf-8"))
-    if len(pairs) != 9 or len(dict(pairs)) != 9:
-        raise SystemExit("Unexpected four-ball decay table")
-    for argument, result in pairs:
-        (x,) = struct.unpack(">d", bytes.fromhex(argument))
-        if word(math.exp(x)) != result:
-            raise SystemExit(f"Host exp differs for the four-ball replay at {argument}")
+    folder = Path(__file__).resolve().parents[1] / "ExactBallparkProofs/Collision"
+    for module, size in [("ReplayTick", 9), ("ReboundCutoff", 8)]:
+        pairs = re.findall(r"\| 0x(\w{16}) => 0x(\w{16})", (folder / f"{module}.lean").read_text(encoding="utf-8"))
+        if len(pairs) != size or len(dict(pairs)) != size:
+            raise SystemExit(f"Unexpected decay table for {module}")
+        for argument, result in pairs:
+            (x,) = struct.unpack(">d", bytes.fromhex(argument))
+            if word(math.exp(x)) != result:
+                raise SystemExit(f"Host exp differs for {module} at {argument}")
 
 
 def check_witnesses(run_lake):
     engine, control = contact_replay.rebound()
     observed = {"engine-endpoint": engine, "control-endpoint": control,
                 "return-times": contact_replay.free_repeat(), "radial-inputs": radial_intermediates()}
+    observed = {key: list(map(word, values)) for key, values in observed.items()}
+    for label, changed in [("engine", False), ("control", True)]:
+        hits, endpoint, _ = contact_replay.detected_rebound(changed)
+        observed[f"detected-{label}-endpoint"] = list(endpoint)
+        for i, (collider, time, index, impulse) in enumerate(hits):
+            observed[f"detected-{label}-hit-{i}"] = [time, impulse]
+            observed[f"detected-{label}-record-{i}"] = [f"{collider:016x}", f"{index:016x}"]
     rows = run_lake("env", "lean", "--run", "scripts/ArithmeticWitnessProbe.lean", capture=True).splitlines()
     for row in rows:
         fields = row.split()
@@ -54,7 +62,7 @@ def check_witnesses(run_lake):
             raise SystemExit(f"Unexpected Lean witness row {row!r}")
         label, *digits = fields
         certified = [f"{int(n):016x}" for n in digits]
-        cpu = [word(value) for value in observed.pop(label)]
+        cpu = observed.pop(label)
         if cpu != certified:
             raise SystemExit(f"{label} differs: Lean {certified}, scalar replay {cpu}")
     if observed:
@@ -163,9 +171,47 @@ def check_fma():
     return len(triples), certified, inexact_odd
 
 
+def first_reduction():
+    """Observe the first FMA inside exp, including both sides of every index transition."""
+    inv = Fraction(3248660424278399, 2**44)
+    coeff = Fraction(-47632711549, 2**43)
+    split = Fraction(-1453635, 2**28), Fraction(131, 2**43)
+    lo, hi = -1.0, -2.0**-54
+    inputs = {lo, hi, math.nextafter(lo, hi), math.nextafter(hi, lo)}
+    for i in range(185):
+        boundary = float(-(i + Fraction(1, 2)) / inv)
+        inputs.update(x for x in (math.nextafter(boundary, lo), boundary, math.nextafter(boundary, hi)) if lo <= x <= hi)
+        if i:
+            inputs.add(float(i * coeff))  # exact cancellation at the first FMA
+    xs = torch.tensor(sorted(inputs), dtype=torch.float64)
+    actual_fma = vec_exp.fma
+    observed = []
+
+    def record(a, b, c, b_split=None):
+        out = actual_fma(a, b, c, b_split)
+        if not observed:
+            if Fraction(b) != coeff or tuple(map(Fraction, b_split)) != split or not torch.equal(xs, c):
+                raise SystemExit("The first exp FMA no longer receives the registered constants and input")
+            observed.extend(zip(a.tolist(), c.tolist(), out.tolist(), strict=True))
+        return out
+
+    with patch.object(vec_exp, "fma", record):
+        vec_exp.exp(xs)
+    indices = {int(k) for k, _, _ in observed}
+    if indices != set(range(-185, 1)) or len(observed) != len(inputs):
+        raise SystemExit("First exp FMA missed a reachable reduction index")
+    for k, x, value in observed:
+        z = float(Fraction(x) * inv)
+        index = math.trunc(z + math.copysign(0.5, z))
+        if k != index or Fraction(value) != Fraction(x) + index*coeff or word(value) != word(math.fma(k, float(coeff), x)):
+            raise SystemExit(f"First exp FMA disagrees with exact arithmetic or single rounding at {x.hex()}")
+    return len(inputs), len(indices)
+
+
 def compare(run_lake):
     check_decay()
     check_witnesses(run_lake)
     lanes = check_accuracy()
+    reduction = first_reduction()
     cases, admitted, odd = check_fma()
-    return lanes, f"{cases} software FMAs ({admitted} inside the grid conditions, {odd} with inexact low sums)"
+    return lanes, f"{cases} software FMAs ({admitted} inside the grid conditions, {odd} with inexact low sums)", reduction

@@ -12,6 +12,8 @@ Every location is at the pinned commits (`provenance.md`): destiny `114e89fa`, c
 
 Where a batched park or a CUDA kernel implements a rule, the listed tests also hold it to the reference bit for bit (`exactness.md`). A rule's tests may include the batched and kernel tests of every park it appears in.
 
+The status column reports conformance tests. To find the properties Lean proves for a rule, look up the same ID in the claim register. Each claim gives its arithmetic model, assumptions and theorem names. [Proofs by rule](../lean/CLAIMS.md#catalogue-coverage)
+
 **105 rules:** 93 passing (compiled code), 6 passing (test vectors), 4 implemented, not passing (compiled code), 2 implemented, not passing (test vectors).
 
 ## Movement and flight (MOV)

@@ -15,5 +15,10 @@ name = "floatlib"
 git = "https://github.com/lean-dojo/FloatLib.git"
 rev = "71a3d7ff211b28bc3d27673b70b90644941a5fff"
 
+[[require]]
+name = "Physlib"
+git = "https://github.com/leanprover-community/physlib.git"
+rev = "56430c65b76f73c7c25fc03eed46be1d888520bb"
+
 [[lean_lib]]
 name = "ExactBallparkProofs"

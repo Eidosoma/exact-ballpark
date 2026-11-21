@@ -16,3 +16,5 @@
   idle NVIDIA GH200, with each measurement's spread and the environment.
 - **`rules.md`:** the table of destiny's rules this port is held to. Each rule has its source location in destiny and
   the tests that check it.
+- Look up an engine rule ID to find its Lean theorems, assumptions and supporting CPU tests. [Proofs by rule](../lean/CLAIMS.md#catalogue-coverage) · [Running the proof checker](../lean/README.md#verify-locally)
+- For observed differences, see the severity-ranked examples, their effects in play and the commands that reproduce them. [Discrepancy log](../lean/DISCREPANCIES.md)

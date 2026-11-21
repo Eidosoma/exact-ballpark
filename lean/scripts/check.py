@@ -16,6 +16,7 @@ import sys
 sys.dont_write_bytecode = True
 import delivery_checks
 import integrator_reference
+import scalar_reference
 import server_reference
 import warp_reference
 import visibility_checks
@@ -105,7 +106,9 @@ def compare_setters():
 
 
 def compare_integrator():
+    import torch
     from exact_ballpark.ref import Ballpark
+    from exact_ballpark.vec_collide import VecCollidePark
 
     park = Ballpark(friction=1)
     # Each row exercises the actual scalar entry point on three coordinates.
@@ -114,10 +117,10 @@ def compare_integrator():
              (2**40, 1, math.exp(-2**-40)), (2**40, 0.5, -7),
              (10**10, 1, 0.75), (math.nextafter(10**10, math.inf), 1, 0.75)]
     rows, expected = [], []
+    p, v, a = [-0.0, 0.0, -8.5], [-0.0, 1.0, -3.0], [0.0, 2**20, 0.5]
     def bits(x):
         return int.from_bytes(struct.pack(">d", x), "big")
     for m, t, cache in cases:
-        p, v, a = [-0.0, 0.0, -8.5], [-0.0, 1.0, -3.0], [0.0, 2**20, 0.5]
         pos, vel = park.integrate(p, v, a, m, 1.0, cache, t)
         exp_val = math.exp((-1.0 / m)*t)
         for i in range(3):
@@ -128,6 +131,20 @@ def compare_integrator():
     for inputs, actual, reference in zip(rows, output.splitlines(), expected, strict=True):
         if tuple(map(int, actual.split())) != reference:
             raise SystemExit(f"Integrator mismatch for binary64 inputs {inputs}")
+    batched = VecCollidePark(1, len(cases), friction=1.0, device="cpu")
+    def tensor(values):
+        return torch.tensor(values, dtype=torch.float64)
+    pos, vel, acc = [tensor([values]*len(cases)) for values in (p, v, a)]
+    mass, time, cached = map(tensor, zip(*cases))
+    partial = tensor([math.exp((-1.0/m)*t) for m, t, _ in cases])
+    pn, vn = batched._integrate_t(pos, vel, acc, mass, cached, time, partial)
+    full = time == park.dt
+    fp, fv = batched._integrate_dt(pos[full], vel[full], acc[full], mass[full], cached[full])
+    if list(zip(map(bits, pn.flatten().tolist()), map(bits, vn.flatten().tolist()))) != expected:
+        raise SystemExit("The PyTorch CPU partial-tick lanes differ from the scalar integrator")
+    if not (torch.equal(fp.view(torch.int64), pn[full].view(torch.int64)) and
+            torch.equal(fv.view(torch.int64), vn[full].view(torch.int64))):
+        raise SystemExit("The full-tick tensor integrator disagrees on the cached lanes")
     return len(rows)
 
 
@@ -230,7 +247,8 @@ def compare_history():
         rows.append(snapshot(path, removed))
     path = fixture()
     rows.append(" ".join(str(path.ignore_collision(cid, FUZZY_DELTA)).lower() for cid in [12, 11]))
-    rows.extend(f"{i} {int(word, 16)}" for i, word in fixed_pair())
+    for compare_seconds in (False, True):
+        rows.extend(f"{i} {int(word, 16)}" for i, word in fixed_pair(compare_seconds=compare_seconds))
     observed = run_lake("env", "lean", "--run", "scripts/HistoryProbe.lean", capture=True).splitlines()
     if observed != rows:
         raise SystemExit(f"Collision history or fixed-ball selection differs between Lean {observed} and scalar Python {rows}")
@@ -239,7 +257,8 @@ def compare_history():
         raise SystemExit("COL-715 history lookup differs from the logged witness")
 
 
-def claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows, combat_lanes, fma, mixed_rows, exp_lanes):
+def claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows, combat_lanes, fma, mixed_rows,
+               exp_lanes, movement_prefixes, rejected_suffixes):
     claims = registry["claims"]
     linked = {rule for claim in claims for rule in claim["rules"]}
     families = defaultdict(list)
@@ -277,6 +296,13 @@ def claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows, 
         lines += [f'<a id="claim-{index}"></a>', "", f"## {claim['title']}", "", f"**{claim['model']}.** {claim['scope']}", "",
                   f"Engine symbols `{claim['symbols']}`. " + " · ".join(source_links), "",
                   f"Recorded upstream evidence — {status}.", ""]
+        if "hostEvidence" in claim:
+            lines += [claim["hostEvidence"], ""]
+        if "ExactBallpark.Movement.Scalar.trace_refines" in claim["theorems"]:
+            lines += [f"CPython and Lean agree on the clock, IDs, modes and every stored field after "
+                      f"{movement_prefixes} movement trace prefixes. The probe compares non-NaN words exactly "
+                      f"and checks {rejected_suffixes} rejected suffixes against scalar exceptions. "
+                      "[Trace replay](scripts/scalar_trace_checks.py)", ""]
         if any(name in claim["theorems"] for name in ("ExactBallpark.Numerics.clamp_other",
                                                       "ExactBallpark.Numerics.agility_accepts_iff")):
             lines += [f"Host correspondence check — Lean and Python agree on {probes} binary64 inputs.", ""]
@@ -328,7 +354,7 @@ def main():
     if not re.search(r"Lean \(version " + re.escape(pin) + r"(?:,|\))", version):
         raise SystemExit(f"Expected Lean {pin}, got {version.strip()}")
     registry, catalogue, expected = load_registry()
-    for reference in (integrator_reference, server_reference, warp_reference):
+    for reference in (integrator_reference, scalar_reference, server_reference, warp_reference):
         if reference.DEST.read_text(encoding="utf-8") != reference.extract():
             raise SystemExit(f"Generated source differs from Python. Review scripts/{reference.__name__}.py.")
     run_lake("build")
@@ -340,19 +366,28 @@ def main():
     sys.path.insert(0, str(ROOT / "src"))
     import arithmetic_checks
     import candidate_checks
+    import curve_checks
     import contact_replay
     import formation_checks
+    import geometry_checks
     import mixed_history_checks
+    import rebound_checks
     import sampling_checks
+    import scalar_trace_checks
+    movement_prefixes, rejected_suffixes = scalar_trace_checks.compare(run_lake)
     formation_cases = formation_checks.compare(run_lake)
     probes = compare_setters()
     coordinates = compare_integrator()
     sweeps = compare_sweep_examples()
     compare_history()
     compare_face_and_clock()
+    geometry_checks.compare(run_lake)
+    curve_cases = curve_checks.compare(run_lake)
+    contact_cases = curve_checks.compare_contacts(run_lake)
+    rebound_cases = rebound_checks.compare(run_lake)
     contact_replay.static_order()
     candidate_rows = candidate_checks.compare(run_lake)
-    combat_lanes, fma = arithmetic_checks.compare(run_lake)
+    combat_lanes, fma, (fma_inputs, indices) = arithmetic_checks.compare(run_lake)
     mixed_rows = mixed_history_checks.compare(run_lake)
     exp_lanes = sampling_checks.exponential()
     sampling_checks.warp()
@@ -374,20 +409,28 @@ def main():
             (formation_cases["join"], "joins"), (formation_cases["resize"], "resize sequences"),
             (batches, "outgoing batches"), (snapshot_steps, "snapshot operations"),
             (candidate_rows, "ordered candidate lists"), (mixed_rows, "mixed-stamp histories"),
-            (exp_lanes, "non-tiny inputs")]):
+            (curve_cases, "curve clearance checks"),
+            (contact_cases, "first-contact checks"),
+            (rebound_cases, "one-impact ticks"),
+            (movement_prefixes, "movement trace prefixes"), (rejected_suffixes, "rejected suffixes"),
+            (exp_lanes, "non-tiny inputs"), (fma_inputs, "first-reduction inputs"), (indices, "reachable indices")]):
         raise SystemExit("Update the theorem and CPU probe counts in lean/README.md")
     coverage = f"all {len(catalogue)}" if linked == catalogue.keys() else f"{len(linked)} of {len(catalogue)}"
     if not re.search(rf"(?<![0-9]){len(audit)} kernel-checked theorems across {coverage} engine rules\b",
                      (ROOT / "README.md").read_text(encoding="utf-8")):
         raise SystemExit("Update the theorem and law counts in README.md")
     page = claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows, combat_lanes, fma,
-                      mixed_rows, exp_lanes)
+                      mixed_rows, exp_lanes, movement_prefixes, rejected_suffixes)
     path = LEAN / "CLAIMS.md"
     if args.write:
         path.write_text(page, encoding="utf-8")
     elif not path.exists() or path.read_text(encoding="utf-8") != page:
         raise SystemExit("Stale CLAIMS.md. Run python3 scripts/check.py --write and review the diff.")
-    print(f"Verified {len(audit)} theorems, source hashes, {probes} inputs each for mass and agility, {coordinates} integrator updates, {sweeps} sweep examples, the impact limiter, impact history, triangle faces, tick deadlines, short warps, {visibility['sensor']} sensor scans, 8 uncloaking cases, {visibility['pilot']} pilot transitions, {visibility['route']} event routes, {batches} outgoing batches, {snapshot_steps} snapshot operations, {mixed_rows} mixed-stamp histories, {sum(formation_cases.values())} formation cases, {candidate_rows} ordered candidate lists on PyTorch CPU, capsule and contact selection replays, warp and range sampling, {exp_lanes} non-tiny exponentials, tiny-input checks, {combat_lanes} combat lanes, {fma} and CLAIMS.md.")
+    print(f"Passed {contact_cases} first-contact checks on the CPU.")
+    print(f"Matched {rebound_cases} one-impact ticks on both balls through the committed endpoints.")
+    print(f"Matched {movement_prefixes} scalar movement trace prefixes, {rejected_suffixes} rejected suffixes "
+          "and the five-second coast against the continuous drag solution.")
+    print(f"Verified {len(audit)} theorems, source hashes, {probes} inputs each for mass and agility, {coordinates} integrator updates, {sweeps} sweep examples, {curve_cases} curve clearance checks, the impact limiter, impact history, triangle faces, tick deadlines, short warps, {visibility['sensor']} sensor scans, 8 uncloaking cases, {visibility['pilot']} pilot transitions, {visibility['route']} event routes, {batches} outgoing batches, {snapshot_steps} snapshot operations, {mixed_rows} mixed-stamp histories, {sum(formation_cases.values())} formation cases, {candidate_rows} ordered candidate lists on PyTorch CPU, geometric certificates and detected rebound traces, warp and range sampling, {exp_lanes} non-tiny exponentials, {fma_inputs} first-reduction inputs across {indices} indices, tiny-input checks, {combat_lanes} combat lanes, {fma} and CLAIMS.md.")
 
 
 if __name__ == "__main__":

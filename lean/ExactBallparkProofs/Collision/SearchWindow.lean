@@ -48,19 +48,23 @@ theorem full_tick_first_min (xs : List Hit) (valid : ∀ x ∈ xs, 0 ≤ x.2) :
 
 def axis (x : Float) : ExactBallpark.Collision.FloatPoint := fun i => if i = 0 then x else 0
 
-/-- Finite program for the two unobstructed fixed-ball candidates. Store words
-for comparing timestamps without identifying the two signed zeros. -/
-def fixedReplay (obstacles : List (Nat × Float)) : Nat × UInt64 := Id.run do
+/-- Finite half-tick fixture. The comparison receives the window, candidate fraction
+and incumbent time. Geometry and stored timestamps are shared by both replays. -/
+def fixedReplayBy (earlier : Float → Float → Float → Float → Bool)
+    (obstacles : List (Nat × Float)) : Nat × UInt64 := Id.run do
   let half := Float.ofBits 0x3fe0000000000000
   let mut t : Float := -1
   let mut winner := 0
   for (id,x) in obstacles do
     let u := contact64 (axis 0) (axis 8) (axis x) (axis x) 1
-    if u ≥ 0 && (t < 0 || u < t) then
+    if u ≥ 0 && (t < 0 || earlier half 1 u t) then
       t := half + u * (1-half)
       winner := id
     if t == half then break
   return (winner,t.toBits)
+
+/-- Destiny compares the candidate fraction directly with the stored time. -/
+def fixedReplay := fixedReplayBy (fun _ _ fraction held => fraction < held)
 
 set_option maxRecDepth 16384 in
 /-- The two comparisons disagree on exactly the half-open interval between the

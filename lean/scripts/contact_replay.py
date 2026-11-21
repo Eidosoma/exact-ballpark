@@ -2,6 +2,7 @@
 # Copyright (c) 2026 Eidosoma
 """Replay fixed-ball selection and free-ball repeat handling through the scalar engine and the pinned space harness."""
 from contextlib import redirect_stdout
+from fractions import Fraction
 from io import StringIO
 from pathlib import Path
 import struct
@@ -10,15 +11,31 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from exact_ballpark.full import Capsule, FullBallpark
-from exact_ballpark.space import CollisionImpact, CollisionItem
+from exact_ballpark.space import CollisionBallProperties, CollisionImpact, CollisionItem, FUZZY_DELTA, SpaceBallpark
 
 
 def word(x):
     return struct.pack(">d", x).hex()
 
 
-def fixed_pair():
-    park = FullBallpark(friction=1, iterative=True)
+class EarliestFixed(FullBallpark):
+    """Use the engine's single-obstacle sweep, then compare its absolute contact times."""
+
+    def _next_collision_static(self, path, item, balls, collidables=()):
+        assert not collidables and all(not ball.is_free for ball in balls)
+        for other in balls:
+            candidate = CollisionItem()
+            super()._next_collision_static(path, candidate, [other])
+            if candidate.collider is not None and (item.time < 0 or candidate.time < item.time):
+                for field in CollisionItem.__slots__:
+                    setattr(item, field, getattr(candidate, field))
+                if item.time == path.t_start:
+                    break
+
+
+def fixed_pair(*, compare_seconds=False):
+    park_type = EarliestFixed if compare_seconds else FullBallpark
+    park = park_type(friction=1, iterative=True)
     ship = park.add_ball(1, 1, .5, 16, True, is_massive=True, agility=1, vx=16)
     ship.last_g = [16., 0., 0.]
     path = park._properties(ship)
@@ -36,18 +53,6 @@ def fixed_pair():
 
 def rebound():
     """Same one-second evolution twice. Only the control's fixed-ball comparison changes."""
-    class EarliestFixed(FullBallpark):
-        def _next_collision_static(self, path, item, balls, collidables=()):
-            assert not collidables and all(not ball.is_free for ball in balls)
-            for other in balls:
-                candidate = CollisionItem()
-                super()._next_collision_static(path, candidate, [other])
-                if candidate.collider is not None and (item.time < 0 or candidate.time < item.time):
-                    for field in CollisionItem.__slots__:
-                        setattr(item, field, getattr(candidate, field))
-                    if item.time == path.t_start:
-                        break
-
     results = []
     for cls in (FullBallpark, EarliestFixed):
         park = cls(friction=1, iterative=True)
@@ -58,6 +63,38 @@ def rebound():
         ship = park.balls[1]
         results.append((ship.pos[0], ship.vel[0]))
     return results
+
+
+def detected_rebound(control=False):
+    """Start three balls and observe their actual contacts during one 100 ms tick."""
+    trace = []
+
+    class ObservedPark(FullBallpark):
+        def _impact_static(self, path, item):
+            index = path.find_index(item.time)
+            super()._impact_static(path, item)
+            trace.append((item.collider.id, word(item.time), index, word(item.impact.dv[0])))
+
+    def exact_index(path, query):
+        for i, location in enumerate(path.locations):
+            if Fraction(location.time) + Fraction(FUZZY_DELTA) >= Fraction(query):
+                return max(0, i - 1)
+        return len(path.locations) - 1
+
+    park = ObservedPark(friction=1, iterative=True, tick_interval_ms=100)
+    xs = ("-0x1.9821b123583d1p+9", "-0x1.6cffb2ca84a00p+0", "-0x1.738a574389bfdp-2")
+    for i, x in enumerate(xs, 1):
+        park.add_ball(i, 0.0625, 0.015625, 32768, i == 1, is_massive=True, agility=1,
+                      x=float.fromhex(x), y=100, z=100, vx=16384 if i == 1 else 0)
+    if control:
+        with patch.object(CollisionBallProperties, "find_index", exact_index):
+            park.evolve()
+    else:
+        park.evolve()
+    ship = park.balls[1]
+    history = [(loc.collider, word(loc.time), word(loc.v[0]))
+               for loc in park.collision_locations[1].locations[1:-1]]
+    return trace, (word(ship.pos[0]), word(ship.vel[0])), history
 
 
 def free_repeat():
@@ -104,8 +141,86 @@ def static_order():
 # Uses conformance/build_space.py's pinned function extraction and its Ballpark.
 # Both the half-window selector and the full tick run the original collision loops.
 DRIVER = r"""
+// Evolve commits the real tick. The same inputs in a second park expose the
+// raw and limited impulses, which Destiny does not keep in the finished history.
+static bool one_impact_tick(const char* name, double rightMass, float leftMax) {
+    auto setup = [&](Ballpark& park) {
+        park.mFriction = park.dt = 1;
+        Ball* a = park.AddBall(1,1,0.5f,leftMax,true,false,true,false,false,0,0,0,2,0,0,1,2/leftMax);
+        Ball* b = park.AddBall(2,rightMass,0.5f,2,true,false,true,false,false,3,0,0,-2,0,0,1/rightMass,1);
+        park.GotoPoint(a,Vector3d(64,0,0));
+        park.GotoPoint(b,Vector3d(-61,0,0));
+        return std::make_pair(a,b);
+    };
+    Ballpark live, parts;
+    const auto balls = setup(live);
+    live.Evolve(0);
+    const auto prepared = setup(parts);
+    Ball* a = prepared.first;
+    Ball* b = prepared.second;
+    a->mLastG = parts.GotoThrust(a,a->mGoto,false);
+    b->mLastG = parts.GotoThrust(b,b->mGoto,false);
+    auto& ap = parts.mCollisionLocations[a->mId];
+    auto& bp = parts.mCollisionLocations[b->mId];
+    ap.Initialize(a,parts.dt);
+    bp.Initialize(b,parts.dt);
+    VectorOfBalls candidates{b};
+    CollisionItem hit;
+    parts.GetNextCollisionFree(ap,hit,candidates,0);
+    if (hit.collider != b || !(0 < hit.timeOfImpact && hit.timeOfImpact < parts.dt)) return false;
+    Vector3d pa,va,pb,vb;
+    ap.CalculatePosition(pa,va,hit.timeOfImpact);
+    bp.CalculatePosition(pb,vb,hit.timeOfImpact);
+    auto other = parts.CalculateCollisionImpactFree(ap,bp,hit);
+    if (!hit.impact || !other.impact || hit.impact->collider != 2 || other.impact->collider != 1) return false;
+    const auto rawA = hit.impact->velocityChange, rawB = other.impact->velocityChange;
+    parts.AddImpact(*other.impact,0,b);
+    parts.AddImpact(*hit.impact,0,a);
+    auto emit = [&](Ball* ball, const Vector3d& p, const Vector3d& v, const Vector3d& raw, const Vector3d& applied) {
+        const auto& locs = live.mCollisionLocations.at(ball->mId).m_locations;
+        if (locs.size() != 3 || locs[0].time != 0 || locs[0].collider != -1 ||
+            locs[1].time != hit.timeOfImpact || locs[1].collider != 3-ball->mId ||
+            locs[2].time != live.dt || locs[2].collider != -1) return false;
+        std::printf("REBOUND %s %lld %a %a",name,(long long)ball->mId,ball->mTimeFactor,locs[1].time);
+        for (const auto& value : {ball->mLastG,p,v,raw,applied,locs[1].p,locs[1].v,ball->mNewPos,ball->mNewVel})
+            std::printf(" %a %a %a",value.x,value.y,value.z);
+        std::printf("\n");
+        return true;
+    };
+    return emit(balls.first,pa,va,rawA,hit.impact->velocityChange) &&
+           emit(balls.second,pb,vb,rawB,other.impact->velocityChange);
+}
+
 int main() {
     g_useIterativeCollision = true;
+    if (!one_impact_tick("equal",1,2) || !one_impact_tick("unequal",2,2) || !one_impact_tick("limited",1,0.5f)) {
+        std::fprintf(stderr,"Pinned one-impact tick produced an unexpected contact or history\n");
+        return 1;
+    }
+    Ballpark turn;
+    turn.mFriction = turn.dt = 1;
+    Ball* pilot = turn.AddBall(1,1,0.25f,10,true,false,true,false,false,
+                               0,0,0,10,0,0,1,1);
+    const Vector3d start = pilot->mNewPos;
+    const auto thrust = turn.GotoThrust(pilot,Vector3d(0,100,0),false);
+    auto position = [&](double dt) {
+        auto p = start, v = pilot->mNewVel;
+        turn.Integrate(p,v,thrust,pilot->mMass*pilot->mAgility,turn.mFriction,pilot->mTimeFactor,dt);
+        return p;
+    };
+    const auto mid = position(0.5), end = position(1);
+    const auto low = position(0.435661), high = position(0.435662);
+    const Vector3d crossing(4,1,0), clear(4,-4,0);
+    Ball* turningObstacle = turn.AddBall(2,2,0.25f,10,true,false,true,false,false,4,1,0,-0.5,-0.25,0,1,1);
+    auto movingEnd = turningObstacle->mNewPos, movingVelocity = turningObstacle->mNewVel;
+    turn.Integrate(movingEnd,movingVelocity,Vector3d(0,-1,0),turningObstacle->mMass*turningObstacle->mAgility,
+                   turn.mFriction,turningObstacle->mTimeFactor,1);
+    std::printf("CURVE %a %a %a %a %a %a %a %a %a %a %a %a %a %a %a %a %a %a\n", pilot->mTimeFactor,
+                thrust.x,thrust.y,thrust.z,mid.x,mid.y,mid.z,end.x,end.y,end.z,
+                CollideTwoSpheres(start,end,crossing,crossing,0.5), CollideTwoSpheres(start,end,clear,clear,0.5),
+                low.x,low.y,low.z,high.x,high.y,high.z);
+    std::printf("TWO_TURNS %a %a %a %a\n", movingEnd.x,movingEnd.y,movingEnd.z,
+                CollideTwoSpheres(start,end,crossing,movingEnd,0.5));
     Ballpark half;
     half.mFriction = half.dt = 1;
     auto body = [](Ballpark& p, int id, double x, double vx, double m, bool free, double yz) {
@@ -156,12 +271,30 @@ int main() {
     body(tick,4,108,0,16,false,100);
     tick.Evolve(0);
     std::printf("W tick %a %a\n",mover->mNewPos.x,mover->mNewVel.x);
+    Ballpark cutoff;
+    cutoff.mFriction = 1;
+    cutoff.mTickInterval = 100;
+    cutoff.dt = cutoff.mTickInterval * 0.001;
+    const double xs[] = {-0x1.9821b123583d1p+9, -0x1.6cffb2ca84a00p+0, -0x1.738a574389bfdp-2};
+    Ball* moving = nullptr;
+    for (int i=0; i<3; ++i) {
+        Ball* b = cutoff.AddBall(i+1, 0.0625, 0.015625f, 32768, i==0, false, true, false, false,
+                                 xs[i],100,100,i==0 ? 16384 : 0,0,0,1,0);
+        if (i==0) moving = b;
+    }
+    cutoff.Evolve(0);
+    std::printf("W cutoff %a %a\n", moving->mNewPos.x, moving->mNewVel.x);
+    const auto& locs = cutoff.mCollisionLocations[1].m_locations;
+    for (size_t j=1; j+1<locs.size(); ++j)
+        std::printf("W record %lld %a %a\n", (long long)locs[j].collider, locs[j].time, locs[j].v.x);
 }
 """
 
 
 def upstream(repo):
     import build_space
+    import rebound_checks
+    from curve_checks import second_turn, turning_edges, turning_sweep
 
     # GCC 11's libstdc++ exposes asinf in the global namespace on this host.
     prelude = "#include <cmath>\nnamespace std { using ::asinf; }\n" + build_space.PRELUDE_A
@@ -175,8 +308,24 @@ def upstream(repo):
         subprocess.run(["git", "-C", source, "checkout", "--quiet", "--detach", build_space.PINNED], check=True)
         build_space.main(source, build)
         lines = subprocess.check_output([build / "harness"], encoding="utf-8").splitlines()
+    rebound_checks.compare_cpp(lines)
+    cache, thrust, mid, end, times = turning_sweep()
+    low, high = turning_edges()
+    expected = [word(v) for v in [cache, *thrust, *mid, *end, *times, *low, *high]]
+    curve_rows = [[word(float.fromhex(v)) for v in row.split()[1:]] for row in lines if row.startswith("CURVE ")]
+    if curve_rows != [expected]:
+        raise SystemExit(f"Turning GOTO sweep differs between scalar and pinned C++: {curve_rows}, expected {expected}")
+    other_start, other_end, _, _ = second_turn()
+    pair_time = SpaceBallpark.collide_two_spheres([0., 0., 0.], end, other_start, other_end, .5)
+    pair_words = [[word(float.fromhex(v)) for v in row.split()[1:]] for row in lines if row.startswith("TWO_TURNS ")]
+    if pair_words != [[word(v) for v in [*other_end, pair_time]]]:
+        raise SystemExit("Two turning bodies differ between scalar and pinned C++")
     actual = [row.split()[2:] for row in lines if row.startswith("W ")]
-    near_first, far_first, free, final = actual
+    near_first, far_first, free, final, cutoff, *records = actual
+    _, endpoint, history = detected_rebound()
+    if (tuple(word(float.fromhex(v)) for v in cutoff) != endpoint or
+            [(int(i), word(float.fromhex(t)), word(float.fromhex(v))) for i, t, v in records] != history):
+        raise SystemExit("Detected rebound differs between the scalar and pinned C++ histories or endpoints")
     pairs = [(int(i), word(float.fromhex(t))) for i, t in [near_first, far_first]]
     tick = [word(float.fromhex(v)) for v in final]
     if pairs != fixed_pair() or tick != [word(v) for v in rebound()[0]]:
