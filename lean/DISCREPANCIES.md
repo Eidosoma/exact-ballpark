@@ -197,6 +197,8 @@ Place two balls of radius one metre at (0, 0, 0) and (3, 4, 12) m. Give the seco
 
 Set optimal range and optimal signature radius to 10³⁰ and falloff, tracking and signature radius to one. The surface distance is 11 m, inside optimal range. The negative tracking term changes the sign of the exponent, yielding binary64 word `484e2a40f9945fd6`. The resulting hit probability is +∞. The exact geometric probability is at most one. A caller comparing a uniform draw with this result would always pass that comparison. The shot-resolution behavior of a game client was outside the replay. Lean certifies the two intermediate words. The scalar and pinned C++ replays capture those words at the square-root and power calls. The PyTorch CPU lane also reproduces the final outputs. This fixes the inputs of a regression already present in the engine suite. [Finite tracking proof](ExactBallparkProofs/Combat/Execution.lean) · [CPU regression](../tests/test_movement_vec_accuracy.py) · [Replay](scripts/replay_discrepancies.py)
 
+An offline Lean check compares the two rounded squared speeds before subtraction. It rejects this replay and certifies a nonnegative square-root input for both the perpendicular and exact radial controls. The engine still returns an infinite hit probability on the failing replay. [Input guard](ExactBallparkProofs/Combat/InputMargin.lean) · [CPU controls](scripts/law_trace_checks.py)
+
 <a id="col-705-tangency"></a>
 
 ## COL-705 · an exact grazing contact returns a miss

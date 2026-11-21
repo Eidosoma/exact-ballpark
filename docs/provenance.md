@@ -163,8 +163,10 @@ error, and scenarios that reach it are counted apart. Examples:
 - a formation read past the end of the formation list after a smaller `LoadFormations`;
 - a formation slot freed out of range (a `std::bitset<16>` reset past its end).
 
-**destiny's Python server and client layers** were read, never imported or run, and transcribed with every loop and
-call in its order. The dictionaries' and sets' iteration orders are CPython's, as in destiny. The C++ functions they
+**Destiny’s Python server and client layers** were transcribed from source with each loop and call in its original order.
+Later CPU replays execute five original server methods for routing and sending and three original client methods for packet history against fixture dependencies. The production services are outside those replays. [Server replay](../lean/scripts/law_trace_checks.py) · [Client replay](../lean/scripts/mixed_history_checks.py)
+
+The dictionaries' and sets' iteration orders are CPython's, as in destiny. The C++ functions they
 depend on are transcribed with them: the bubble additions and deletions, and the streams that write and read balls. The
 streams produce the same bytes as the C++ on a little-endian machine.
 

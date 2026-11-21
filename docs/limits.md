@@ -52,7 +52,8 @@ graph leaves out that park's domain watch, which the caller runs around it (sect
 | TIME-713 | destiny cleans up removed balls in an order that follows heap addresses. No port can reproduce that order, so the reference uses ascending id. The batched delayed removal is exact against the reference, never against destiny. |
 | TIME-708 | A client ball's display interpolation is not transcribed. It is display code, not compiled by the conformance kit. |
 | MOV-731, MOV-737 | Each rule's two halves are held to two different oracles: destiny's compiled C++, and the published tests of its Python server layer. Holding them as one rule needs destiny's Python layer run against the compiled engine. |
-| SEN-712, TIME-712 | Parts of each rule are not covered by destiny's published tests: the events of a ball in no known bubble or in a dead bubble, and the pre-tick's follower clean-up. Those parts are checked only against the transcription. |
+| SEN-712 | The published test vectors omit unknown and dead bubbles. A separate CPU replay exercises both through five pinned server methods with a visible owner and fixture network interfaces. [Routing evidence](../lean/README.md#ten-claims-across-engine-systems) |
+| TIME-712 | Destiny's published tests omit the pre-tick's follower clean-up. Its ordering is checked against the transcription. |
 
 ## 2. The scalar reference
 
@@ -77,8 +78,7 @@ result there, and aarch64's conversion of NaN to 0, but this is not compared wit
 - signals and logging;
 - profiling.
 
-**destiny's Python server and client layers** were transcribed but never run. Their stand-ins (`provenance.md`,
-section 3.1) are labelled in the code.
+**Destiny’s Python server and client layers** are transcribed. Focused CPU replays run selected original methods using labelled stand-ins for the game services. [Replay scope](provenance.md#31-the-scalar-reference)
 
 ## 3. Flight: `VecBallpark`, `VecOrientPark` and `VecModesPark`
 

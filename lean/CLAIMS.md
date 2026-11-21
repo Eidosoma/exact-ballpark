@@ -1,6 +1,6 @@
 # Lean claim register
 
-367 kernel-checked theorems have claims linked to 105 of the 105 catalogue rules. A link covers the scope stated below.
+383 kernel-checked theorems have claims linked to 105 of the 105 catalogue rules. A link covers the scope stated below.
 
 Engine revision `098653233eb0f9910a3f02564e36b0641cbd4e0f`. The register identifies manually transcribed models and source-extracted definitions. The Python-to-Lean extractors are trusted. The Lean kernel checks the resulting theorems. The full.py digest includes a docstring correction to the pinned formation source.
 
@@ -21,12 +21,12 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 
 | Rule | Engine law | Scope and supporting theorems |
 | --- | --- | --- |
-| MOV-701 | Motion is viscous with friction k = 1e6 and effective mass = mass x agility | [refresh_positive](#claim-1), [source_regular, velocity_hasDerivAt](#claim-3), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [drag_exponent_decay, refresh_factor_units](#claim-143), [trajectory_unique](#claim-146), [acceleration_bound](#claim-147) |
-| MOV-702 | Closed-form exponential integration of position and velocity | [source_regular, flow_zero, decay_hasDerivAt, position_hasDerivAt, velocity_hasDerivAt, flow_compose](#claim-3), [integrate_zero, integrate_regular, integrate_velocity](#claim-4), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50), [zero_duration_bits](#claim-52), [coordinate_words](#claim-126), [regular_step_error](#claim-128), [tick_lookup](#claim-137), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [extracted_velocity3, velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [pos_zero, vel_zero, position_derivative, extracted_position, trajectory_unique](#claim-146), [acceleration_bound, flight_chord_deviation](#claim-147), [pair_no_contact, pair_clearance](#claim-148), [position_error_from_axes, rounded_endpoint_budget](#claim-149), [turning_overlap, goto_sweep_inputs, turning_clearance](#claim-150), [decay_enclosed, weights_monotone, position_enclosed](#claim-152), [ordinary_throughout, squared_distance_enclosed](#claim-153), [turning_window, clear_control, two_turning_bodies](#claim-154), [ordinary_inputs, incoming](#claim-155), [restart_state, remainder](#claim-156), [half_decay, positive_gap, shared_drag_separation](#claim-157), [replay_words](#claim-158), [ideal_endpoint_enclosed, endpoint_error](#claim-159) |
+| MOV-701 | Motion is viscous with friction k = 1e6 and effective mass = mass x agility | [refresh_positive](#claim-1), [source_regular, velocity_hasDerivAt](#claim-3), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [drag_exponent_decay, refresh_factor_units](#claim-143), [trajectory_unique](#claim-146), [acceleration_bound](#claim-147), [manoeuvre_work_energy](#claim-169) |
+| MOV-702 | Closed-form exponential integration of position and velocity | [source_regular, flow_zero, decay_hasDerivAt, position_hasDerivAt, velocity_hasDerivAt, flow_compose](#claim-3), [integrate_zero, integrate_regular, integrate_velocity](#claim-4), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50), [zero_duration_bits](#claim-52), [coordinate_words](#claim-126), [regular_step_error](#claim-128), [tick_lookup](#claim-137), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [extracted_velocity3, velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [pos_zero, vel_zero, position_derivative, extracted_position, trajectory_unique](#claim-146), [acceleration_bound, flight_chord_deviation](#claim-147), [pair_no_contact, pair_clearance](#claim-148), [position_error_from_axes, rounded_endpoint_budget](#claim-149), [turning_overlap, goto_sweep_inputs, turning_clearance](#claim-150), [decay_enclosed, weights_monotone, position_enclosed](#claim-152), [ordinary_throughout, squared_distance_enclosed](#claim-153), [turning_window, clear_control, two_turning_bodies](#claim-154), [ordinary_inputs, incoming](#claim-155), [restart_state, remainder](#claim-156), [half_decay, positive_gap, shared_drag_separation](#claim-157), [replay_words](#claim-158), [ideal_endpoint_enclosed, endpoint_error](#claim-159), [manoeuvre_work_energy](#claim-169) |
 | MOV-703 | Near-zero friction switches to a branch where acceleration does not move the ball | [special_position_eq, integrate_special](#claim-4), [extracted_integrator](#claim-49), [special_rounding_witness](#claim-50), [special_position_error](#claim-105), [coordinate_words](#claim-126), [tick_lookup](#claim-137), [extracted_velocity3](#claim-142), [ordinary_throughout](#claim-153) |
 | MOV-704 | Each ball caches its one-tick decay factor exp(-k dt / (mass agility)) | [refresh_positive, stepFactor_eq](#claim-1), [addBall_valid, update_valid, history_valid, velocity_after_updates](#claim-2), [integrate_regular, integrate_velocity](#claim-4), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50), [coordinate_words](#claim-126), [regular_step_error](#claim-128), [edit_preserves_cache](#claim-136), [trace_refines](#claim-138), [trace_preserves_cache, cache_from_empty](#claim-139), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [extracted_velocity3](#claim-142), [drag_exponent_decay, refresh_factor_units](#claim-143), [extracted_position](#claim-146), [rounded_endpoint_budget](#claim-149), [goto_sweep_inputs](#claim-150), [decay_enclosed](#claim-152), [replay_words](#claim-158) |
 | MOV-705 | Maximum thrust is k x speedFraction x maxVel / (mass x agility) | [goto_terminal_bound, goto_speed_bound](#claim-6), [tick_lookup](#claim-137), [goto_sweep_inputs](#claim-150), [ordinary_inputs](#claim-155) |
-| MOV-706 | Goto thrust is full thrust toward the target with an (L/D)^4 homing taper | [taper_bounds, goto_terminal_bound, goto_speed_bound](#claim-6), [tick_lookup](#claim-137), [goto_sweep_inputs](#claim-150) |
+| MOV-706 | Goto thrust is full thrust toward the target with an (L/D)^4 homing taper | [taper_bounds, goto_terminal_bound, goto_speed_bound](#claim-6), [tick_lookup](#claim-137), [goto_sweep_inputs](#claim-150), [goto_first_commit, goto_moves_at_five](#claim-165) |
 | MOV-707 | Goto has no braking term, so a ship overshoots its goto point | [goto_overshoot](#claim-26) |
 | MOV-708 | GotoPoint and GotoDirection set a goto point, cancel follows and default speed | [goto_cancels](#claim-28), [edit_preserves_cache](#claim-136), [trace_refines](#claim-138), [goto_sweep_inputs](#claim-150) |
 | MOV-709 | Stop cancels follow-type modes and leaves the ball coasting to rest | [stop_clears](#claim-28), [edit_preserves_cache](#claim-136), [trace_refines](#claim-138) |
@@ -46,7 +46,7 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | MOV-723 | Missiles fly straight for 800 ms, then pursue a lead point at full thrust | [pursuit_center](#claim-34) |
 | MOV-724 | MissileFollow aims a missile at the target centre at full speed fraction | [pursuit_center](#claim-34), [pursuit_offset_witness](#claim-55) |
 | MOV-725 | A launched missile starts at the launcher with launcher velocity plus 150 m/s | [launch_speeds](#claim-34) |
-| MOV-726 | Formation followers aim at the leader's rotated slot offset | [formation_distance](#claim-35), [reserve_first, reserve_failure, reserve_release, release_empty](#claim-87), [ignored_iff, refused_stops, joined_link](#claim-88), [stopped_iff, resize_bit, regrow_skips_reserved](#claim-89) |
+| MOV-726 | Formation followers aim at the leader's rotated slot offset | [formation_distance](#claim-35), [reserve_first, reserve_failure, reserve_release, release_empty](#claim-87), [ignored_iff, refused_stops, joined_link](#claim-88), [stopped_iff, resize_bit, regrow_skips_reserved](#claim-89), [rotateSlot_norm, rotated_formation_distance](#claim-163) |
 | MOV-727 | The agility turn-angle cap is disabled, so thrust can point anywhere | [cap_preserves](#claim-32) |
 | MOV-728 | Optional dynamical orientation steers thrust along the ship's heading | [orientation_bound](#claim-35), [normalized_heading](#claim-100) |
 | MOV-729 | Without dynamical orientation, heading is a smoothed function of velocity | [smooth_error](#claim-35) |
@@ -57,25 +57,25 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | MOV-734 | Thirteen ball modes; six compute thrust, STOP damps, the rest are inert | [thrust_modes](#claim-32) |
 | MOV-735 | Mode changes raise DoModeChange; leaving warp raises OnExitWarp | [exit_iff, exiting_order](#claim-28) |
 | MOV-736 | A troll ball turns rigid after a delay | [troll_due](#claim-36) |
-| MOV-737 | Force fields let balls with a matching harmonic, corporation or alliance through | [field_iff](#claim-47), [configured_field_filter](#claim-108) |
+| MOV-737 | Force fields let balls with a matching harmonic, corporation or alliance through | [field_iff](#claim-47), [configured_field_filter](#claim-108), [configured_membership](#claim-164) |
 | MOV-738 | Destiny's exp is the C library's; exact on tensors and the GPU for glibc 2.34 on aarch64 | [exp_tiny_iff, exp_large_iff](#claim-22), [two_sum_exact](#claim-103), [split_reconstructs](#claim-112), [dekker_product_exact](#claim-113), [add_odd_grid](#claim-114), [fma_single_round](#claim-115), [table_address, scale_reconstruction, special_rescaling](#claim-120), [reduction_index_bound, tiny_correct_round](#claim-121), [first_reduction_exact](#claim-134) |
 | MOV-739 | Destiny's float functions are the C library's; exact for glibc 2.34 on aarch64 | [powf_signaling_iff](#claim-23) |
 | MOV-740 | Destiny's double sin, cos and log are the C library's; exact for glibc 2.34 on aarch64 | [log_near_one_iff](#claim-24) |
 | MOV-741 | Destiny's double atan2 and asin are the C library's; exact for glibc 2.34 on aarch64 | [atan2_sign](#claim-25) |
 | TRV-701 | WarpTo to a point closer than 100 km becomes a goto | [short_iff](#claim-12) |
 | TRV-702 | Repeating a warp command to the same point does nothing | [repeated_warp](#claim-12) |
-| TRV-703 | WarpTo stops the ship and enters the WARP alignment state | [long_starts_alignment](#claim-12) |
+| TRV-703 | WarpTo stops the ship and enters the WARP alignment state | [long_starts_alignment](#claim-12), [accepted_warp_commits, dropout_handoff](#claim-162) |
 | TRV-704 | Warp factor is the top warp speed in milli-AU per second | [rate_bounds](#claim-14), [source_constants](#claim-31) |
 | TRV-705 | While aligning for warp the ship thrusts toward the destination like a goto | [waiting_ticks](#claim-37) |
-| TRV-706 | Warp starts at 75% of max speed within about 8 degrees, or after 180 ticks | [alignment_after_waits](#claim-13) |
+| TRV-706 | Warp starts at 75% of max speed within about 8 degrees, or after 180 ticks | [alignment_after_waits](#claim-13), [accepted_warp_commits, dropout_handoff](#claim-162) |
 | TRV-707 | Warp activation drops collisions and offsets the exit point by minRange | [exit_distance](#claim-13) |
 | TRV-708 | Warp speed, acceleration and deceleration rates scale with the warp factor | [rate_bounds](#claim-14), [source_constants](#claim-31) |
 | TRV-709 | Short warps lower the top speed so the cruise phase has zero length | [short_cruise_zero](#claim-14), [source_constants](#claim-31), [positive_cruise_iff](#claim-72), [short_cruise_words](#claim-74), [cruise_exit_margin](#claim-101) |
 | TRV-710 | Warp phase durations and distances | [cruise_nonnegative, phase_distances_sum](#claim-14), [source_constants](#claim-31) |
-| TRV-711 | Warp proper follows an analytic exponential-then-cruise path | [phase_joins](#claim-15), [acceleration_sample](#claim-122), [placement_ray](#claim-124) |
+| TRV-711 | Warp proper follows an analytic exponential-then-cruise path | [phase_joins](#claim-15), [acceleration_sample](#claim-122), [placement_ray](#claim-124), [accepted_warp_commits, dropout_handoff](#claim-162) |
 | TRV-712 | Warp deceleration decays exponentially | [phase_decel_iff, decel_velocity](#claim-15), [deceleration_extension](#claim-123), [placement_ray](#claim-124) |
-| TRV-713 | Ships drop out of warp below min(maxVel/2, 100 m/s) | [dropout_iff](#claim-15), [dropout_time_iff](#claim-73), [cruise_exit_margin](#claim-101) |
-| TRV-714 | The exit tick integrates one extra step from the drop-out point | [exit_regular, exit_special](#claim-37) |
+| TRV-713 | Ships drop out of warp below min(maxVel/2, 100 m/s) | [dropout_iff](#claim-15), [dropout_time_iff](#claim-73), [cruise_exit_margin](#claim-101), [accepted_warp_commits, dropout_handoff](#claim-162) |
+| TRV-714 | The exit tick integrates one extra step from the drop-out point | [exit_regular, exit_special](#claim-37), [accepted_warp_commits, dropout_handoff](#claim-162) |
 | TRV-715 | EntityWarpIn starts a warp already in progress | [entity_elapsed](#claim-37) |
 | TRV-716 | The ballpark warpSpeed attribute is not used by the warp model | [source_constants](#claim-31) |
 | COL-701 | Two collision methods; the per-ball gradient method is the default | [gradient_iff](#claim-43), [gradient_winner](#claim-130) |
@@ -97,8 +97,8 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | COL-717 | Iterative impacts between free balls are elastic with base masses | [iterative_exchange](#claim-17), [start_contact_acceleration](#claim-62), [pair_separates, pair_preserves_tangent, pair_momentum, pair_kinetic_energy](#claim-63), [raw_impulse, restart_state, momentum_change](#claim-156), [replay_words](#claim-158), [endpoint_error](#claim-159) |
 | COL-718 | Iterative velocity changes above 5 x maxVel are scaled by the squared ratio | [limitImpact_norm](#claim-18), [limited_speed_bound](#claim-65), [rounded_limiter_exceeds_bound](#claim-66), [insert_cutoff_and_retry, insert_after_predecessor, insert_before_all](#claim-67), [promoted_limiter_exact](#claim-106), [detected_rebound](#claim-127), [applied_impulse, momentum_change](#claim-156), [limited_closing_at_end](#claim-157), [replay_words](#claim-158), [endpoint_error](#claim-159) |
 | COL-719 | Collision events are raised only for missiles; orphaned missiles hit themselves | [orphan_with_owner](#claim-44), [dispatch_moving, dispatch_silent](#claim-54) |
-| SEN-701 | Proximity sensors check every period seconds, default 2.0 s | [sensor_schedule](#claim-20), [first_due_poll](#claim-77) |
-| SEN-702 | A ball is inside a sensor when centre distance <= range + both radii | [sensor_inside, crossing, repeated_sample](#claim-20), [vanished_target, present_target](#claim-78) |
+| SEN-701 | Proximity sensors check every period seconds, default 2.0 s | [sensor_schedule](#claim-20), [first_due_poll](#claim-77), [timed_crossing](#claim-160) |
+| SEN-702 | A ball is inside a sensor when centre distance <= range + both radii | [sensor_inside, crossing, repeated_sample](#claim-20), [vanished_target, present_target](#claim-78), [timed_crossing](#claim-160) |
 | SEN-703 | Target tracking fires when the centre distance crosses range + own radius | [tracking_boundary, crossing, repeated_sample](#claim-20) |
 | SEN-704 | Notification range reports arrival at the goto point or follow distance | [follow_band_iff, crossing](#claim-20) |
 | SEN-705 | Space is partitioned into 8 box levels from 7,864,320 m down to 480 m | [finest_width](#claim-21) |
@@ -108,24 +108,24 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | SEN-709 | Line of sight is blocked by the first massive, uncloaked sphere on the segment | [visibility_entry, first_occluder](#claim-46), [ray_first_entry](#claim-111) |
 | SEN-710 | Range queries count balls whose centre is within range plus their own radius | [range_abs](#claim-46), [ordered_scan, query_by_id](#claim-125) |
 | SEN-711 | Cloaking makes a ball non-massive and drops its followers | [cloak_effect](#claim-47), [warp_and_sensor, erase_and_reenter](#claim-79) |
-| SEN-712 | Clients receive each tick's events only for balls in their bubble | [recipient_split](#claim-42), [bubble_destination, character_destination](#claim-80), [pilot_add_iff, pilot_remove_iff, pilot_disjoint](#claim-81), [single_recipient, dual_recipient](#claim-82), [character_wait, client_trace](#claim-83), [private_bubble_history](#claim-110), [delayed_private_flush](#claim-133) |
+| SEN-712 | Clients receive each tick's events only for balls in their bubble | [recipient_split](#claim-42), [bubble_destination, character_destination](#claim-80), [pilot_add_iff, pilot_remove_iff, pilot_disjoint](#claim-81), [single_recipient, dual_recipient](#claim-82), [character_wait, client_trace](#claim-83), [private_bubble_history](#claim-110), [delayed_private_flush](#claim-133), [callback_recipients, crossing_delivered](#claim-161) |
 | TIME-701 | A ballpark tick is 1000 ms by default and dt = tickInterval/1000 s | [default_tick_seconds](#claim-38) |
-| TIME-702 | OnTick evolves once per whole tick interval elapsed and carries the remainder | [rounds_remainder, early, ordinary_tick](#claim-16), [clock_window, next_client_deadline](#claim-75) |
+| TIME-702 | OnTick evolves once per whole tick interval elapsed and carries the remainder | [rounds_remainder, early, ordinary_tick](#claim-16), [clock_window, next_client_deadline](#claim-75), [masked_world_trace, poll_replays_single](#claim-168) |
 | TIME-703 | The server drops a backlog of more than 5 ticks and evolves only one | [master_resync](#claim-16), [master_boundary](#claim-76) |
 | TIME-704 | The first OnTick evolves exactly once without tick events | [first_due](#claim-16) |
 | TIME-705 | Each tick runs DoPreTick, Evolve, DoPostTick; dead balls are removed before | [rounds_trace, ordinary_tick](#claim-16) |
-| TIME-706 | Evolve computes all thrusts, then collisions and integration, then commits | [phase_ids](#claim-39), [schedule_monotone](#claim-53), [tick_lookup](#claim-137), [trace_refines, trace_append](#claim-138), [five_second_coast](#claim-141) |
+| TIME-706 | Evolve computes all thrusts, then collisions and integration, then commits | [phase_ids](#claim-39), [schedule_monotone](#claim-53), [tick_lookup](#claim-137), [trace_refines, trace_append](#claim-138), [five_second_coast](#claim-141), [masked_world_trace, poll_replays_single](#claim-168) |
 | TIME-707 | Free balls are always processed in ascending ID order | [phase_ordered](#claim-39), [tick_order](#claim-137) |
 | TIME-708 | Clients display ball positions two ticks behind their clock | [render_two_ticks](#claim-16) |
-| TIME-709 | Server movement commands are queued and applied at the next pre-tick | [last_enqueued, distinct_actions_kept](#claim-29) |
+| TIME-709 | Server movement commands are queued and applied at the next pre-tick | [last_enqueued, distinct_actions_kept](#claim-29), [goto_first_commit, goto_moves_at_five](#claim-165), [rewind_goto_same_stamp](#claim-166) |
 | TIME-710 | An action identical to the last queued action is dropped | [duplicate_idempotent](#claim-29), [remote_pending_stops](#claim-107), [stopped_before_bubbles](#claim-132) |
 | TIME-711 | Ball removal through Actions is immediate, not queued | [removal_calls](#claim-41) |
 | TIME-712 | Pre-tick order is follower cleanup, stamp, flush, apply, bubbles, cloaks | [pretick_calls](#claim-41), [remote_pending_stops](#claim-107), [stopped_before_bubbles](#claim-132) |
 | TIME-713 | Removed balls linger as moribund and are cleaned up between ticks | [cleanup_budget](#claim-40), [removal_prefix_masks](#claim-109) |
 | TIME-714 | Balls in dead bubbles are not evolved on the server | [dead_iff](#claim-40) |
-| TIME-715 | A client applies each server update at its stamp, waiting, running ahead or rewinding to it | [sync_reaches_stamp, wait_iff](#claim-30), [eleventh_store, stores_bounded, post_deadline](#claim-84), [rebase_contents](#claim-85), [rewind_stream, sync_failure](#claim-86), [private_bubble_history](#claim-110), [merged_stamps, merged_payload](#claim-118), [waiting_tail, drain_frontier, reset_packet_order](#claim-119), [delayed_private_flush](#claim-133) |
+| TIME-715 | A client applies each server update at its stamp, waiting, running ahead or rewinding to it | [sync_reaches_stamp, wait_iff](#claim-30), [eleventh_store, stores_bounded, post_deadline](#claim-84), [rebase_contents](#claim-85), [rewind_stream, sync_failure](#claim-86), [private_bubble_history](#claim-110), [merged_stamps, merged_payload](#claim-118), [waiting_tail, drain_frontier, reset_packet_order](#claim-119), [delayed_private_flush](#claim-133), [rewind_goto_same_stamp](#claim-166) |
 | CMB-701 | Angular velocity is transversal speed over centre distance | [angular_agrees](#claim-19), [rotating_observer](#claim-99) |
-| CMB-702 | Destiny's accuracy helper is 2 to the power of tracking and falloff terms | [accuracy_bounds, optimal_stationary](#claim-19), [accuracy_overflow_input, accuracy_early_lanes](#claim-98), [sideways_margin](#claim-135) |
+| CMB-702 | Destiny's accuracy helper is 2 to the power of tracking and falloff terms | [accuracy_bounds, optimal_stationary](#claim-19), [accuracy_overflow_input, accuracy_early_lanes](#claim-98), [sideways_margin](#claim-135), [tracking_input_nonnegative, tracking_margin_controls](#claim-167) |
 
 <a id="claim-1"></a>
 
@@ -776,7 +776,7 @@ Recorded upstream evidence — TIME-713 implemented, not passing (compiled code)
 
 Engine symbols `Actions.remove_ball, BaseTicker.tick`. [Source](../src/exact_ballpark/server.py)
 
-Recorded upstream evidence — TIME-711 passing (test vectors), TIME-712 implemented, not passing (test vectors). Destiny's published tests do not cover the pre-tick's first step (the follower clean-up). That part is checked only against the transcription of destiny's Python server layer, which has not been run itself..
+Recorded upstream evidence — TIME-711 passing (test vectors), TIME-712 implemented, not passing (test vectors). Destiny's published tests do not cover the pre-tick's first step (the follower clean-up). The pre-tick follower clean-up is checked against the transcription..
 
 | [Theorems](ExactBallparkProofs/Time/Server.lean) | Transitive axioms |
 | --- | --- |
@@ -791,7 +791,7 @@ Recorded upstream evidence — TIME-711 passing (test vectors), TIME-712 impleme
 
 Engine symbols `ParkUpdateBatcher.send_batch`. [Source](../src/exact_ballpark/server.py)
 
-Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. That part is checked only against the transcription of destiny's Python server layer, which has not been run itself..
+Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. A separate Lean CPU replay exercises the pinned Python routing and sending methods for visible owners in known, dead and missing bubbles with a fixture transport..
 
 | [Theorems](ExactBallparkProofs/Time/Server.lean) | Transitive axioms |
 | --- | --- |
@@ -1375,7 +1375,7 @@ Recorded upstream evidence — SEN-711 passing (compiled code).
 
 Engine symbols `BaseTicker._find_bubble_id_for_event, BaseTicker._is_valid_event_bubble, Ticker._apply_history`. [Source](../src/exact_ballpark/server.py)
 
-Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. That part is checked only against the transcription of destiny's Python server layer, which has not been run itself..
+Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. A separate Lean CPU replay exercises the pinned Python routing and sending methods for visible owners in known, dead and missing bubbles with a fixture transport..
 
 | [Theorems](ExactBallparkProofs/Space/Distribution.lean) | Transitive axioms |
 | --- | --- |
@@ -1390,7 +1390,7 @@ Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). 
 
 Engine symbols `DestinyPark.AdditionsAndDeletions`. [Source](../src/exact_ballpark/server.py)
 
-Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. That part is checked only against the transcription of destiny's Python server layer, which has not been run itself..
+Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. A separate Lean CPU replay exercises the pinned Python routing and sending methods for visible owners in known, dead and missing bubbles with a fixture transport..
 
 | [Theorems](ExactBallparkProofs/Space/Distribution.lean) | Transitive axioms |
 | --- | --- |
@@ -1406,7 +1406,7 @@ Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). 
 
 Engine symbols `ParkUpdateBatcher.get_clients_with_character_history, ParkUpdateBatcher.send_batch`. [Source](../src/exact_ballpark/server.py)
 
-Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. That part is checked only against the transcription of destiny's Python server layer, which has not been run itself..
+Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. A separate Lean CPU replay exercises the pinned Python routing and sending methods for visible owners in known, dead and missing bubbles with a fixture transport..
 
 | [Theorems](ExactBallparkProofs/Space/Batches.lean) | Transitive axioms |
 | --- | --- |
@@ -1421,7 +1421,7 @@ Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). 
 
 Engine symbols `ParkUpdateBatcher.get_clients_with_character_history, ParkUpdateBatcher.send_batch`. [Source](../src/exact_ballpark/server.py)
 
-Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. That part is checked only against the transcription of destiny's Python server layer, which has not been run itself..
+Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. A separate Lean CPU replay exercises the pinned Python routing and sending methods for visible owners in known, dead and missing bubbles with a fixture transport..
 
 | [Theorems](ExactBallparkProofs/Space/Batches.lean) | Transitive axioms |
 | --- | --- |
@@ -1780,7 +1780,7 @@ Recorded upstream evidence — COL-718 passing (compiled code).
 
 Engine symbols `Actions.clean_up_followers, Actions.stop, Actions._add_to_system_history, SpaceBallpark.remote_followers`. [Source](../src/exact_ballpark/server.py) · [space.py](../src/exact_ballpark/space.py)
 
-Recorded upstream evidence — MOV-731 implemented, not passing (compiled code). Its two halves are held to two different oracles, destiny's compiled C++ and the published tests of its Python server layer. Holding them as one rule needs destiny's Python layer run against the compiled engine, which has not been done., TIME-710 passing (test vectors), TIME-712 implemented, not passing (test vectors). Destiny's published tests do not cover the pre-tick's first step (the follower clean-up). That part is checked only against the transcription of destiny's Python server layer, which has not been run itself..
+Recorded upstream evidence — MOV-731 implemented, not passing (compiled code). Its two halves are held to two different oracles, destiny's compiled C++ and the published tests of its Python server layer. Holding them as one rule needs destiny's Python layer run against the compiled engine, which has not been done., TIME-710 passing (test vectors), TIME-712 implemented, not passing (test vectors). Destiny's published tests do not cover the pre-tick's first step (the follower clean-up). The pre-tick follower clean-up is checked against the transcription..
 
 | [Theorems](ExactBallparkProofs/Time/ServerLaws.lean) | Transitive axioms |
 | --- | --- |
@@ -1822,7 +1822,7 @@ Recorded upstream evidence — TIME-713 implemented, not passing (compiled code)
 
 Engine symbols `ParkUpdateBatcher.send_batch, merge_state_into_history`. [Source](../src/exact_ballpark/server.py) · [client.py](../src/exact_ballpark/client.py)
 
-Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. That part is checked only against the transcription of destiny's Python server layer, which has not been run itself., TIME-715 passing (test vectors).
+Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. A separate Lean CPU replay exercises the pinned Python routing and sending methods for visible owners in known, dead and missing bubbles with a fixture transport., TIME-715 passing (test vectors).
 
 | [Theorems](ExactBallparkProofs/Space/MergeDelivery.lean) | Transitive axioms |
 | --- | --- |
@@ -2162,7 +2162,7 @@ Host probes check the reported word, bracket width and endpoints for interior hi
 
 Engine symbols `Actions.clean_up_followers, Actions.flush_history, Ticker._pre_update_bubbles, ModeBallpark._stop`. [Source](../src/exact_ballpark/server.py) · [space.py](../src/exact_ballpark/space.py) · [modes.py](../src/exact_ballpark/modes.py)
 
-Recorded upstream evidence — MOV-731 implemented, not passing (compiled code). Its two halves are held to two different oracles, destiny's compiled C++ and the published tests of its Python server layer. Holding them as one rule needs destiny's Python layer run against the compiled engine, which has not been done., TIME-710 passing (test vectors), TIME-712 implemented, not passing (test vectors). Destiny's published tests do not cover the pre-tick's first step (the follower clean-up). That part is checked only against the transcription of destiny's Python server layer, which has not been run itself..
+Recorded upstream evidence — MOV-731 implemented, not passing (compiled code). Its two halves are held to two different oracles, destiny's compiled C++ and the published tests of its Python server layer. Holding them as one rule needs destiny's Python layer run against the compiled engine, which has not been done., TIME-710 passing (test vectors), TIME-712 implemented, not passing (test vectors). Destiny's published tests do not cover the pre-tick's first step (the follower clean-up). The pre-tick follower clean-up is checked against the transcription..
 
 The gate observes the actual state on entry to the bubble hook with a prior mass change and with a duplicate Stop. It checks both ships in the leader’s original follower set. [Server checks](scripts/mixed_history_checks.py)
 
@@ -2178,7 +2178,7 @@ The gate observes the actual state on entry to the bubble hook with a prior mass
 
 Engine symbols `Ticker._apply_history, ParkUpdateBatcher.send_batch, merge_state_into_history`. [Source](../src/exact_ballpark/server.py) · [client.py](../src/exact_ballpark/client.py)
 
-Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. That part is checked only against the transcription of destiny's Python server layer, which has not been run itself., TIME-715 passing (test vectors).
+Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. A separate Lean CPU replay exercises the pinned Python routing and sending methods for visible owners in known, dead and missing bubbles with a fixture transport., TIME-715 passing (test vectors).
 
 A three-ball session sends actual mass changes for a cloaked pilot and a visible ship. Sending each tick clears the client queue. Postponing one send reports a fatal desync and leaves the later change waiting when the handler returns. [Producer replay](scripts/mixed_history_checks.py)
 
@@ -2624,3 +2624,169 @@ Recorded upstream evidence — MOV-702 passing (compiled code), COL-717 passing 
 | --- | --- |
 | `ExactBallpark.Collision.ReboundAccuracy.ideal_endpoint_enclosed` | propext, Classical.choice, Quot.sound |
 | `ExactBallpark.Collision.ReboundAccuracy.endpoint_error` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-160"></a>
+
+## Timed proximity crossing at the surface boundary
+
+**Binary32 thresholds, binary64 distances and elapsed time.** Eight one-second polls at a two-second period, with both radii 1 m and sensor range 10 m. The live target remains a candidate throughout. The projected scan admits exact contact at 12 m on poll four, retains membership on early polls and the inside repeat, and emits a leave on poll eight. The callback leaves the sensor active.
+
+Engine symbols `SpaceBallpark.add_proximity_sensor, _check_sensor`. [Source](../src/exact_ballpark/space.py)
+
+Recorded upstream evidence — SEN-701 passing (compiled code), SEN-702 passing (compiled code).
+
+A three-pilot session refiles the moving target and checks the actual elapsed word, membership and ordered callbacks on every poll. [CPU replay](scripts/law_trace_checks.py)
+
+| [Theorems](ExactBallparkProofs/Space/SensorDelivery.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Space.SensorDelivery.timed_crossing` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-161"></a>
+
+## From proximity callbacks to the recipient of a queued response
+
+**Discrete actions, bubble membership and client interest sets.** An ordinary action for a positive, uncloaked owner, no private traffic or competing actions. A DoProximity callback alone gives an empty outgoing history. For the application that queues SetBallRadius(1) on enter and SetBallRadius(2) on leave, a client interested in an interactive ball in the known, live bubble receives the two responses on relative ticks five and nine. Every other client receives neither response.
+
+Engine symbols `Ticker._apply_history, BaseTicker._is_valid_event_bubble, ParkUpdateBatcher.send_batch, SpaceBallpark._check_sensor`. [Source](../src/exact_ballpark/server.py) · [space.py](../src/exact_ballpark/space.py) · [client.py](../src/exact_ballpark/client.py)
+
+Recorded upstream evidence — SEN-712 implemented, not passing (test vectors). Destiny's published tests do not cover the events of a ball in no known bubble or in a dead bubble. A separate Lean CPU replay exercises the pinned Python routing and sending methods for visible owners in known, dead and missing bubbles with a fixture transport..
+
+Two sessions exercise default and explicit responses, including a distant pilot. With a pinned Destiny checkout, the same routing fixtures execute the original five Python methods for history expansion, lookup, validation, routing and sending. [CPU replay](scripts/law_trace_checks.py)
+
+| [Theorems](ExactBallparkProofs/Space/SensorDelivery.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Space.SensorDelivery.callback_recipients` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Space.SensorDelivery.crossing_delivered` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-162"></a>
+
+## Accepted warp through dropout and the following STOP tick
+
+**Binary64 axial flight with supplied host log and exp words.** A fresh client-side warp over 131072 m at factor 4000, with minimum range zero, initial axial speed 80 m/s, maximum speed 100 m/s and one-second intervals. With no contacts, the aligned ship activates at stamp zero, drops below 50 m/s during stamp nine and takes its extra integration step. Stamp ten starts from that committed pair and advances ordinary STOP. The table supplies 13 elementary-function argument/result pairs used by this flight.
+
+Engine symbols `ModeBallpark.warp_to, _is_aligned_for_warp, _warp_distance, evolve, Ballpark.integrate`. [Source](../src/exact_ballpark/modes.py) · [ref.py](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — TRV-703 passing (compiled code), TRV-706 passing (compiled code), TRV-711 passing (compiled code), TRV-713 passing (compiled code), TRV-714 passing (compiled code).
+
+All eleven committed x and vx words and modes match ModeBallpark. The optional pinned C++ flight oracle also matches the words and the activation, deactivation and exit event sequence. [CPU replay](scripts/law_trace_checks.py)
+
+| [Theorems](ExactBallparkProofs/Warp/Journey.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Warp.Journey.accepted_warp_commits` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Warp.Journey.dropout_handoff` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-163"></a>
+
+## Unit quaternion rotation preserves formation-slot distance
+
+**Real interpretation of the quaternion matrix and transformed slot.** For every unit quaternion and every slot vector, multiplying the row vector by the source rotation matrix preserves its Euclidean norm. Substitution into formationTarget removes the previous isometry premise and includes the zero-slot fallback. Rounded binary32 rotation and normalization error are outside the distance identity.
+
+Engine symbols `m_rotation_q, transform_coord, FullBallpark._rotated_vector, _evolve_formation`. [Source](../src/exact_ballpark/full.py)
+
+Recorded upstream evidence — MOV-726 passing (compiled code).
+
+The real formation behaviour with a dependency on the leader is exercised using identity, axis-cycle and half-turn rotations and a zero slot. The probe checks the stored binary64 target after the binary32 transformation. [CPU replay](scripts/law_trace_checks.py)
+
+| [Theorems](ExactBallparkProofs/Movement/FormationRotation.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Movement.rotateSlot_norm` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Movement.rotated_formation_distance` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-164"></a>
+
+## Force-field configuration and the next ordered candidate query
+
+**Queued field actions and the handled-bit candidate walk.** After both parent writes to a present field, the remaining spatial visits pass the common eligibility tests with harmonic checks enabled. For any visit list, the returned IDs are unique. An enabled field appears exactly when visited by a ship with no permitted harmonic, corporation, alliance or master override. Other visited IDs retain membership.
+
+Engine symbols `Actions.set_ball_harmonic, Ticker._apply_park_parent_methods_except_cloak_ball, SpaceBallpark.set_harmonic, _nearby_balls`. [Source](../src/exact_ballpark/server.py) · [space.py](../src/exact_ballpark/space.py)
+
+Recorded upstream evidence — MOV-737 implemented, not passing (compiled code). Its two halves are held to two different oracles, destiny's compiled C++ and the published tests of its Python server layer. Holding them as one rule needs destiny's Python layer run against the compiled engine, which has not been done..
+
+Two ships query the same spatial boxes after a real server pre-tick, across five access settings and a queued disable. An ordinary massive neighbour remains in the list. [CPU replay](scripts/law_trace_checks.py)
+
+| [Theorems](ExactBallparkProofs/Space/FieldQuery.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Space.FieldQuery.configured_membership` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-165"></a>
+
+## First committed movement after a queued GOTO
+
+**Server stamps and the binary64 single-ball GOTO/STOP transition.** After startup, one accepted GotoDirection and no competing actions, with deterministic full ticks and a fixed cache. For an issue at n and uplink delay d, the first d ticks equal the command-free trajectory. The event bears n+d and the first affected commit uses the GOTO at n+d+1. A stationary witness issued at 3 with one tick of delay actually moves at 5.
+
+Engine symbols `Actions.go_to_direction, Ticker.tick, Session.command, Session.tick, Ballpark.goto_direction, Ballpark.evolve`. [Source](../src/exact_ballpark/server.py) · [client.py](../src/exact_ballpark/client.py) · [ref.py](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — TIME-709 passing (test vectors), MOV-706 passing (compiled code).
+
+The Session transport supplies the event stamp. The replay checks mode and all six position and velocity words against Lean at each observed stamp. [CPU replay](scripts/law_trace_checks.py)
+
+| [Theorems](ExactBallparkProofs/Time/CommandFlight.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Time.CommandFlight.goto_first_commit` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Time.CommandFlight.goto_moves_at_five` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-166"></a>
+
+## Restoring a retained client snapshot recovers a GOTO trajectory
+
+**Retained stream selection and deterministic binary64 movement.** The single public GOTO arrives behind the client clock. The last eligible retained stream decodes to the movement state at its own stamp and all subsequent saved streams are newer than the command. Identical configurations, cached factors, command and full ticks, with no intervening commands or contacts, give identical modeled ball states at a common stamp. The predicted state may be arbitrary.
+
+Engine symbols `Ticker.synchronize_to_simulation_time, Ticker._real_flush_state, Session.tick, Ballpark.evolve`. [Source](../src/exact_ballpark/client.py) · [server.py](../src/exact_ballpark/server.py) · [ref.py](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — TIME-715 passing (test vectors), TIME-709 passing (test vectors).
+
+A control and a session with one delayed packet compare position, velocity and mode at the same simulation stamp. The delayed client first predicts a different state, rewinds successfully and subsequently remains one stamp behind wall-clock delivery. [CPU replay](scripts/law_trace_checks.py)
+
+| [Theorems](ExactBallparkProofs/Time/CommandFlight.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Time.CommandFlight.rewind_goto_same_stamp` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-167"></a>
+
+## Input guard for the sign of the tracking square-root argument
+
+**Logical IEEE binary64 subtraction, division and rounding.** The guard requires finite nonnegative rounded total and projected squared speeds and a finite positive squared distance. It aligns their significands at the smaller binary exponent and checks that total covers projection before cancellation. On acceptance, the actual rounded quotient compares greater than or equal to zero, including underflow to zero. The sign claim allows positive overflow and excludes a guarantee about the subsequent power or hit probability.
+
+Engine symbols `FullBallpark.get_accuracy, _dot, _lensq`. [Source](../src/exact_ballpark/full.py)
+
+Recorded upstream evidence — CMB-702 passing (compiled code).
+
+The scalar replay captures the word passed to the actual square root. The known failing radial input is rejected. A perpendicular velocity and an exactly radial zero-margin control are accepted. [CPU replay](scripts/law_trace_checks.py)
+
+| [Theorems](ExactBallparkProofs/Combat/InputMargin.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Combat.InputMargin.tracking_input_nonnegative` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Combat.InputMargin.tracking_margin_controls` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-168"></a>
+
+## A world advances exactly its own due movement rounds
+
+**Per-row state selection and deterministic binary64 GOTO/STOP ticks.** For independent free GOTO/STOP rows, each mask selects the proposed single-row result or its saved fields. Across any list of masks the row equals a solo run of its selected rounds. In ordinary catch-up rounds, selecting world counts greater than the round index runs each world exactly its own count. No removal, coupled flight, rotation, contact or global launch-counter claim.
+
+Engine symbols `VecServer.on_tick, ModesAdapter.evolve, VecModesPark.evolve_torch, masked_tick`. [Source](../src/exact_ballpark/vec_server.py) · [vec_modes.py](../src/exact_ballpark/vec_modes.py) · [vec_orient.py](../src/exact_ballpark/vec_orient.py) · [ref.py](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — TIME-702 passing (compiled code), TIME-706 passing (compiled code).
+
+Two CPU worlds are compared word for word with isolated parks and the Lean rows over five polls. The schedule includes first calls, alternating single-world updates, simultaneous updates and signed zero. [CPU replay](scripts/law_trace_checks.py)
+
+| [Theorems](ExactBallparkProofs/Movement/WorldMask.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Movement.WorldMask.masked_world_trace` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Movement.WorldMask.poll_replays_single` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-169"></a>
+
+## Work and drag loss over a sequence of thrust changes
+
+**Three-dimensional real drag trajectory and integrals of power.** For any finite sequence of nonnegative-duration intervals, with fixed positive effective mass and friction and arbitrary constant acceleration on each interval, pass the ending velocity to the next interval. Final minus initial kinetic energy equals accumulated thrust work minus accumulated drag loss, and drag loss is nonnegative. Instantaneous velocity changes from STOP damping or collision impulses are outside these intervals. Interpreting work along position assumes the ordinary trajectory.
+
+Engine symbols `Ballpark.integrate`. [Source](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — MOV-701 passing (compiled code), MOV-702 passing (compiled code).
+
+A three-interval turn and coast are independently integrated at 70 decimal digits. The scalar integrator is compared with the resulting component velocities at each endpoint. [CPU replay](scripts/law_trace_checks.py)
+
+| [Theorems](ExactBallparkProofs/Movement/Manoeuvre.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Movement.manoeuvre_work_energy` | propext, Classical.choice, Quot.sound |

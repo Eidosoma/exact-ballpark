@@ -80,3 +80,11 @@ public import ExactBallparkProofs.Collision.CurveClearance
 public import ExactBallparkProofs.Collision.TurningFlight
 public import ExactBallparkProofs.Collision.ContactExamples
 public import ExactBallparkProofs.Collision.ReboundAccuracy
+public import ExactBallparkProofs.Space.SensorDelivery
+public import ExactBallparkProofs.Warp.Journey
+public import ExactBallparkProofs.Movement.FormationRotation
+public import ExactBallparkProofs.Space.FieldQuery
+public import ExactBallparkProofs.Time.CommandFlight
+public import ExactBallparkProofs.Combat.InputMargin
+public import ExactBallparkProofs.Movement.WorldMask
+public import ExactBallparkProofs.Movement.Manoeuvre

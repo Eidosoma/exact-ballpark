@@ -292,6 +292,8 @@ Tests: `tests/test_destiny_server_layer.py`, `tests/test_destiny_client_layer.py
 `tests/test_movement_vec_server_space_cuda.py`, `tests/test_movement_vec_server_pending.py`,
 `tests/test_movement_vec_ontick.py`, `tests/test_movement_vec_global_edges.py`, `tests/test_movement_vec_global_graphs.py`.
 
+The proximity proof follows a local ball callback and an optional application response. In the stock session the callback produces no network action. In the response fixture a queued radius change reaches both local pilots after each crossing. Running the pinned replay exercises history expansion, bubble lookup, bubble validation, routing and sending from Destiny’s original Python server, with live, dead and missing bubble inputs. The same gate compares a full eleven-tick warp with Destiny’s compiled flight-mode oracle. [Proof scope and replay instructions](../lean/README.md#ten-claims-across-engine-systems)
+
 ### 3.7 Combat: missiles, formations, cloaking, mushrooms, and the accuracy function
 
 | Path | Compared with | Seeds | Volume |

@@ -13,7 +13,10 @@
     "src/exact_ballpark/client.py": "acf03a91f754d6cb4e7661fa83d73916a893959448efa79b1ccd35ca629b14e6",
     "src/exact_ballpark/vec_collide.py": "2121fe58e8c3947fd8f4b6dd954afbfc363ec0ec33317270131283d768ebdd57",
     "src/exact_ballpark/vec_accuracy.py": "0cfa2f2d9c8a7aa1f088ad8665e749e20cf6c1c6bc819b010047b002a37d97d1",
-    "src/exact_ballpark/vec_space_removal.py": "b225755f13e57e387c4210e6cea85cb297dd541526418991062c0c9d7fa43486"
+    "src/exact_ballpark/vec_space_removal.py": "b225755f13e57e387c4210e6cea85cb297dd541526418991062c0c9d7fa43486",
+    "src/exact_ballpark/vec_modes.py": "ca1f1a4106f5044a65f6cb1d7c85cdc6642a0deacbed4bb201489892543878ad",
+    "src/exact_ballpark/vec_orient.py": "2f8eea93d8b3bbe059588290f2a66850166988f78d84d5ebaed955c9dbd511a1",
+    "src/exact_ballpark/vec_server.py": "f407c26feb26aa1c1188deb17ff4aaa20a9c0f79b60a929f5c48ce07c3ead03c"
   },
   "correspondence": "The register identifies manually transcribed models and source-extracted definitions. The Python-to-Lean extractors are trusted. The Lean kernel checks the resulting theorems. The full.py digest includes a docstring correction to the pinned formation source.",
   "deviceQualification": "The engine records device qualification on NVIDIA GH200, aarch64 and glibc 2.34. This proof gate runs on the host CPU.",
@@ -3376,6 +3379,194 @@
       "theorems": [
         "ExactBallpark.Collision.ReboundAccuracy.ideal_endpoint_enclosed",
         "ExactBallpark.Collision.ReboundAccuracy.endpoint_error"
+      ]
+    },
+    {
+      "title": "Timed proximity crossing at the surface boundary",
+      "moduleName": "ExactBallparkProofs.Space.SensorDelivery",
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.add_proximity_sensor, _check_sensor",
+      "model": "Binary32 thresholds, binary64 distances and elapsed time",
+      "rules": [
+        "SEN-701",
+        "SEN-702"
+      ],
+      "scope": "Eight one-second polls at a two-second period, with both radii 1 m and sensor range 10 m. The live target remains a candidate throughout. The projected scan admits exact contact at 12 m on poll four, retains membership on early polls and the inside repeat, and emits a leave on poll eight. The callback leaves the sensor active.",
+      "hostEvidence": "A three-pilot session refiles the moving target and checks the actual elapsed word, membership and ordered callbacks on every poll. [CPU replay](scripts/law_trace_checks.py)",
+      "theorems": [
+        "ExactBallpark.Space.SensorDelivery.timed_crossing"
+      ]
+    },
+    {
+      "title": "From proximity callbacks to the recipient of a queued response",
+      "moduleName": "ExactBallparkProofs.Space.SensorDelivery",
+      "source": "src/exact_ballpark/server.py",
+      "relatedSources": [
+        "src/exact_ballpark/space.py",
+        "src/exact_ballpark/client.py"
+      ],
+      "symbols": "Ticker._apply_history, BaseTicker._is_valid_event_bubble, ParkUpdateBatcher.send_batch, SpaceBallpark._check_sensor",
+      "model": "Discrete actions, bubble membership and client interest sets",
+      "rules": [
+        "SEN-712"
+      ],
+      "scope": "An ordinary action for a positive, uncloaked owner, no private traffic or competing actions. A DoProximity callback alone gives an empty outgoing history. For the application that queues SetBallRadius(1) on enter and SetBallRadius(2) on leave, a client interested in an interactive ball in the known, live bubble receives the two responses on relative ticks five and nine. Every other client receives neither response.",
+      "hostEvidence": "Two sessions exercise default and explicit responses, including a distant pilot. With a pinned Destiny checkout, the same routing fixtures execute the original five Python methods for history expansion, lookup, validation, routing and sending. [CPU replay](scripts/law_trace_checks.py)",
+      "theorems": [
+        "ExactBallpark.Space.SensorDelivery.callback_recipients",
+        "ExactBallpark.Space.SensorDelivery.crossing_delivered"
+      ]
+    },
+    {
+      "title": "Accepted warp through dropout and the following STOP tick",
+      "moduleName": "ExactBallparkProofs.Warp.Journey",
+      "source": "src/exact_ballpark/modes.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "ModeBallpark.warp_to, _is_aligned_for_warp, _warp_distance, evolve, Ballpark.integrate",
+      "model": "Binary64 axial flight with supplied host log and exp words",
+      "rules": [
+        "TRV-703",
+        "TRV-706",
+        "TRV-711",
+        "TRV-713",
+        "TRV-714"
+      ],
+      "scope": "A fresh client-side warp over 131072 m at factor 4000, with minimum range zero, initial axial speed 80 m/s, maximum speed 100 m/s and one-second intervals. With no contacts, the aligned ship activates at stamp zero, drops below 50 m/s during stamp nine and takes its extra integration step. Stamp ten starts from that committed pair and advances ordinary STOP. The table supplies 13 elementary-function argument/result pairs used by this flight.",
+      "hostEvidence": "All eleven committed x and vx words and modes match ModeBallpark. The optional pinned C++ flight oracle also matches the words and the activation, deactivation and exit event sequence. [CPU replay](scripts/law_trace_checks.py)",
+      "theorems": [
+        "ExactBallpark.Warp.Journey.accepted_warp_commits",
+        "ExactBallpark.Warp.Journey.dropout_handoff"
+      ]
+    },
+    {
+      "title": "Unit quaternion rotation preserves formation-slot distance",
+      "moduleName": "ExactBallparkProofs.Movement.FormationRotation",
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "m_rotation_q, transform_coord, FullBallpark._rotated_vector, _evolve_formation",
+      "model": "Real interpretation of the quaternion matrix and transformed slot",
+      "rules": [
+        "MOV-726"
+      ],
+      "scope": "For every unit quaternion and every slot vector, multiplying the row vector by the source rotation matrix preserves its Euclidean norm. Substitution into formationTarget removes the previous isometry premise and includes the zero-slot fallback. Rounded binary32 rotation and normalization error are outside the distance identity.",
+      "hostEvidence": "The real formation behaviour with a dependency on the leader is exercised using identity, axis-cycle and half-turn rotations and a zero slot. The probe checks the stored binary64 target after the binary32 transformation. [CPU replay](scripts/law_trace_checks.py)",
+      "theorems": [
+        "ExactBallpark.Movement.rotateSlot_norm",
+        "ExactBallpark.Movement.rotated_formation_distance"
+      ]
+    },
+    {
+      "title": "Force-field configuration and the next ordered candidate query",
+      "moduleName": "ExactBallparkProofs.Space.FieldQuery",
+      "source": "src/exact_ballpark/server.py",
+      "relatedSources": [
+        "src/exact_ballpark/space.py"
+      ],
+      "symbols": "Actions.set_ball_harmonic, Ticker._apply_park_parent_methods_except_cloak_ball, SpaceBallpark.set_harmonic, _nearby_balls",
+      "model": "Queued field actions and the handled-bit candidate walk",
+      "rules": [
+        "MOV-737"
+      ],
+      "scope": "After both parent writes to a present field, the remaining spatial visits pass the common eligibility tests with harmonic checks enabled. For any visit list, the returned IDs are unique. An enabled field appears exactly when visited by a ship with no permitted harmonic, corporation, alliance or master override. Other visited IDs retain membership.",
+      "hostEvidence": "Two ships query the same spatial boxes after a real server pre-tick, across five access settings and a queued disable. An ordinary massive neighbour remains in the list. [CPU replay](scripts/law_trace_checks.py)",
+      "theorems": [
+        "ExactBallpark.Space.FieldQuery.configured_membership"
+      ]
+    },
+    {
+      "title": "First committed movement after a queued GOTO",
+      "moduleName": "ExactBallparkProofs.Time.CommandFlight",
+      "source": "src/exact_ballpark/server.py",
+      "relatedSources": [
+        "src/exact_ballpark/client.py",
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "Actions.go_to_direction, Ticker.tick, Session.command, Session.tick, Ballpark.goto_direction, Ballpark.evolve",
+      "model": "Server stamps and the binary64 single-ball GOTO/STOP transition",
+      "rules": [
+        "TIME-709",
+        "MOV-706"
+      ],
+      "scope": "After startup, one accepted GotoDirection and no competing actions, with deterministic full ticks and a fixed cache. For an issue at n and uplink delay d, the first d ticks equal the command-free trajectory. The event bears n+d and the first affected commit uses the GOTO at n+d+1. A stationary witness issued at 3 with one tick of delay actually moves at 5.",
+      "hostEvidence": "The Session transport supplies the event stamp. The replay checks mode and all six position and velocity words against Lean at each observed stamp. [CPU replay](scripts/law_trace_checks.py)",
+      "theorems": [
+        "ExactBallpark.Time.CommandFlight.goto_first_commit",
+        "ExactBallpark.Time.CommandFlight.goto_moves_at_five"
+      ]
+    },
+    {
+      "title": "Restoring a retained client snapshot recovers a GOTO trajectory",
+      "moduleName": "ExactBallparkProofs.Time.CommandFlight",
+      "source": "src/exact_ballpark/client.py",
+      "relatedSources": [
+        "src/exact_ballpark/server.py",
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "Ticker.synchronize_to_simulation_time, Ticker._real_flush_state, Session.tick, Ballpark.evolve",
+      "model": "Retained stream selection and deterministic binary64 movement",
+      "rules": [
+        "TIME-715",
+        "TIME-709"
+      ],
+      "scope": "The single public GOTO arrives behind the client clock. The last eligible retained stream decodes to the movement state at its own stamp and all subsequent saved streams are newer than the command. Identical configurations, cached factors, command and full ticks, with no intervening commands or contacts, give identical modeled ball states at a common stamp. The predicted state may be arbitrary.",
+      "hostEvidence": "A control and a session with one delayed packet compare position, velocity and mode at the same simulation stamp. The delayed client first predicts a different state, rewinds successfully and subsequently remains one stamp behind wall-clock delivery. [CPU replay](scripts/law_trace_checks.py)",
+      "theorems": [
+        "ExactBallpark.Time.CommandFlight.rewind_goto_same_stamp"
+      ]
+    },
+    {
+      "title": "Input guard for the sign of the tracking square-root argument",
+      "moduleName": "ExactBallparkProofs.Combat.InputMargin",
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.get_accuracy, _dot, _lensq",
+      "model": "Logical IEEE binary64 subtraction, division and rounding",
+      "rules": [
+        "CMB-702"
+      ],
+      "scope": "The guard requires finite nonnegative rounded total and projected squared speeds and a finite positive squared distance. It aligns their significands at the smaller binary exponent and checks that total covers projection before cancellation. On acceptance, the actual rounded quotient compares greater than or equal to zero, including underflow to zero. The sign claim allows positive overflow and excludes a guarantee about the subsequent power or hit probability.",
+      "hostEvidence": "The scalar replay captures the word passed to the actual square root. The known failing radial input is rejected. A perpendicular velocity and an exactly radial zero-margin control are accepted. [CPU replay](scripts/law_trace_checks.py)",
+      "theorems": [
+        "ExactBallpark.Combat.InputMargin.tracking_input_nonnegative",
+        "ExactBallpark.Combat.InputMargin.tracking_margin_controls"
+      ]
+    },
+    {
+      "title": "A world advances exactly its own due movement rounds",
+      "moduleName": "ExactBallparkProofs.Movement.WorldMask",
+      "source": "src/exact_ballpark/vec_server.py",
+      "relatedSources": [
+        "src/exact_ballpark/vec_modes.py",
+        "src/exact_ballpark/vec_orient.py",
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "VecServer.on_tick, ModesAdapter.evolve, VecModesPark.evolve_torch, masked_tick",
+      "model": "Per-row state selection and deterministic binary64 GOTO/STOP ticks",
+      "rules": [
+        "TIME-702",
+        "TIME-706"
+      ],
+      "scope": "For independent free GOTO/STOP rows, each mask selects the proposed single-row result or its saved fields. Across any list of masks the row equals a solo run of its selected rounds. In ordinary catch-up rounds, selecting world counts greater than the round index runs each world exactly its own count. No removal, coupled flight, rotation, contact or global launch-counter claim.",
+      "hostEvidence": "Two CPU worlds are compared word for word with isolated parks and the Lean rows over five polls. The schedule includes first calls, alternating single-world updates, simultaneous updates and signed zero. [CPU replay](scripts/law_trace_checks.py)",
+      "theorems": [
+        "ExactBallpark.Movement.WorldMask.masked_world_trace",
+        "ExactBallpark.Movement.WorldMask.poll_replays_single"
+      ]
+    },
+    {
+      "title": "Work and drag loss over a sequence of thrust changes",
+      "moduleName": "ExactBallparkProofs.Movement.Manoeuvre",
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "model": "Three-dimensional real drag trajectory and integrals of power",
+      "rules": [
+        "MOV-701",
+        "MOV-702"
+      ],
+      "scope": "For any finite sequence of nonnegative-duration intervals, with fixed positive effective mass and friction and arbitrary constant acceleration on each interval, pass the ending velocity to the next interval. Final minus initial kinetic energy equals accumulated thrust work minus accumulated drag loss, and drag loss is nonnegative. Instantaneous velocity changes from STOP damping or collision impulses are outside these intervals. Interpreting work along position assumes the ordinary trajectory.",
+      "hostEvidence": "A three-interval turn and coast are independently integrated at 70 decimal digits. The scalar integrator is compared with the resulting component velocities at each endpoint. [CPU replay](scripts/law_trace_checks.py)",
+      "theorems": [
+        "ExactBallpark.Movement.manoeuvre_work_energy"
       ]
     }
   ]
