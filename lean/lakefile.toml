@@ -22,3 +22,11 @@ rev = "56430c65b76f73c7c25fc03eed46be1d888520bb"
 
 [[lean_lib]]
 name = "ExactBallparkProofs"
+
+[[lean_lib]]
+name = "RealPhysics"
+srcDir = "experimental"
+
+[[lean_lib]]
+name = "ProofAudit"
+srcDir = "scripts"

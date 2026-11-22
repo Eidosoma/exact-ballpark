@@ -1,6 +1,6 @@
 # Lean claim register
 
-430 kernel-checked theorems have claims linked to 105 of the 105 catalogue rules. A link covers the scope stated below.
+434 kernel-checked theorems have claims linked to 105 of the 105 catalogue rules. A link covers the scope stated below.
 
 Engine revision `098653233eb0f9910a3f02564e36b0641cbd4e0f`. The register identifies manually transcribed models and source-extracted definitions. The Python-to-Lean extractors are trusted. The Lean kernel checks the resulting theorems. The full.py digest includes a docstring correction to the pinned formation source.
 
@@ -21,9 +21,9 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 
 | Rule | Engine law | Scope and supporting theorems |
 | --- | --- | --- |
-| MOV-701 | Motion is viscous with friction k = 1e6 and effective mass = mass x agility | [refresh_positive](#claim-1), [source_regular, velocity_hasDerivAt](#claim-3), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [drag_exponent_decay, refresh_factor_units](#claim-143), [trajectory_unique](#claim-146), [acceleration_bound](#claim-147), [manoeuvre_work_energy](#claim-169) |
-| MOV-702 | Closed-form exponential integration of position and velocity | [source_regular, flow_zero, decay_hasDerivAt, position_hasDerivAt, velocity_hasDerivAt, flow_compose](#claim-3), [integrate_zero, integrate_regular, integrate_velocity](#claim-4), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50), [zero_duration_bits](#claim-52), [coordinate_words](#claim-126), [regular_step_error](#claim-128), [tick_lookup](#claim-137), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [extracted_velocity3, velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [pos_zero, vel_zero, position_derivative, extracted_position, trajectory_unique](#claim-146), [acceleration_bound, flight_chord_deviation](#claim-147), [pair_no_contact, pair_clearance](#claim-148), [position_error_from_axes, rounded_endpoint_budget](#claim-149), [turning_overlap, goto_sweep_inputs, turning_clearance](#claim-150), [decay_enclosed, weights_monotone, position_enclosed](#claim-152), [ordinary_throughout, squared_distance_enclosed](#claim-153), [turning_window, clear_control, two_turning_bodies](#claim-154), [ordinary_inputs, incoming](#claim-155), [restart_state, remainder](#claim-156), [half_decay, positive_gap, shared_drag_separation](#claim-157), [replay_words](#claim-158), [ideal_endpoint_enclosed, endpoint_error](#claim-159), [manoeuvre_work_energy](#claim-169), [axis_position, rest_point](#claim-170) |
-| MOV-703 | Near-zero friction switches to a branch where acceleration does not move the ball | [special_position_eq, integrate_special](#claim-4), [extracted_integrator](#claim-49), [special_rounding_witness](#claim-50), [special_position_error](#claim-105), [coordinate_words](#claim-126), [tick_lookup](#claim-137), [extracted_velocity3](#claim-142), [ordinary_throughout](#claim-153) |
+| MOV-701 | Motion is viscous with friction k = 1e6 and effective mass = mass x agility | [refresh_positive](#claim-1), [source_regular, velocity_hasDerivAt](#claim-3), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [drag_exponent_decay, refresh_factor_units](#claim-143), [trajectory_unique](#claim-146), [acceleration_bound](#claim-147), [manoeuvre_work_energy](#claim-169), [force_balance, system_inventory](#claim-182) |
+| MOV-702 | Closed-form exponential integration of position and velocity | [source_regular, flow_zero, decay_hasDerivAt, position_hasDerivAt, velocity_hasDerivAt, flow_compose](#claim-3), [integrate_zero, integrate_regular, integrate_velocity](#claim-4), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50), [zero_duration_bits](#claim-52), [coordinate_words](#claim-126), [regular_step_error](#claim-128), [tick_lookup](#claim-137), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [extracted_velocity3, velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [pos_zero, vel_zero, position_derivative, extracted_position, trajectory_unique](#claim-146), [acceleration_bound, flight_chord_deviation](#claim-147), [pair_no_contact, pair_clearance](#claim-148), [position_error_from_axes, rounded_endpoint_budget](#claim-149), [turning_overlap, goto_sweep_inputs, turning_clearance](#claim-150), [decay_enclosed, weights_monotone, position_enclosed](#claim-152), [ordinary_throughout, squared_distance_enclosed](#claim-153), [turning_window, clear_control, two_turning_bodies](#claim-154), [ordinary_inputs, incoming](#claim-155), [restart_state, remainder](#claim-156), [half_decay, positive_gap, shared_drag_separation](#claim-157), [replay_words](#claim-158), [ideal_endpoint_enclosed, endpoint_error](#claim-159), [manoeuvre_work_energy](#claim-169), [axis_position, rest_point](#claim-170), [source_particle_position](#claim-182), [balanced_source_step](#claim-183) |
+| MOV-703 | Near-zero friction switches to a branch where acceleration does not move the ball | [special_position_eq, integrate_special](#claim-4), [extracted_integrator](#claim-49), [special_rounding_witness](#claim-50), [special_position_error](#claim-105), [coordinate_words](#claim-126), [tick_lookup](#claim-137), [extracted_velocity3](#claim-142), [ordinary_throughout](#claim-153), [balanced_source_step](#claim-183) |
 | MOV-704 | Each ball caches its one-tick decay factor exp(-k dt / (mass agility)) | [refresh_positive, stepFactor_eq](#claim-1), [addBall_valid, update_valid, history_valid, velocity_after_updates](#claim-2), [integrate_regular, integrate_velocity](#claim-4), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50), [coordinate_words](#claim-126), [regular_step_error](#claim-128), [edit_preserves_cache](#claim-136), [trace_refines](#claim-138), [trace_preserves_cache, cache_from_empty](#claim-139), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [extracted_velocity3](#claim-142), [drag_exponent_decay, refresh_factor_units](#claim-143), [extracted_position](#claim-146), [rounded_endpoint_budget](#claim-149), [goto_sweep_inputs](#claim-150), [decay_enclosed](#claim-152), [replay_words](#claim-158) |
 | MOV-705 | Maximum thrust is k x speedFraction x maxVel / (mass x agility) | [goto_terminal_bound, goto_speed_bound](#claim-6), [tick_lookup](#claim-137), [goto_sweep_inputs](#claim-150), [ordinary_inputs](#claim-155), [clipped_orbit_speed](#claim-172) |
 | MOV-706 | Goto thrust is full thrust toward the target with an (L/D)^4 homing taper | [taper_bounds, goto_terminal_bound, goto_speed_bound](#claim-6), [tick_lookup](#claim-137), [goto_sweep_inputs](#claim-150), [goto_first_commit, goto_moves_at_five](#claim-165) |
@@ -3017,3 +3017,35 @@ CPython math.fma and Fraction check the ordinary and compensated components and 
 | --- | --- |
 | `ExactBallpark.Combat.TrackingMargin.cross_angular_sq` | propext, Classical.choice, Quot.sound |
 | `ExactBallpark.Combat.TrackingMargin.radial_cross_words` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-182"></a>
+
+## Ordinary movement as a Newtonian particle
+
+**Source-extracted real position in a Physlib inertial frame.** For fixed positive effective mass and friction and constant applied acceleration, the regular source position is the position of a Physlib particle when the cached full-tick factor equals the exact decay. Its applied force minus velocity-dependent drag equals mass times the second derivative of its position. The constructed Newtonian system contains this particle, two external forces and zero internal forces. This describes motion between changes of force or velocity.
+
+Engine symbols `Ballpark.integrate`. [Source](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — MOV-701 passing (compiled code), MOV-702 passing (compiled code).
+
+| [Theorems](ExactBallparkProofs/Physics/NewtonDrag.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Physics.NewtonDrag.source_particle_position` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Physics.NewtonDrag.force_balance` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Physics.NewtonDrag.system_inventory` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-183"></a>
+
+## Uniform motion at force balance in both integrator branches
+
+**Source-extracted real arithmetic on one Cartesian coordinate.** For positive effective mass m and friction k, if the applied acceleration satisfies m a = k v, either position branch returns p + v t and velocity v, including at zero duration. The identity holds for every supplied real cache value.
+
+Engine symbols `Ballpark.integrate`. [Source](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — MOV-702 passing (compiled code), MOV-703 passing (compiled code).
+
+The optional experiment compares scalar outputs with the source-extracted binary64 program at equilibrium and on both sides of the duration-dependent branch decision. [CPU replay](experimental/check.py)
+
+| [Theorems](ExactBallparkProofs/Physics/NewtonDrag.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Physics.NewtonDrag.balanced_source_step` | propext, Classical.choice, Quot.sound |

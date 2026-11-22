@@ -75,6 +75,7 @@ public import ExactBallparkProofs.Numerics.ExpFirstFma
 public import ExactBallparkProofs.Combat.TrackingMargin
 public import ExactBallparkProofs.Movement.Energy
 public import ExactBallparkProofs.Physics.Units
+public import ExactBallparkProofs.Physics.NewtonDrag
 public import ExactBallparkProofs.Movement.DragChord
 public import ExactBallparkProofs.Collision.CurveClearance
 public import ExactBallparkProofs.Collision.TurningFlight

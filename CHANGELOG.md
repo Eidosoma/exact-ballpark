@@ -5,6 +5,8 @@ upstream commits it is checked against (destiny, carbonengine/math, DirectXMath)
 
 ## [Unreleased]
 
+- Registered four theorems connecting scalar movement to a Physlib Newtonian system and proving uniform motion at force balance in both branches. Added an optional experimental target for timing guards and measured falling-sphere speeds, with a separate log for changes a physical interpretation would require. [Physics experiments](lean/experimental/README.md) · [Physical discrepancies](lean/experimental/DISCREPANCIES.md)
+
 - Added ten Lean theorems in four claims, bringing the register to 430. CPU comparisons cover fixed-obstacle selection across tick lengths, grazing sweeps, mixed-stamp queue dispatch and the fused multiply-add control for radial tracking. [Proofs and replay scope](lean/README.md#ten-proofs-behind-four-discrepancy-reports)
 - The upstream Lean gate now builds flight and collision replays from the pinned commit even when the supplied Destiny clone has a different HEAD or local edits. Added controls for the first collision sweep of a half-second tick, mirrored bubble replies and the proposed geometry and tracking corrections. [Gate instructions](lean/README.md#verify-locally) · [Candidate fixes](lean/DISCREPANCIES.md#where-the-result-changes-in-destiny-c-and-how-to-fix-it)
 - Replayed the collision-history boundary on neighboring inputs, both mixed packets through the public client update, radial tracking across five comparison ratios and capsule crossings on either side of 10 µm. The discrepancy log and its figure now distinguish the stored rebound from the committed tick. [Discrepancy log](lean/DISCREPANCIES.md)

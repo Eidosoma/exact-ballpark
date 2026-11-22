@@ -1,6 +1,6 @@
 # Exact Ballpark laws in Lean
 
-The Lean register links **105 engine laws** to **430 kernel-checked theorems**. Each entry records the rule ID, the behaviour proved, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
+The Lean register links **105 engine laws** to **434 kernel-checked theorems**. Each entry records the rule ID, the behaviour proved, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
 
 [![Exact Ballpark law map. Movement has 41 laws, warp 16, collisions 19, space and sensors 12, time and events 15, and combat 2.](assets/law-map.webp)](assets/law-map.webp)
 
@@ -76,6 +76,8 @@ Start a scalar park, add two ships, send them different commands, and stop after
 The scalar proofs use a source translation for tick arithmetic, reviewed transcriptions for commands and a supplied exponential function. In the five-second coast, the pinned Destiny C++ movement functions also matched all three position words and all three velocity words at each tick on x86-64 Linux with GCC 11.4. Collision response, other flight modes and fused CUDA ticks have separate evidence. [Claim register](CLAIMS.md) · [Platform qualification](../docs/platform.md)
 
 ## Energy and physical units
+
+Physlib can represent ordinary movement as a single particle in an inertial frame. Its two external forces are the applied force and linear drag. At force balance, the source gives uniform motion under either position branch, even with an arbitrary real cache value. The opt-in experiments use this result to test a falling sphere and examine two duration-sensitive guards. [Newtonian correspondence](ExactBallparkProofs/Physics/NewtonDrag.lean) · [Experimental results](experimental/README.md) · [Physical discrepancies](experimental/DISCREPANCIES.md)
 
 For an ordinary flight interval, let `m = mass × agility`, let `k` be friction, and hold the applied acceleration `a` constant. Lean proves that the change in kinetic energy equals the time integral of thrust power minus drag loss. The proof starts from the three velocity components in the translated scalar integrator and uses mathlib’s derivative of the squared norm and fundamental theorem of calculus. It assumes positive constant `m` and `k`, with the exact decay when the engine reads its full-tick cache. [Energy proof](ExactBallparkProofs/Movement/Energy.lean) · [Squared-norm derivative](https://github.com/leanprover-community/mathlib4/blob/fc4f59e577feb1a4956671bc04ac18aaaf8cd842/Mathlib/Analysis/InnerProductSpace/Calculus.lean#L216) · [Integral theorem](https://github.com/leanprover-community/mathlib4/blob/fc4f59e577feb1a4956671bc04ac18aaaf8cd842/Mathlib/MeasureTheory/Integral/IntervalIntegral/FundThmCalculus.lean#L1148)
 
@@ -263,7 +265,7 @@ taskset -c 0-7 lake --json query +ExactBallparkProofs:transImports |
 taskset -c 0-7 python3 scripts/check.py
 ```
 
-The project pins Lean 4.36.0, mathlib, FloatLib and Physlib. The units proofs import Physlib’s `WithDim.Basic` module. [Pinned dependencies](lake-manifest.json) · [Physlib quantity types](https://github.com/leanprover-community/physlib/blob/56430c65b76f73c7c25fc03eed46be1d888520bb/Physlib/Units/WithDim/Basic.lean)
+The project pins Lean 4.36.0, mathlib, FloatLib and Physlib. The physics proofs import Physlib’s quantity types and Newtonian point-particle system. [Pinned dependencies](lake-manifest.json) · [Physlib quantity types](https://github.com/leanprover-community/physlib/blob/56430c65b76f73c7c25fc03eed46be1d888520bb/Physlib/Units/WithDim/Basic.lean)
 
 The checker prefers `.lake/toolchain/bin/lake`, falls back to Lake on PATH, and checks the selected Lean version against `lean-toolchain`. It runs the incremental build with warnings treated as errors, checks reviewed source hashes, regenerates the source models in memory, validates the theorem registry, audits transitive axioms, runs small scalar comparisons and checks the generated page. Use `python3 scripts/check.py --write` to refresh the page after changing a proof or claim.
 

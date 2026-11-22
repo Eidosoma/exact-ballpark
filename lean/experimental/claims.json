@@ -1,0 +1,35 @@
+{
+  "claims": [
+    {
+      "title": "Elapsed time and repeat contacts",
+      "rules": ["COL-715"],
+      "moduleName": "RealPhysics.TimeGuards",
+      "theorems": [
+        "RealPhysics.TimeGuards.elapsed_cutoff",
+        "RealPhysics.TimeGuards.repeat_window_words"
+      ]
+    },
+    {
+      "title": "Duration and the small-drag branch",
+      "rules": ["MOV-703"],
+      "moduleName": "RealPhysics.TimeGuards",
+      "theorems": [
+        "RealPhysics.TimeGuards.special_guard",
+        "RealPhysics.TimeGuards.opposite_drag_decisions",
+        "RealPhysics.TimeGuards.drag_step_words"
+      ]
+    },
+    {
+      "title": "Stokes settling under gravity and buoyancy",
+      "rules": ["MOV-701", "MOV-702", "MOV-703", "MOV-704"],
+      "moduleName": "RealPhysics.FallingSphere",
+      "theorems": [
+        "RealPhysics.FallingSphere.rational_speed",
+        "RealPhysics.FallingSphere.Setup.terminal_speed",
+        "RealPhysics.FallingSphere.Setup.terminal_step",
+        "RealPhysics.FallingSphere.Setup.settling_from_rest",
+        "RealPhysics.FallingSphere.Setup.speed_ratio"
+      ]
+    }
+  ]
+}

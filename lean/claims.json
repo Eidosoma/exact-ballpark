@@ -3900,6 +3900,35 @@
         "ExactBallpark.Combat.TrackingMargin.cross_angular_sq",
         "ExactBallpark.Combat.TrackingMargin.radial_cross_words"
       ]
+    },
+    {
+      "title": "Ordinary movement as a Newtonian particle",
+      "moduleName": "ExactBallparkProofs.Physics.NewtonDrag",
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "model": "Source-extracted real position in a Physlib inertial frame",
+      "rules": ["MOV-701", "MOV-702"],
+      "scope": "For fixed positive effective mass and friction and constant applied acceleration, the regular source position is the position of a Physlib particle when the cached full-tick factor equals the exact decay. Its applied force minus velocity-dependent drag equals mass times the second derivative of its position. The constructed Newtonian system contains this particle, two external forces and zero internal forces. This describes motion between changes of force or velocity.",
+      "theorems": [
+        "ExactBallpark.Physics.NewtonDrag.source_particle_position",
+        "ExactBallpark.Physics.NewtonDrag.force_balance",
+        "ExactBallpark.Physics.NewtonDrag.system_inventory"
+      ],
+      "ruleTheorems": {
+        "MOV-701": ["force_balance", "system_inventory"],
+        "MOV-702": ["source_particle_position"]
+      }
+    },
+    {
+      "title": "Uniform motion at force balance in both integrator branches",
+      "moduleName": "ExactBallparkProofs.Physics.NewtonDrag",
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "model": "Source-extracted real arithmetic on one Cartesian coordinate",
+      "rules": ["MOV-702", "MOV-703"],
+      "scope": "For positive effective mass m and friction k, if the applied acceleration satisfies m a = k v, either position branch returns p + v t and velocity v, including at zero duration. The identity holds for every supplied real cache value.",
+      "hostEvidence": "The optional experiment compares scalar outputs with the source-extracted binary64 program at equilibrium and on both sides of the duration-dependent branch decision. [CPU replay](experimental/check.py)",
+      "theorems": ["ExactBallpark.Physics.NewtonDrag.balanced_source_step"]
     }
   ]
 }

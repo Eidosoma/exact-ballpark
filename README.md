@@ -13,7 +13,7 @@ arithmetic, bit for bit.
 > a test you can run. Interfaces may still change. The first speed measurements are in
 > [Benchmarks](#benchmarks).
 
-The Lean register contains **430 kernel-checked theorems across all 105 engine rules**. Each theorem covers a stated part of a rule’s behaviour. [Engine laws in Lean](#engine-laws-in-lean)
+The Lean register contains **434 kernel-checked theorems across all 105 engine rules**. Each theorem covers a stated part of a rule’s behaviour. [Engine laws in Lean](#engine-laws-in-lean)
 
 ## Why we built it
 
@@ -230,6 +230,8 @@ are in [`docs/exactness.md`](docs/exactness.md).
 ### Engine laws in Lean
 
 [![Law map showing movement, warp, collisions, space and sensors, time and events, and combat.](lean/assets/law-map.webp)](lean/README.md)
+
+Ordinary drag now has a proved correspondence to a Newtonian particle with an applied force and linear drag. The optional real-physics experiments compare predictions with laboratory measurements and record where a physical interpretation would change engine decisions. [Newtonian movement](lean/ExactBallparkProofs/Physics/NewtonDrag.lean) · [Experimental results](lean/experimental/README.md) · [Physical discrepancies](lean/experimental/DISCREPANCIES.md)
 
 For collision-free scalar GOTO and STOP, Lean checks that each ball has the same state after any admitted command sequence as it would have if it received its own commands and every tick. The CPU gate compares every stored field with Python. In one five-second horizontal coast starting at 100 m/s, Lean bounds the final position error against the continuous drag equation below 10⁻¹⁴ m, using the observed decay word. [Scalar movement and its assumptions](lean/README.md#scalar-movement-across-ticks)
 

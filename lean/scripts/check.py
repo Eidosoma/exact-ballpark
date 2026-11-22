@@ -38,6 +38,13 @@ def run_lake(*args, capture=False):
     return result.stdout
 
 
+def check_toolchain():
+    pin = (LEAN / "lean-toolchain").read_text(encoding="utf-8").strip().removeprefix("leanprover/lean4:v")
+    version = run_lake("env", "lean", "--version", capture=True)
+    if not re.search(r"Lean \(version " + re.escape(pin) + r"(?:,|\))", version):
+        raise SystemExit(f"Expected Lean {pin}, got {version.strip()}")
+
+
 def load_registry():
     registry = json.loads((LEAN / "claims.json").read_text(encoding="utf-8"))
     catalogue = {}
@@ -356,15 +363,12 @@ def main():
     parser.add_argument("--write", action="store_true", help="regenerate CLAIMS.md after all checks pass")
     parser.add_argument("--destiny-repo", type=Path, help="also replay flight, collisions and routing using a local clone containing the pinned Destiny commit")
     args = parser.parse_args()
-    pin = (LEAN / "lean-toolchain").read_text(encoding="utf-8").strip().removeprefix("leanprover/lean4:v")
-    version = run_lake("env", "lean", "--version", capture=True)
-    if not re.search(r"Lean \(version " + re.escape(pin) + r"(?:,|\))", version):
-        raise SystemExit(f"Expected Lean {pin}, got {version.strip()}")
+    check_toolchain()
     registry, catalogue, expected = load_registry()
     for reference in (integrator_reference, scalar_reference, server_reference, warp_reference):
         if reference.DEST.read_text(encoding="utf-8") != reference.extract():
             raise SystemExit(f"Generated source differs from Python. Review scripts/{reference.__name__}.py.")
-    run_lake("build")
+    run_lake("build", "ExactBallparkProofs", "ProofAudit")
     output = run_lake("env", "lean", "-DwarningAsError=true", "scripts/CheckClaims.lean", capture=True)
     rows = [json.loads(line) for line in output.splitlines()]
     audit = {row["theorem"]: row["axioms"] for row in rows}

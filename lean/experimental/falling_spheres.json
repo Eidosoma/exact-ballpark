@@ -1,0 +1,27 @@
+{
+  "sheffield": {
+    "source": "https://etheses.whiterose.ac.uk/id/eprint/15558/1/Thesis_FC_120109432.pdf",
+    "sha256": "e2869d9aa5c5892962c3e25c2c582cf7fababaaf662a06b616682acdff7e611b",
+    "input_locations": "Tables 5.1, 5.2 and 5.5. Downward gravity magnitude from chapter 4.",
+    "fluid_temperature_C": "20",
+    "solid_density_kg_m3": "8400",
+    "fluid_density_kg_m3": "1261.1",
+    "dynamic_viscosity_Pa_s": "1.400",
+    "gravity_m_s2": "9.81",
+    "printed_increment_m_s": "0.01",
+    "spheres": [
+      {"id": "S3", "diameter_mm": "5.0", "observed_m_s": "0.06", "location": "Section 5.4, Figure 5.8"},
+      {"id": "S4", "diameter_mm": "6.0", "observed_m_s": "0.09", "location": "Table 5.8"}
+    ]
+  },
+  "georgia_tech": {
+    "source": "https://ace.gatech.edu/experiments2/6514/flowaround/fall02/ma6514/math64142.xls",
+    "sha256": "dcd8e18eaec7dd6170c7f5fba845b3ad5e17b1f32a413e07ffc70e01c571d9e1",
+    "location": "Sheet1 F2 and row 27 (terminal-speed trial 1).",
+    "metres_per_mL": "0.000516667",
+    "start_mL": "800",
+    "end_mL": "100",
+    "start_centiseconds": "1970",
+    "end_centiseconds": "4702"
+  }
+}
