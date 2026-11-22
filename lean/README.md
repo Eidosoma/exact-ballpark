@@ -1,6 +1,6 @@
 # Exact Ballpark laws in Lean
 
-The Lean register links **105 engine laws** to **434 kernel-checked theorems**. Each entry records the rule ID, the behaviour proved, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
+The Lean register links **105 engine laws** to **444 kernel-checked theorems**. Each entry records the rule ID, the behaviour proved, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
 
 [![Exact Ballpark law map. Movement has 41 laws, warp 16, collisions 19, space and sensors 12, time and events 15, and combat 2.](assets/law-map.webp)](assets/law-map.webp)
 
@@ -77,7 +77,9 @@ The scalar proofs use a source translation for tick arithmetic, reviewed transcr
 
 ## Energy and physical units
 
-Physlib can represent ordinary movement as a single particle in an inertial frame. Its two external forces are the applied force and linear drag. At force balance, the source gives uniform motion under either position branch, even with an arbitrary real cache value. The opt-in experiments use this result to test a falling sphere and examine two duration-sensitive guards. [Newtonian correspondence](ExactBallparkProofs/Physics/NewtonDrag.lean) · [Experimental results](experimental/README.md) · [Physical discrepancies](experimental/DISCREPANCIES.md)
+Physlib represents ordinary movement as a single particle in an inertial frame. Its two external forces are the applied force and linear drag. At force balance, the source gives uniform motion under either position branch, even with an arbitrary real cache value. [Newtonian correspondence](ExactBallparkProofs/Physics/NewtonDrag.lean)
+
+Ten further experiments contributed ten theorems to the engine register. They cover changing the length unit of a warp, GOTO sweep clearance, relative travel between contacts, elastic impulses and impact energy, angular tracking across frames, and motion in a fixed drag medium. The optional target also tests the ideal circular-orbit speed limit, STOP at different tick lengths and the Stokes resistance law against measurements. [Promoted claims](CLAIMS.md#claim-184) · [Experiment register](experimental/README.md#ten-mechanics-experiments) · [Physical discrepancies](experimental/DISCREPANCIES.md)
 
 For an ordinary flight interval, let `m = mass × agility`, let `k` be friction, and hold the applied acceleration `a` constant. Lean proves that the change in kinetic energy equals the time integral of thrust power minus drag loss. The proof starts from the three velocity components in the translated scalar integrator and uses mathlib’s derivative of the squared norm and fundamental theorem of calculus. It assumes positive constant `m` and `k`, with the exact decay when the engine reads its full-tick cache. [Energy proof](ExactBallparkProofs/Movement/Energy.lean) · [Squared-norm derivative](https://github.com/leanprover-community/mathlib4/blob/fc4f59e577feb1a4956671bc04ac18aaaf8cd842/Mathlib/Analysis/InnerProductSpace/Calculus.lean#L216) · [Integral theorem](https://github.com/leanprover-community/mathlib4/blob/fc4f59e577feb1a4956671bc04ac18aaaf8cd842/Mathlib/MeasureTheory/Integral/IntervalIntegral/FundThmCalculus.lean#L1148)
 

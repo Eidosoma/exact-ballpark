@@ -5,6 +5,8 @@ upstream commits it is checked against (destiny, carbonengine/math, DirectXMath)
 
 ## [Unreleased]
 
+- Added ten physics experiments. Seven contributed ten theorems to the engine register, bringing it to 444. The optional library gained seven theorems, including the steady circular-orbit speed ceiling, a binary64 tracking rotation witness and the Stokes resistance identity tested against two observed spheres. [Experiment register](lean/experimental/README.md#ten-mechanics-experiments) · [Numerical results](lean/experimental/RESULTS.md#ten-mechanics-experiments)
+
 - Registered four theorems connecting scalar movement to a Physlib Newtonian system and proving uniform motion at force balance in both branches. Added an optional experimental target for timing guards and measured falling-sphere speeds, with a separate log for changes a physical interpretation would require. [Physics experiments](lean/experimental/README.md) · [Physical discrepancies](lean/experimental/DISCREPANCIES.md)
 
 - Added ten Lean theorems in four claims, bringing the register to 430. CPU comparisons cover fixed-obstacle selection across tick lengths, grazing sweeps, mixed-stamp queue dispatch and the fused multiply-add control for radial tracking. [Proofs and replay scope](lean/README.md#ten-proofs-behind-four-discrepancy-reports)

@@ -42,6 +42,17 @@ def friction := 6 * Real.pi * s.viscosity * s.radius
 def applied := s.gravity * (s.solidDensity - s.fluidDensity) / s.solidDensity
 def speed := stokesSpeed s.radius s.gravity s.solidDensity s.fluidDensity s.viscosity
 
+/-- Using diameter for Reynolds number and projected disk area for the force
+coefficient, Stokes drag gives C_D Re = 24 at every positive speed. -/
+theorem resistance_product {v : ℝ} (hv : 0 < v) :
+    let force := s.friction * v
+    let coefficient := 2*force/(s.fluidDensity*v^2*(Real.pi*s.radius^2))
+    let reynolds := s.fluidDensity*v*(2*s.radius)/s.viscosity
+    coefficient * reynolds = 24 := by
+  dsimp [friction]
+  field_simp [hv.ne', s.fluid_pos.ne', s.radius_pos.ne', s.viscosity_pos.ne', Real.pi_ne_zero]
+  ring
+
 private theorem mass_pos : 0 < s.mass := by
   unfold mass
   positivity [s.radius_pos, s.solid_pos, Real.pi_pos]

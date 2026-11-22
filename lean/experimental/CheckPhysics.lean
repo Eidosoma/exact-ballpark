@@ -19,6 +19,9 @@ private def readRat (word : String) : IO ℚ := do
 def main (args : List String) : IO Unit := do
   for row in args do
     match row.splitOn "," with
+    | ["A", frame] =>
+      if frame != "xyz" && frame != "yzx" then throw <| IO.userError "unknown tracking frame"
+      IO.println (RealPhysics.TrackingAxes.radialProjection (frame == "yzx")).toBits
     | ["C", dt, u] =>
       let some dt := dt.toNat? | throw <| IO.userError "invalid duration bits"
       let some u := u.toNat? | throw <| IO.userError "invalid fraction bits"

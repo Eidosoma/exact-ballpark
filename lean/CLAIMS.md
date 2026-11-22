@@ -1,6 +1,6 @@
 # Lean claim register
 
-434 kernel-checked theorems have claims linked to 105 of the 105 catalogue rules. A link covers the scope stated below.
+444 kernel-checked theorems have claims linked to 105 of the 105 catalogue rules. A link covers the scope stated below.
 
 Engine revision `098653233eb0f9910a3f02564e36b0641cbd4e0f`. The register identifies manually transcribed models and source-extracted definitions. The Python-to-Lean extractors are trusted. The Lean kernel checks the resulting theorems. The full.py digest includes a docstring correction to the pinned formation source.
 
@@ -21,12 +21,12 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 
 | Rule | Engine law | Scope and supporting theorems |
 | --- | --- | --- |
-| MOV-701 | Motion is viscous with friction k = 1e6 and effective mass = mass x agility | [refresh_positive](#claim-1), [source_regular, velocity_hasDerivAt](#claim-3), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [drag_exponent_decay, refresh_factor_units](#claim-143), [trajectory_unique](#claim-146), [acceleration_bound](#claim-147), [manoeuvre_work_energy](#claim-169), [force_balance, system_inventory](#claim-182) |
-| MOV-702 | Closed-form exponential integration of position and velocity | [source_regular, flow_zero, decay_hasDerivAt, position_hasDerivAt, velocity_hasDerivAt, flow_compose](#claim-3), [integrate_zero, integrate_regular, integrate_velocity](#claim-4), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50), [zero_duration_bits](#claim-52), [coordinate_words](#claim-126), [regular_step_error](#claim-128), [tick_lookup](#claim-137), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [extracted_velocity3, velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [pos_zero, vel_zero, position_derivative, extracted_position, trajectory_unique](#claim-146), [acceleration_bound, flight_chord_deviation](#claim-147), [pair_no_contact, pair_clearance](#claim-148), [position_error_from_axes, rounded_endpoint_budget](#claim-149), [turning_overlap, goto_sweep_inputs, turning_clearance](#claim-150), [decay_enclosed, weights_monotone, position_enclosed](#claim-152), [ordinary_throughout, squared_distance_enclosed](#claim-153), [turning_window, clear_control, two_turning_bodies](#claim-154), [ordinary_inputs, incoming](#claim-155), [restart_state, remainder](#claim-156), [half_decay, positive_gap, shared_drag_separation](#claim-157), [replay_words](#claim-158), [ideal_endpoint_enclosed, endpoint_error](#claim-159), [manoeuvre_work_energy](#claim-169), [axis_position, rest_point](#claim-170), [source_particle_position](#claim-182), [balanced_source_step](#claim-183) |
+| MOV-701 | Motion is viscous with friction k = 1e6 and effective mass = mass x agility | [refresh_positive](#claim-1), [source_regular, velocity_hasDerivAt](#claim-3), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [drag_exponent_decay, refresh_factor_units](#claim-143), [trajectory_unique](#claim-146), [acceleration_bound](#claim-147), [manoeuvre_work_energy](#claim-169), [force_balance, system_inventory](#claim-182), [fixed_medium_boost](#claim-190) |
+| MOV-702 | Closed-form exponential integration of position and velocity | [source_regular, flow_zero, decay_hasDerivAt, position_hasDerivAt, velocity_hasDerivAt, flow_compose](#claim-3), [integrate_zero, integrate_regular, integrate_velocity](#claim-4), [decay_bounds, velocity_contraction, speed_envelope, velocity_tends_to_terminal](#claim-5), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50), [zero_duration_bits](#claim-52), [coordinate_words](#claim-126), [regular_step_error](#claim-128), [tick_lookup](#claim-137), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [extracted_velocity3, velocity3_hasDerivAt, drag_energy_rate, drag_work_energy, coast_energy, coast_energy_strictAnti](#claim-142), [pos_zero, vel_zero, position_derivative, extracted_position, trajectory_unique](#claim-146), [acceleration_bound, flight_chord_deviation](#claim-147), [pair_no_contact, pair_clearance](#claim-148), [position_error_from_axes, rounded_endpoint_budget](#claim-149), [turning_overlap, goto_sweep_inputs, turning_clearance](#claim-150), [decay_enclosed, weights_monotone, position_enclosed](#claim-152), [ordinary_throughout, squared_distance_enclosed](#claim-153), [turning_window, clear_control, two_turning_bodies](#claim-154), [ordinary_inputs, incoming](#claim-155), [restart_state, remainder](#claim-156), [half_decay, positive_gap, shared_drag_separation](#claim-157), [replay_words](#claim-158), [ideal_endpoint_enclosed, endpoint_error](#claim-159), [manoeuvre_work_energy](#claim-169), [axis_position, rest_point](#claim-170), [source_particle_position](#claim-182), [balanced_source_step](#claim-183), [goto_chord](#claim-185), [relative_travel](#claim-186), [fixed_medium_boost](#claim-190) |
 | MOV-703 | Near-zero friction switches to a branch where acceleration does not move the ball | [special_position_eq, integrate_special](#claim-4), [extracted_integrator](#claim-49), [special_rounding_witness](#claim-50), [special_position_error](#claim-105), [coordinate_words](#claim-126), [tick_lookup](#claim-137), [extracted_velocity3](#claim-142), [ordinary_throughout](#claim-153), [balanced_source_step](#claim-183) |
 | MOV-704 | Each ball caches its one-tick decay factor exp(-k dt / (mass agility)) | [refresh_positive, stepFactor_eq](#claim-1), [addBall_valid, update_valid, history_valid, velocity_after_updates](#claim-2), [integrate_regular, integrate_velocity](#claim-4), [extracted_integrator](#claim-49), [full_tick_velocity_bits](#claim-50), [coordinate_words](#claim-126), [regular_step_error](#claim-128), [edit_preserves_cache](#claim-136), [trace_refines](#claim-138), [trace_preserves_cache, cache_from_empty](#claim-139), [regular_trajectory_error](#claim-140), [five_second_coast](#claim-141), [extracted_velocity3](#claim-142), [drag_exponent_decay, refresh_factor_units](#claim-143), [extracted_position](#claim-146), [rounded_endpoint_budget](#claim-149), [goto_sweep_inputs](#claim-150), [decay_enclosed](#claim-152), [replay_words](#claim-158) |
 | MOV-705 | Maximum thrust is k x speedFraction x maxVel / (mass x agility) | [goto_terminal_bound, goto_speed_bound](#claim-6), [tick_lookup](#claim-137), [goto_sweep_inputs](#claim-150), [ordinary_inputs](#claim-155), [clipped_orbit_speed](#claim-172) |
-| MOV-706 | Goto thrust is full thrust toward the target with an (L/D)^4 homing taper | [taper_bounds, goto_terminal_bound, goto_speed_bound](#claim-6), [tick_lookup](#claim-137), [goto_sweep_inputs](#claim-150), [goto_first_commit, goto_moves_at_five](#claim-165) |
+| MOV-706 | Goto thrust is full thrust toward the target with an (L/D)^4 homing taper | [taper_bounds, goto_terminal_bound, goto_speed_bound](#claim-6), [tick_lookup](#claim-137), [goto_sweep_inputs](#claim-150), [goto_first_commit, goto_moves_at_five](#claim-165), [goto_chord](#claim-185) |
 | MOV-707 | Goto has no braking term, so a ship overshoots its goto point | [goto_overshoot](#claim-26) |
 | MOV-708 | GotoPoint and GotoDirection set a goto point, cancel follows and default speed | [goto_cancels](#claim-28), [edit_preserves_cache](#claim-136), [trace_refines](#claim-138), [goto_sweep_inputs](#claim-150) |
 | MOV-709 | Stop cancels follow-type modes and leaves the ball coasting to rest | [stop_clears](#claim-28), [edit_preserves_cache](#claim-136), [trace_refines](#claim-138), [axis_velocity, axis_position, rest_point, stop_loss_budget](#claim-170) |
@@ -69,9 +69,9 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | TRV-705 | While aligning for warp the ship thrusts toward the destination like a goto | [waiting_ticks](#claim-37) |
 | TRV-706 | Warp starts at 75% of max speed within about 8 degrees, or after 180 ticks | [alignment_after_waits](#claim-13), [accepted_warp_commits, dropout_handoff](#claim-162) |
 | TRV-707 | Warp activation drops collisions and offsets the exit point by minRange | [exit_distance](#claim-13) |
-| TRV-708 | Warp speed, acceleration and deceleration rates scale with the warp factor | [rate_bounds](#claim-14), [source_constants](#claim-31) |
-| TRV-709 | Short warps lower the top speed so the cruise phase has zero length | [short_cruise_zero](#claim-14), [source_constants](#claim-31), [positive_cruise_iff](#claim-72), [short_cruise_words](#claim-74), [cruise_exit_margin](#claim-101) |
-| TRV-710 | Warp phase durations and distances | [cruise_nonnegative, phase_distances_sum](#claim-14), [source_constants](#claim-31) |
+| TRV-708 | Warp speed, acceleration and deceleration rates scale with the warp factor | [rate_bounds](#claim-14), [source_constants](#claim-31), [source_metres, unit_conversion](#claim-184) |
+| TRV-709 | Short warps lower the top speed so the cruise phase has zero length | [short_cruise_zero](#claim-14), [source_constants](#claim-31), [positive_cruise_iff](#claim-72), [short_cruise_words](#claim-74), [cruise_exit_margin](#claim-101), [source_metres, unit_conversion](#claim-184) |
+| TRV-710 | Warp phase durations and distances | [cruise_nonnegative, phase_distances_sum](#claim-14), [source_constants](#claim-31), [source_metres, unit_conversion](#claim-184) |
 | TRV-711 | Warp proper follows an analytic exponential-then-cruise path | [phase_joins](#claim-15), [acceleration_sample](#claim-122), [placement_ray](#claim-124), [accepted_warp_commits, dropout_handoff](#claim-162) |
 | TRV-712 | Warp deceleration decays exponentially | [phase_decel_iff, decel_velocity](#claim-15), [deceleration_extension](#claim-123), [placement_ray](#claim-124) |
 | TRV-713 | Ships drop out of warp below min(maxVel/2, 100 m/s) | [dropout_iff](#claim-15), [dropout_time_iff](#claim-73), [cruise_exit_margin](#claim-101), [accepted_warp_commits, dropout_handoff](#claim-162) |
@@ -92,10 +92,10 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | COL-712 | Static capsules and boxes reflect or eject balls with the same 0.85 response | [excluded_chord](#claim-10), [scaled_reflection, static_branches](#claim-51), [support_geometry, crossing_iff, parallel_sweep, face_membership](#claim-71), [axis_distance, bounding_rejection, cylinder_quadratic, first_barrel_contact](#claim-116), [shallow_crossing_missed](#claim-117), [grown_bounds, axis_extents, solid_enclosed, excluded_solid](#claim-174) |
 | COL-713 | Fixed balls carry axis-aligned miniballs, minicapsules and miniboxes | [fixed_capsule](#claim-47), [axis_extents, solid_enclosed, diagonal_radius](#claim-174) |
 | COL-714 | Iterative collisions re-examine colliding balls for up to 20 passes | [iteration_cap](#claim-44), [remove_first_matching_impact, remove_reset_at_zero, finish_window](#claim-68) |
-| COL-715 | Iterative search order is static, then fixed, then higher-ID free balls | [unique_pair](#claim-45), [ignore_recent_colliders, index_prefix, position_from_prefix](#claim-69), [rounded_history_lookup](#claim-70), [full_tick_first_min, partial_tick_selection](#claim-90), [static_priority](#claim-91), [free_subintervals, ignored_segment](#claim-92), [four_ball_endpoint, returning_ball_words](#claim-102), [compensated_history_cutoff](#claim-104), [detected_rebound](#claim-127), [contact_time_value, contact_time_lt_iff, half_tick_absolute_selection](#claim-144), [earlier64_eq, half_tick_selection_words](#claim-145), [disjoint_first_contacts](#claim-151), [obstacle_order](#claim-154), [replay_words](#claim-158), [fixed_window_order_iff, unit_first_sweep_iff, first_half_second_words](#claim-178) |
+| COL-715 | Iterative search order is static, then fixed, then higher-ID free balls | [unique_pair](#claim-45), [ignore_recent_colliders, index_prefix, position_from_prefix](#claim-69), [rounded_history_lookup](#claim-70), [full_tick_first_min, partial_tick_selection](#claim-90), [static_priority](#claim-91), [free_subintervals, ignored_segment](#claim-92), [four_ball_endpoint, returning_ball_words](#claim-102), [compensated_history_cutoff](#claim-104), [detected_rebound](#claim-127), [contact_time_value, contact_time_lt_iff, half_tick_absolute_selection](#claim-144), [earlier64_eq, half_tick_selection_words](#claim-145), [disjoint_first_contacts](#claim-151), [obstacle_order](#claim-154), [replay_words](#claim-158), [fixed_window_order_iff, unit_first_sweep_iff, first_half_second_words](#claim-178), [relative_travel](#claim-186) |
 | COL-716 | Iterative impacts on static objects are perfectly elastic impulses | [reflection](#claim-17), [static_velocity_components, start_contact_acceleration](#claim-62) |
-| COL-717 | Iterative impacts between free balls are elastic with base masses | [iterative_exchange](#claim-17), [start_contact_acceleration](#claim-62), [pair_separates, pair_preserves_tangent, pair_momentum, pair_kinetic_energy](#claim-63), [raw_impulse, restart_state, momentum_change](#claim-156), [replay_words](#claim-158), [endpoint_error](#claim-159), [from_pair_velocity, momentum_iff, separates_iff, common_fraction_loss](#claim-173) |
-| COL-718 | Iterative velocity changes above 5 x maxVel are scaled by the squared ratio | [limitImpact_norm](#claim-18), [limited_speed_bound](#claim-65), [rounded_limiter_exceeds_bound](#claim-66), [insert_cutoff_and_retry, insert_after_predecessor, insert_before_all](#claim-67), [promoted_limiter_exact](#claim-106), [detected_rebound](#claim-127), [applied_impulse, momentum_change](#claim-156), [limited_closing_at_end](#claim-157), [replay_words](#claim-158), [endpoint_error](#claim-159), [limit_normal, from_pair_velocity, momentum_iff, separates_iff, common_fraction_loss, asymmetric_witness](#claim-173) |
+| COL-717 | Iterative impacts between free balls are elastic with base masses | [iterative_exchange](#claim-17), [start_contact_acceleration](#claim-62), [pair_separates, pair_preserves_tangent, pair_momentum, pair_kinetic_energy](#claim-63), [raw_impulse, restart_state, momentum_change](#claim-156), [replay_words](#claim-158), [endpoint_error](#claim-159), [from_pair_velocity, momentum_iff, separates_iff, common_fraction_loss](#claim-173), [elastic_impulse_iff](#claim-187), [boost_energy_change, internal_energy, limited_energy_frames](#claim-188) |
+| COL-718 | Iterative velocity changes above 5 x maxVel are scaled by the squared ratio | [limitImpact_norm](#claim-18), [limited_speed_bound](#claim-65), [rounded_limiter_exceeds_bound](#claim-66), [insert_cutoff_and_retry, insert_after_predecessor, insert_before_all](#claim-67), [promoted_limiter_exact](#claim-106), [detected_rebound](#claim-127), [applied_impulse, momentum_change](#claim-156), [limited_closing_at_end](#claim-157), [replay_words](#claim-158), [endpoint_error](#claim-159), [limit_normal, from_pair_velocity, momentum_iff, separates_iff, common_fraction_loss, asymmetric_witness](#claim-173), [boost_energy_change, internal_energy, limited_energy_frames](#claim-188) |
 | COL-719 | Collision events are raised only for missiles; orphaned missiles hit themselves | [orphan_with_owner](#claim-44), [dispatch_moving, dispatch_silent](#claim-54) |
 | SEN-701 | Proximity sensors check every period seconds, default 2.0 s | [sensor_schedule](#claim-20), [first_due_poll](#claim-77), [timed_crossing](#claim-160) |
 | SEN-702 | A ball is inside a sensor when centre distance <= range + both radii | [sensor_inside, crossing, repeated_sample](#claim-20), [vanished_target, present_target](#claim-78), [timed_crossing](#claim-160) |
@@ -125,7 +125,7 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | TIME-714 | Balls in dead bubbles are not evolved on the server | [dead_iff](#claim-40) |
 | TIME-715 | A client applies each server update at its stamp, waiting, running ahead or rewinding to it | [sync_reaches_stamp, wait_iff](#claim-30), [eleventh_store, stores_bounded, post_deadline](#claim-84), [rebase_contents](#claim-85), [rewind_stream, sync_failure](#claim-86), [private_bubble_history](#claim-110), [merged_stamps, merged_payload](#claim-118), [waiting_tail, drain_frontier, reset_packet_order](#claim-119), [delayed_private_flush](#claim-133), [rewind_goto_same_stamp](#claim-166), [later_reply_keeps_prefix, earliest_only_reply, complete_history_drains](#claim-180) |
 | CMB-701 | Angular velocity is transversal speed over centre distance | [angular_agrees](#claim-19), [rotating_observer](#claim-99), [radial_invariance](#claim-177) |
-| CMB-702 | Destiny's accuracy helper is 2 to the power of tracking and falloff terms | [accuracy_bounds, optimal_stationary](#claim-19), [accuracy_overflow_input, accuracy_early_lanes](#claim-98), [sideways_margin](#claim-135), [tracking_input_nonnegative, tracking_margin_controls](#claim-167), [chance_factors, range_order, half_chance_iff, falloff_landmarks](#claim-177), [cross_angular_sq, radial_cross_words](#claim-181) |
+| CMB-702 | Destiny's accuracy helper is 2 to the power of tracking and falloff terms | [accuracy_bounds, optimal_stationary](#claim-19), [accuracy_overflow_input, accuracy_early_lanes](#claim-98), [sideways_margin](#claim-135), [tracking_input_nonnegative, tracking_margin_controls](#claim-167), [chance_factors, range_order, half_chance_iff, falloff_landmarks](#claim-177), [cross_angular_sq, radial_cross_words](#claim-181), [angular_frame](#claim-189) |
 
 <a id="claim-1"></a>
 
@@ -3049,3 +3049,118 @@ The optional experiment compares scalar outputs with the source-extracted binary
 | [Theorems](ExactBallparkProofs/Physics/NewtonDrag.lean) | Transitive axioms |
 | --- | --- |
 | `ExactBallpark.Physics.NewtonDrag.balanced_source_step` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-184"></a>
+
+## The one-metre reference in warp setup
+
+**Source-extracted real warp setup with seconds held fixed.** Restoring a reference length of one metre gives all nine source outputs. Under any positive change of length unit, the three durations and the two inverse-time rates agree, and the three distances and peak speed change by the length conversion factor. This covers both arms of the speed minimum.
+
+Engine symbols `ModeBallpark.warp_constants`. [Source](../src/exact_ballpark/modes.py)
+
+Recorded upstream evidence — TRV-708 passing (compiled code), TRV-709 passing (compiled code), TRV-710 passing (compiled code).
+
+The optional CPU replay compares both branches with an independent decimal calculation in kilometres. [Physical controls](experimental/mechanics_checks.py)
+
+| [Theorems](ExactBallparkProofs/Warp/LengthScale.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Warp.LengthScale.source_metres` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Warp.LengthScale.unit_conversion` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-185"></a>
+
+## GOTO sweep clearance from ship parameters
+
+**Three-dimensional real ordinary drag trajectory with a held GOTO command.** Positive effective mass M and friction k, a nonnegative requested speed S and a nonnegative sweep duration T bound the deviation from the simultaneous point on the endpoint chord by (k/M)(S + norm of initial velocity) T²/8. This includes the tapered and zero-offset cases. Connecting the smooth trajectory to a full source tick requires the regular position branch and its correct cache.
+
+Engine symbols `Ballpark.goto_thrust, Ballpark.integrate`. [Source](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — MOV-702 passing (compiled code), MOV-706 passing (compiled code).
+
+The optional CPU replay samples 17 points on each of a full and a tapered turn against the closed form. [Physical controls](experimental/mechanics_checks.py)
+
+| [Theorems](ExactBallparkProofs/Physics/FlightLimits.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Physics.FlightLimits.goto_chord` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-186"></a>
+
+## Relative travel inside a collision-history time window
+
+**Two ordinary real drag trajectories between impulses.** On a nonnegative time interval, if each body's initial and terminal speeds are within its own envelope, the change in relative position is at most the sum of the envelopes times elapsed time. Each flight has fixed inputs and positive effective mass and friction. The theorem bounds physical displacement during a history tolerance. The choice of history record is a separate operation.
+
+Engine symbols `CollisionBallProperties.position, Ballpark.integrate`. [Source](../src/exact_ballpark/space.py) · [ref.py](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — MOV-702 passing (compiled code), COL-715 passing (compiled code).
+
+Two CPU histories check opposed and co-moving equilibrium velocities just inside the stored tolerance and at its integration boundary. [Physical controls](experimental/mechanics_checks.py)
+
+| [Theorems](ExactBallparkProofs/Physics/FlightLimits.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Physics.FlightLimits.relative_travel` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-187"></a>
+
+## Uniqueness of the uncapped elastic normal impulse
+
+**One-dimensional normal components of the real free-pair impact.** For strictly approaching bodies of positive base mass, a candidate impulse added to the first body's momentum and subtracted from the second's conserves kinetic energy and leaves them separating exactly when it is the raw engine impulse. Tangential velocities are held fixed. This covers the instant before the per-body limit and subsequent forces.
+
+Engine symbols `SpaceBallpark._impact_free`. [Source](../src/exact_ballpark/space.py)
+
+Recorded upstream evidence — COL-717 passing (compiled code).
+
+Three initial contacts compare raw scalar impulses with exact fractions for equal and unequal masses and different agilities. [Physical controls](experimental/mechanics_checks.py)
+
+| [Theorems](ExactBallparkProofs/Physics/ContactFrames.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Physics.ContactFrames.elastic_impulse_iff` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-188"></a>
+
+## Energy of a capped pair in different frames
+
+**Real one-dimensional pair energy in frames with a constant velocity offset.** For fixed base masses, adding b to every velocity changes the measured kinetic-energy difference by b times the momentum change. Internal kinetic energy uses velocities relative to each state's centre of mass. On the registered asymmetric limiter witness the +100 m/s shift gives −46.875 J, and internal energy changes by −23.4375 J.
+
+Engine symbols `SpaceBallpark._impact_free, SpaceBallpark._add_impact`. [Source](../src/exact_ballpark/space.py)
+
+Recorded upstream evidence — COL-717 passing (compiled code), COL-718 passing (compiled code).
+
+Exact fractions evaluate the velocities stored by the existing capped-contact CPU replay. [Physical controls](experimental/mechanics_checks.py)
+
+| [Theorems](ExactBallparkProofs/Physics/ContactFrames.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Physics.ContactFrames.boost_energy_change` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Physics.ContactFrames.internal_energy` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Physics.ContactFrames.limited_energy_frames` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-189"></a>
+
+## Frame invariance of the real angular-speed square
+
+**Real relative positions and velocities under a linear isometry.** The squared angular speed in the ordinary GetAccuracy formula is invariant under a common translation, velocity boost and orthogonal change of axes. The source query uses this branch for distinct centres and valid inputs. Binary64 operation order can change the result.
+
+Engine symbols `FullBallpark.get_accuracy`. [Source](../src/exact_ballpark/full.py)
+
+Recorded upstream evidence — CMB-702 passing (compiled code).
+
+The optional replay applies all three transforms to a dyadic control, then cycles a near-radial witness. [Tracking controls](experimental/mechanics_checks.py)
+
+| [Theorems](ExactBallparkProofs/Physics/ContactFrames.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Physics.ContactFrames.angular_frame` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-190"></a>
+
+## A velocity boost in the fixed drag medium
+
+**One Cartesian component of the ordinary real flow.** With identical position, fixed applied acceleration, positive effective mass M and friction k, adding b to the initial velocity adds q b to velocity and (M/k)(1−q)b to position, where q is the exact decay. This describes the regular branch with the correct cache.
+
+Engine symbols `Ballpark.integrate`. [Source](../src/exact_ballpark/ref.py)
+
+Recorded upstream evidence — MOV-701 passing (compiled code), MOV-702 passing (compiled code).
+
+The optional replay checks three durations against the translated binary64 integrator and, when supplied, the pinned C++ integrator. [Physical controls](experimental/mechanics_checks.py)
+
+| [Theorems](ExactBallparkProofs/Physics/FlightLimits.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Physics.FlightLimits.fixed_medium_boost` | propext, Classical.choice, Quot.sound |

@@ -461,6 +461,21 @@ def check_log(destiny_repo=None):
     return cases
 
 
+def accuracy_probe(ballpark):
+    """Compile GetAccuracy unchanged and observe the arguments it passes to the host math library."""
+    method = extract(ballpark, "double Ballpark::GetAccuracy(")
+    declaration = method.split("{", 1)[0].replace("Ballpark::", "").strip() + ";"
+    return "\n".join([
+        "namespace CombatProbe { using ID = long long;",
+        "struct Ball { Vector3d mNewPos, mNewVel; float mRadius; };",
+        "struct Ballpark { Ball* mBalls[3]; " + declaration + " };",
+        "double squaredAngularSpeed, powerExponent;",
+        "double sqrt(double x) { squaredAngularSpeed = x; return std::sqrt(x); }",
+        "double pow(double x, double y) { powerExponent = y; return std::pow(x, y); }",
+        "#define CCP_LOGWARN_CH(...) ((void)0)", method, "#undef CCP_LOGWARN_CH", "}",
+    ])
+
+
 def replay(repo):
     if sys.version_info < (3, 13):
         raise SystemExit("Python 3.13 or later is required for engine correspondence.")
@@ -485,19 +500,10 @@ def replay(repo):
     warp_sources = {"src/Ballpark.cpp": ballpark, "src/Ballpark.h": source("Ballpark.h")}
     constants = [extract_line(warp_sources[path], prefix, name) for path, name, prefix in LINES
                  if name == "AU" or name.startswith("WARP_FACTOR_TO_")]
-    accuracy = extract(ballpark, "double Ballpark::GetAccuracy(")
-    accuracy_decl = accuracy.split("{", 1)[0].replace("Ballpark::", "").strip() + ";"
     unit = "\n".join([
         PRELUDE, '#include "Vector3d.h"', "#include <vector>", "#include <algorithm>",
         *constants, BALLPARK.replace("struct Ballpark {", "struct Ballpark {\n" + declaration),
-        "namespace CombatProbe { using ID = long long;",
-        "struct Ball { Vector3d mNewPos, mNewVel; float mRadius; };",
-        "struct Ballpark { Ball* mBalls[3]; " + accuracy_decl + " };",
-        # GetAccuracy calls these two functions unqualified. Observe their inputs and forward to libm.
-        "double squaredAngularSpeed, powerExponent;",
-        "double sqrt(double x) { squaredAngularSpeed = x; return std::sqrt(x); }",
-        "double pow(double x, double y) { powerExponent = y; return std::pow(x, y); }",
-        "#define CCP_LOGWARN_CH(...) ((void)0)", accuracy, "#undef CCP_LOGWARN_CH", "}",
+        accuracy_probe(ballpark),
         setup,
         extract(ballpark, "void Ballpark::Integrate("),
         extract(ballpark, "Vector3d Ballpark::GotoThrust("),

@@ -96,3 +96,6 @@ public import ExactBallparkProofs.Collision.SolidBox
 public import ExactBallparkProofs.Space.RangeAlerts
 public import ExactBallparkProofs.Time.CleanupWindow
 public import ExactBallparkProofs.Combat.Falloff
+public import ExactBallparkProofs.Physics.FlightLimits
+public import ExactBallparkProofs.Physics.ContactFrames
+public import ExactBallparkProofs.Warp.LengthScale

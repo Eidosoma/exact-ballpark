@@ -10,8 +10,8 @@
     "gravity_m_s2": "9.81",
     "printed_increment_m_s": "0.01",
     "spheres": [
-      {"id": "S3", "diameter_mm": "5.0", "observed_m_s": "0.06", "location": "Section 5.4, Figure 5.8"},
-      {"id": "S4", "diameter_mm": "6.0", "observed_m_s": "0.09", "location": "Table 5.8"}
+      {"id": "S3", "diameter_mm": "5.0", "observed_m_s": "0.06", "reported_reynolds": "0.3", "reported_drag_coefficient": "101.0", "location": "Section 5.4, Figures 5.8 and 5.10 and accompanying text"},
+      {"id": "S4", "diameter_mm": "6.0", "observed_m_s": "0.09", "reported_reynolds": "0.5", "reported_drag_coefficient": "56.9", "location": "Table 5.8, printed page 100"}
     ]
   },
   "georgia_tech": {

@@ -7,7 +7,6 @@ from fractions import Fraction
 import json
 import math
 from pathlib import Path
-import struct
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
@@ -20,14 +19,12 @@ sys.dont_write_bytecode = True
 sys.path[:0] = [str(LEAN / "scripts"), str(ROOT / "src"), str(ROOT / "conformance")]
 from check import check_toolchain, load_registry, run_lake
 import integrator_reference
+from mechanics_checks import bits, experiments
 from build import BALLPARK, PINNED, PRELUDE, extract
+from replay_discrepancies import accuracy_probe
 from exact_ballpark.full import FullBallpark
 from exact_ballpark.ref import Ballpark
 from exact_ballpark.space import CollisionItem
-
-
-def bits(value):
-    return int.from_bytes(struct.pack(">d", value), "big")
 
 
 def require(condition, label):
@@ -35,7 +32,7 @@ def require(condition, label):
         raise SystemExit(label)
 
 
-def collisions(cpp_inputs, cpp_expected, lean_rows):
+def collisions(cpp_rows, lean_rows):
     cases = [(1., 9, True, True), (2., 9, True, False), (.5, 16, False, True),
              (1., 11, True, True), (1., 12, False, False)]
     table = []
@@ -62,15 +59,13 @@ def collisions(cpp_inputs, cpp_expected, lean_rows):
             if candidate.collider is not None:
                 require(candidate.collider.id == 7 and candidate.time == u * duration, "Wrong contact or timestamp")
         lean_rows.append((f"C,{bits(duration)},{bits(u)}", f"{str(raw).lower()} {str(timed).lower()}"))
-        cpp_inputs.append(f"C {duration} {centre}")
-        cpp_expected.append((bits(u), int(raw), int(timed)))
+        cpp_rows.append((f"C {duration} {centre}", (bits(u), int(raw), int(timed))))
         table.append(f"| {duration:g} | {u:g} | {u * duration * 1e6:.0f} | "
                      f"{'ignored' if raw else 'retained'} | {'ignored' if timed else 'retained'} |")
     return table
 
 
-def drag_and_spheres(data, cpp_inputs, cpp_expected, lean_rows):
-    steps, words = [], []
+def integrator_replay(cpp_rows, steps, words):
     def step(p, v, a, m, k, cached, t):
         # The fixture park has dt=1. Its actual integrator recomputes exp on partial ticks.
         park = Ballpark(friction=k)
@@ -78,10 +73,12 @@ def drag_and_spheres(data, cpp_inputs, cpp_expected, lean_rows):
         row = (p, v, a, m, k, cached, t, park.dt)
         steps.append(",".join(str(bits(x)) for x in (*row, math.exp(-k / m * t))))
         words.append((bits(pos[0]), bits(vel[0])))
-        cpp_inputs.append("I " + " ".join(map(str, row)))
-        cpp_expected.append(words[-1])
+        cpp_rows.append(("I " + " ".join(map(str, row)), words[-1]))
         return pos[0], vel[0]
+    return step
 
+
+def drag_and_spheres(data, step, lean_rows):
     # Dyadic equilibria reproduce the real identity exactly in these two binary64 cases.
     for m, k, a in ((2., 1., .5), (2.**40, 1., 2.**-40)):
         require(step(2., 1., a, m, k, .25, 1.) == (3., 1.), "Balanced full tick changed")
@@ -89,9 +86,8 @@ def drag_and_spheres(data, cpp_inputs, cpp_expected, lean_rows):
     drag_table = []
     for dt in (Decimal("0.5"), Decimal(2)):
         t, k = float(dt), 1e-10
-        pos, _ = step(0., 0., 1., 1., k, math.exp(-k), t)
-        p_word, v_word = words[-1]
-        lean_rows.append((f"D,{t:g}", f"{bits(math.exp(-k * t))} {p_word} {v_word}"))
+        pos, vel = step(0., 0., 1., 1., k, math.exp(-k), t)
+        lean_rows.append((f"D,{t:g}", f"{bits(math.exp(-k * t))} {bits(pos)} {bits(vel)}"))
         rate = Decimal.from_float(k)
         ideal = (dt - (1 - (-rate * dt).exp()) / rate) / rate
         special, exponent = k < 1e-10 * t, k * t < 1e-10
@@ -142,21 +138,20 @@ def drag_and_spheres(data, cpp_inputs, cpp_expected, lean_rows):
     seconds = (Decimal(raw["end_centiseconds"]) - Decimal(raw["start_centiseconds"])) / 100
     held = (f"Georgia Tech trial 1 covers {distance:g} m in {seconds:g} s, giving **{distance/seconds:.6f} m/s**. "
             "The authors report that liquid temperature was unrecorded. Absolute calibration for this run is held open.")
-    output = run_lake("env", "lean", "--run", "scripts/IntegratorProbe.lean", *steps, capture=True)
-    require([tuple(map(int, line.split())) for line in output.splitlines()] == words,
-            "Scalar movement output differs from the translated Lean binary64 program")
     return drag_table, lab_table, scaling, held
 
 
-def upstream(repo, inputs, expected):
+def upstream(repo, rows):
     def source(name):
         return subprocess.check_output(["git", "-C", repo, "show", f"{PINNED}:src/{name}"], encoding="utf-8")
     collision = source("Collision.cpp")
     history = source("CollisionBallProperties.cpp")
+    ballpark = source("Ballpark.cpp")
     methods = [extract(collision, "bool Quadratic("), extract(collision, "double CollideTwoSpheres("),
                extract(history, "CollisionBallProperties::CollisionBallProperties()"),
                extract(history, "bool CollisionBallProperties::IgnoreCollision("),
-               extract(source("Ballpark.cpp"), "void Ballpark::Integrate(")]
+               extract(ballpark, "void Ballpark::Integrate("), extract(ballpark, "void Ballpark::EvolveStop("),
+               extract(ballpark, "void Ballpark::SetBallTimeFactor("), accuracy_probe(ballpark)]
     with TemporaryDirectory() as tmp:
         folder = Path(tmp)
         (folder / "Vector3d.h").write_text(source("Vector3d.h"), encoding="utf-8")
@@ -165,15 +160,14 @@ def upstream(repo, inputs, expected):
         binary = folder / "probe"
         subprocess.run(["g++", "-std=c++17", "-O2", "-fno-fast-math", "-ffp-contract=off",
                         "-I", folder, HERE / "GuardProbe.cpp", "-o", binary], check=True)
-        out = subprocess.check_output([binary], input="\n".join(inputs) + "\n", encoding="utf-8")
-    actual = []
-    for row, line in zip(inputs, out.splitlines(), strict=True):
+        out = subprocess.check_output([binary], input="\n".join(row for row, _ in rows) + "\n", encoding="utf-8")
+    for (row, expected), line in zip(rows, out.splitlines(), strict=True):
         fields = line.split()
         if row.startswith("C "):
-            actual.append((bits(float.fromhex(fields[0])), *map(int, fields[1:])))
+            actual = (bits(float.fromhex(fields[0])), *map(int, fields[1:]))
         else:
-            actual.append(tuple(bits(float.fromhex(x)) for x in fields))
-    require(actual == expected, "Pinned C++ diverged from the scalar guard or integrator replay")
+            actual = tuple(bits(float.fromhex(x)) for x in fields)
+        require(actual == expected, f"Pinned C++ differs for {row}: got {actual}, expected {expected}")
 
 
 def main():
@@ -188,23 +182,34 @@ def main():
             "The scalar integrator translation needs review")
     run_lake("build", "RealPhysics", "ProofAudit")
     data = json.loads((HERE / "falling_spheres.json").read_text(encoding="utf-8"))
-    cpp_inputs, expected, lean_rows = [], [], []
-    times = collisions(cpp_inputs, expected, lean_rows)
+    cpp_rows, lean_rows, steps, words = [], [], [], []
+    step = integrator_replay(cpp_rows, steps, words)
+    times = collisions(cpp_rows, lean_rows)
     with localcontext() as ctx:
         ctx.prec = 70
-        drag, lab, scaling, held = drag_and_spheres(data, cpp_inputs, expected, lean_rows)
+        drag, lab, scaling, held = drag_and_spheres(data, step, lean_rows)
+        mechanics = experiments(data, step, lean_rows, cpp_rows)
+    output = run_lake("env", "lean", "--run", "scripts/IntegratorProbe.lean", *steps, capture=True)
+    require([tuple(map(int, line.split())) for line in output.splitlines()] == words,
+            "Scalar movement output differs from the translated Lean binary64 program")
     lean_inputs, lean_expected = zip(*lean_rows, strict=True)
     output = run_lake("env", "lean", "-DwarningAsError=true", "--run", "experimental/CheckPhysics.lean",
                       *lean_inputs, capture=True)
     count_line, *outputs = output.splitlines()
     label, count = count_line.split()
     require(label == "registered" and count.isdecimal(), "Missing experimental proof count")
-    require(outputs == list(lean_expected), "Lean guard outputs or exact laboratory predictions differ")
+    require(outputs == list(lean_expected), "Lean guard, tracking or laboratory replay differs")
     if args.destiny_repo:
-        upstream(args.destiny_repo, cpp_inputs, expected)
-        print(f"Matched {len(expected)} cases against compiled Destiny {PINNED}.")
+        upstream(args.destiny_repo, cpp_rows)
+        print(f"Matched {len(cpp_rows)} cases against compiled Destiny {PINNED}.")
     lines = ["# Physical comparison results", "",
              f"The optional library has **{count} registered experimental theorems**. [Experimental declarations](claims.json)",
+             "", "## Ten mechanics experiments", "",
+             "| Experiment | Numerical result |", "| --- | --- |", *mechanics, "",
+             "The nine engine comparisons use scalar CPU calls. The sphere resistance comparison uses published laboratory data. "
+             "The two tracking frames and the moving-medium integrator also replay in Lean. With a supplied clone, "
+             "those calls and the three STOP schedules run against the corresponding compiled Destiny methods. "
+             "[Assumptions and dispositions](README.md#ten-mechanics-experiments) · [Numerical controls](mechanics_checks.py)",
              "", "## Terminal speed", "",
              "| Sphere | Diameter (mm) | Re from observation | Predicted (m/s) | Observed (m/s) | Prediction − observed (m/s) | Rounding interval of the printed speed |",
              "| --- | ---: | ---: | ---: | ---: | ---: | --- |", *lab, "", scaling, "", held, "",

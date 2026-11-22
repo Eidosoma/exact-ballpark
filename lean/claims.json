@@ -3929,6 +3929,84 @@
       "scope": "For positive effective mass m and friction k, if the applied acceleration satisfies m a = k v, either position branch returns p + v t and velocity v, including at zero duration. The identity holds for every supplied real cache value.",
       "hostEvidence": "The optional experiment compares scalar outputs with the source-extracted binary64 program at equilibrium and on both sides of the duration-dependent branch decision. [CPU replay](experimental/check.py)",
       "theorems": ["ExactBallpark.Physics.NewtonDrag.balanced_source_step"]
+    },
+    {
+      "title": "The one-metre reference in warp setup",
+      "moduleName": "ExactBallparkProofs.Warp.LengthScale",
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark.warp_constants",
+      "model": "Source-extracted real warp setup with seconds held fixed",
+      "rules": ["TRV-708", "TRV-709", "TRV-710"],
+      "scope": "Restoring a reference length of one metre gives all nine source outputs. Under any positive change of length unit, the three durations and the two inverse-time rates agree, and the three distances and peak speed change by the length conversion factor. This covers both arms of the speed minimum.",
+      "hostEvidence": "The optional CPU replay compares both branches with an independent decimal calculation in kilometres. [Physical controls](experimental/mechanics_checks.py)",
+      "theorems": ["ExactBallpark.Warp.LengthScale.source_metres", "ExactBallpark.Warp.LengthScale.unit_conversion"]
+    },
+    {
+      "title": "GOTO sweep clearance from ship parameters",
+      "moduleName": "ExactBallparkProofs.Physics.FlightLimits",
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.goto_thrust, Ballpark.integrate",
+      "rules": ["MOV-702", "MOV-706"],
+      "model": "Three-dimensional real ordinary drag trajectory with a held GOTO command",
+      "scope": "Positive effective mass M and friction k, a nonnegative requested speed S and a nonnegative sweep duration T bound the deviation from the simultaneous point on the endpoint chord by (k/M)(S + norm of initial velocity) T²/8. This includes the tapered and zero-offset cases. Connecting the smooth trajectory to a full source tick requires the regular position branch and its correct cache.",
+      "hostEvidence": "The optional CPU replay samples 17 points on each of a full and a tapered turn against the closed form. [Physical controls](experimental/mechanics_checks.py)",
+      "theorems": ["ExactBallpark.Physics.FlightLimits.goto_chord"]
+    },
+    {
+      "title": "Relative travel inside a collision-history time window",
+      "moduleName": "ExactBallparkProofs.Physics.FlightLimits",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": ["src/exact_ballpark/ref.py"],
+      "symbols": "CollisionBallProperties.position, Ballpark.integrate",
+      "rules": ["MOV-702", "COL-715"],
+      "model": "Two ordinary real drag trajectories between impulses",
+      "scope": "On a nonnegative time interval, if each body's initial and terminal speeds are within its own envelope, the change in relative position is at most the sum of the envelopes times elapsed time. Each flight has fixed inputs and positive effective mass and friction. The theorem bounds physical displacement during a history tolerance. The choice of history record is a separate operation.",
+      "hostEvidence": "Two CPU histories check opposed and co-moving equilibrium velocities just inside the stored tolerance and at its integration boundary. [Physical controls](experimental/mechanics_checks.py)",
+      "theorems": ["ExactBallpark.Physics.FlightLimits.relative_travel"]
+    },
+    {
+      "title": "Uniqueness of the uncapped elastic normal impulse",
+      "moduleName": "ExactBallparkProofs.Physics.ContactFrames",
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._impact_free",
+      "rules": ["COL-717"],
+      "model": "One-dimensional normal components of the real free-pair impact",
+      "scope": "For strictly approaching bodies of positive base mass, a candidate impulse added to the first body's momentum and subtracted from the second's conserves kinetic energy and leaves them separating exactly when it is the raw engine impulse. Tangential velocities are held fixed. This covers the instant before the per-body limit and subsequent forces.",
+      "hostEvidence": "Three initial contacts compare raw scalar impulses with exact fractions for equal and unequal masses and different agilities. [Physical controls](experimental/mechanics_checks.py)",
+      "theorems": ["ExactBallpark.Physics.ContactFrames.elastic_impulse_iff"]
+    },
+    {
+      "title": "Energy of a capped pair in different frames",
+      "moduleName": "ExactBallparkProofs.Physics.ContactFrames",
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._impact_free, SpaceBallpark._add_impact",
+      "rules": ["COL-717", "COL-718"],
+      "model": "Real one-dimensional pair energy in frames with a constant velocity offset",
+      "scope": "For fixed base masses, adding b to every velocity changes the measured kinetic-energy difference by b times the momentum change. Internal kinetic energy uses velocities relative to each state's centre of mass. On the registered asymmetric limiter witness the +100 m/s shift gives −46.875 J, and internal energy changes by −23.4375 J.",
+      "hostEvidence": "Exact fractions evaluate the velocities stored by the existing capped-contact CPU replay. [Physical controls](experimental/mechanics_checks.py)",
+      "theorems": ["ExactBallpark.Physics.ContactFrames.boost_energy_change", "ExactBallpark.Physics.ContactFrames.internal_energy", "ExactBallpark.Physics.ContactFrames.limited_energy_frames"]
+    },
+    {
+      "title": "Frame invariance of the real angular-speed square",
+      "moduleName": "ExactBallparkProofs.Physics.ContactFrames",
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.get_accuracy",
+      "rules": ["CMB-702"],
+      "model": "Real relative positions and velocities under a linear isometry",
+      "scope": "The squared angular speed in the ordinary GetAccuracy formula is invariant under a common translation, velocity boost and orthogonal change of axes. The source query uses this branch for distinct centres and valid inputs. Binary64 operation order can change the result.",
+      "hostEvidence": "The optional replay applies all three transforms to a dyadic control, then cycles a near-radial witness. [Tracking controls](experimental/mechanics_checks.py)",
+      "theorems": ["ExactBallpark.Physics.ContactFrames.angular_frame"]
+    },
+    {
+      "title": "A velocity boost in the fixed drag medium",
+      "moduleName": "ExactBallparkProofs.Physics.FlightLimits",
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.integrate",
+      "rules": ["MOV-701", "MOV-702"],
+      "model": "One Cartesian component of the ordinary real flow",
+      "scope": "With identical position, fixed applied acceleration, positive effective mass M and friction k, adding b to the initial velocity adds q b to velocity and (M/k)(1−q)b to position, where q is the exact decay. This describes the regular branch with the correct cache.",
+      "hostEvidence": "The optional replay checks three durations against the translated binary64 integrator and, when supplied, the pinned C++ integrator. [Physical controls](experimental/mechanics_checks.py)",
+      "theorems": ["ExactBallpark.Physics.FlightLimits.fixed_medium_boost"]
     }
   ]
 }

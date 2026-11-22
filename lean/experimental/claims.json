@@ -30,6 +30,37 @@
         "RealPhysics.FallingSphere.Setup.settling_from_rest",
         "RealPhysics.FallingSphere.Setup.speed_ratio"
       ]
+    },
+    {
+      "title": "Drag relative to a moving medium",
+      "rules": ["MOV-701", "MOV-702"],
+      "moduleName": "RealPhysics.FrameAndOrbit",
+      "theorems": ["RealPhysics.FrameAndOrbit.moving_medium"]
+    },
+    {
+      "title": "STOP multiplier at two physical step lengths",
+      "rules": ["MOV-710"],
+      "moduleName": "RealPhysics.FrameAndOrbit",
+      "theorems": ["RealPhysics.FrameAndOrbit.stop_has_no_fixed_rate"]
+    },
+    {
+      "title": "Thrust needed to sustain a centred circle with linear drag",
+      "rules": ["MOV-720", "MOV-721"],
+      "moduleName": "RealPhysics.FrameAndOrbit",
+      "theorems": ["RealPhysics.FrameAndOrbit.circle_thrust", "RealPhysics.FrameAndOrbit.circle_budget_iff",
+        "RealPhysics.FrameAndOrbit.curvature_target_exceeds_budget"]
+    },
+    {
+      "title": "Rotating the near-radial binary64 tracking inputs",
+      "rules": ["CMB-702"],
+      "moduleName": "RealPhysics.TrackingAxes",
+      "theorems": ["RealPhysics.TrackingAxes.cyclic_projection_words"]
+    },
+    {
+      "title": "Dimensionless resistance of a rigid sphere in creeping flow",
+      "rules": ["MOV-701"],
+      "moduleName": "RealPhysics.FallingSphere",
+      "theorems": ["RealPhysics.FallingSphere.Setup.resistance_product"]
     }
   ]
 }

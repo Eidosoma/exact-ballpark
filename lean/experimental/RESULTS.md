@@ -1,6 +1,23 @@
 # Physical comparison results
 
-The optional library has **10 registered experimental theorems**. [Experimental declarations](claims.json)
+The optional library has **17 registered experimental theorems**. [Experimental declarations](claims.json)
+
+## Ten mechanics experiments
+
+| Experiment | Numerical result |
+| --- | --- |
+| Warp length units | All nine converted outputs agree to the replay tolerance at 1,000 m and 10¹⁴ m. The short peak is 750.75 m/s. Using a bare 1 in kilometres gives 1.5 km/s. |
+| GOTO sweep clearance | The 1 s ship has a 2.5 m bound. Full and tapered turns deviate 1.094729 m and 0.775601 m at mid-tick. The 0.5 s ship has a 0.15625 m bound. |
+| Travel in a history tolerance | At 100 µs the opposed 750 and 250 m/s bodies close 0.100 m. Two co-moving bodies close 0.000 m. One binary64 step below, history returns the stored positions. |
+| Unique elastic impulse | Three approaching pairs give impulses 8, 24, 12 kg·m/s. Each leaves with restitution 1. |
+| Capped impact energy | Lab ΔK +703.125 J, velocities shifted by +100 m/s -46.875 J, and internal ΔK -23.4375 J. |
+| Tracking across frames | The translated, boosted and rotated dyadic control agrees exactly. Cycling the near-radial input from xyz to yzx changes the reported angular speed from NaN to +0 rad/s. |
+| Drag in a moving medium | An 8 m/s boost leaves 4.852245 m/s after one second in the fixed medium. The moving-medium force control retains 8 m/s. |
+| Sustainable circular speed | At radius 10 m the steady ceiling is 9.395649 m/s. The controller requests 10 m/s, which would require 11.180340 m/s² on a circle with a 10 m/s² budget. |
+| STOP damping per second | After one second the vertical speeds are 5.271715, 4.581958 and 3.461381 m/s for 1, 2 and 4 ticks. The one-tick fit is γ = 0.140229 s⁻¹. |
+| Sphere resistance | Stokes predicts Cᴅ Re = 24. Sheffield's printed products are S3 30.30 (25.2375–35.3675) and S4 28.45 (25.5825–31.3225). Parentheses give the endpoints from printed rounding. |
+
+The nine engine comparisons use scalar CPU calls. The sphere resistance comparison uses published laboratory data. The two tracking frames and the moving-medium integrator also replay in Lean. With a supplied clone, those calls and the three STOP schedules run against the corresponding compiled Destiny methods. [Assumptions and dispositions](README.md#ten-mechanics-experiments) · [Numerical controls](mechanics_checks.py)
 
 ## Terminal speed
 

@@ -6,7 +6,7 @@ This log records **13 engine behaviors** reproduced on x86-64 Linux and **one do
 
 The scalar replay used **CPython 3.13.18** and the engine at Exact Ballpark commit `31aa2de`. Its engine source differs from the line-link revision `0986532` only in the corrected formation docstring in `full.py`. The C++ replay used Destiny `114e89fa584f0e1a81eb0a679aabf41af8870072` with GCC 11.4.0 and `-O2 -ffp-contract=off -fno-fast-math`. The runtime evidence here applies to this CPU platform. [Replayed engine revision](https://github.com/Eidosoma/exact-ballpark/tree/31aa2de55f8563b30a021d7e910ff825afa7c7b0) · [Registered source hashes](claims.json) · [CPU replay](scripts/replay_discrepancies.py) · [Platform evidence](../docs/exactness.md)
 
-Physical alternatives to the current collision and drag timing guards have their own log, with the assumptions and engine changes each would require. [Physical discrepancy log](experimental/DISCREPANCIES.md)
+Physical comparisons have their own log. It covers collision and drag timing, pair momentum under unequal impact limits, tracking across axes, tick-dependent STOP damping and steady circular speed. Each entry gives the assumptions and the engine change needed to adopt that interpretation. [Physical discrepancy log](experimental/DISCREPANCIES.md)
 
 ## What a player might notice
 
