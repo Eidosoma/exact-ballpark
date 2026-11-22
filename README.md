@@ -13,6 +13,8 @@ arithmetic, bit for bit.
 > a test you can run. Interfaces may still change. The first speed measurements are in
 > [Benchmarks](#benchmarks).
 
+The Lean register contains **430 kernel-checked theorems across all 105 engine rules**. Each theorem covers a stated part of a rule’s behaviour. [Engine laws in Lean](#engine-laws-in-lean)
+
 ## Why we built it
 
 At Eidosoma we build **biologically inspired, continual-learning agents**. Like animals, they keep learning throughout
@@ -229,11 +231,11 @@ are in [`docs/exactness.md`](docs/exactness.md).
 
 [![Law map showing movement, warp, collisions, space and sensors, time and events, and combat.](lean/assets/law-map.webp)](lean/README.md)
 
-The register contains 430 kernel-checked theorems across all 105 engine rules. Each theorem covers a stated part of a rule’s behaviour. For collision-free scalar GOTO and STOP, Lean checks that each ball has the same state after any admitted command sequence as it would have if it received its own commands and every tick. The CPU gate compares every stored field with Python. In one five-second horizontal coast starting at 100 m/s, Lean bounds the final position error against the continuous drag equation below 10⁻¹⁴ m, using the observed decay word. [Scalar movement and its assumptions](lean/README.md#scalar-movement-across-ticks)
+For collision-free scalar GOTO and STOP, Lean checks that each ball has the same state after any admitted command sequence as it would have if it received its own commands and every tick. The CPU gate compares every stored field with Python. In one five-second horizontal coast starting at 100 m/s, Lean bounds the final position error against the continuous drag equation below 10⁻¹⁴ m, using the observed decay word. [Scalar movement and its assumptions](lean/README.md#scalar-movement-across-ticks)
 
 Ten proofs explain four recorded discrepancies. They identify which tick lengths can select the wrong obstacle, why an exact graze needs a closer calculation, which client updates stay blocked after a late reply, and how much sideways motion the stored combat inputs contain. [Proofs and CPU comparisons](lean/README.md#ten-proofs-behind-four-discrepancy-reports)
 
-The 420-theorem milestone covered STOP distance, orbit steering, collision impulses, solid-box exclusion, range callbacks, removal timing and hit probability. In the real model of a head-on collision, the two ships conserve pair momentum after their individual limits exactly when they retain the same fraction of the elastic impulse. [Milestone proofs and CPU evidence](lean/README.md#what-the-420-theorem-milestone-adds)
+Another 37 theorems cover STOP distance, orbit steering, collision impulses, solid-box exclusion, range callbacks, removal timing and hit probability. In the real model of a head-on collision, the two ships conserve pair momentum after their individual limits exactly when they retain the same fraction of the elastic impulse. [Proofs across seven engine behaviours](lean/README.md#proofs-across-seven-engine-behaviours)
 
 The proofs also follow a sensor crossing into server delivery, an accepted warp into its next ordinary tick, and a delayed GOTO through client rewind. In the warp replay, all eleven committed axial positions and velocities match compiled Destiny C++. In the network replay, a pilot outside the sensor’s bubble receives neither queued response. [Ten claims across engine systems](lean/README.md#ten-claims-across-engine-systems)
 

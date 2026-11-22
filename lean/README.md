@@ -1,6 +1,6 @@
 # Exact Ballpark laws in Lean
 
-What happens when a ship stops thrusting, two swept spheres touch, or a server tick arrives late? Exact Ballpark gives each behavior a rule ID. This project links **105 engine laws** to **430 kernel-checked theorems**. Each entry records the part of the law covered, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
+The Lean register links **105 engine laws** to **430 kernel-checked theorems**. Each entry records the rule ID, the behaviour proved, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
 
 [![Exact Ballpark law map. Movement has 41 laws, warp 16, collisions 19, space and sensors 12, time and events 15, and combat 2.](assets/law-map.webp)](assets/law-map.webp)
 
@@ -26,7 +26,7 @@ What happens when a ship stops thrusting, two swept spheres touch, or a server t
 
 The CPU gate compares collision IDs and timestamp bits at five tick lengths, queue payloads and clocks for histories of two, three and five stamps, and tracking components against CPython’s fused multiply-add and an exact rational reference. The register links each comparison to its theorem. [Claims and CPU evidence](CLAIMS.md#claim-178) · [Gameplay impact](DISCREPANCIES.md#what-a-player-might-notice)
 
-## What the 420-theorem milestone adds
+## Proofs across seven engine behaviours
 
 These 37 theorems follow seven engine behaviours beyond a single formula or tick. The register gives the assumptions and engine symbols for each claim. [Claim register](CLAIMS.md#claim-170)
 
