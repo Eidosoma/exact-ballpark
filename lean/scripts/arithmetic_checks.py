@@ -50,6 +50,10 @@ def check_witnesses(run_lake):
                 "return-times": contact_replay.free_repeat(), "radial-inputs": radial_intermediates()}
     observed = {key: list(map(word, values)) for key, values in observed.items()}
     for label, changed in [("engine", False), ("control", True)]:
+        for ms in (250, 500, 1000, 2000, 4000):
+            hits = contact_replay.fixed_window(0., ms, compare_seconds=changed)
+            for order, (collider, time) in enumerate(hits):
+                observed[f"fixed-{ms}-{label}-{order}"] = [f"{collider:016x}", time]
         hits, endpoint, _ = contact_replay.detected_rebound(changed)
         observed[f"detected-{label}-endpoint"] = list(endpoint)
         for i, (collider, time, index, impulse) in enumerate(hits):

@@ -16,6 +16,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from discrepancy_sources import checkout_destiny
 from exact_ballpark import client, full, server
 from exact_ballpark.modes import ModeBallpark
 from exact_ballpark.ref import Ballpark
@@ -212,8 +213,10 @@ def upstream_warp(repo, pin, rows):
                 cloaked=0, bubble=-1, moribund=False, mode=2)
     case = dict(id=1, friction=1., tick=1000, start=0, new_orbit=False, master=False, steps=len(rows),
                 balls=[ship], cmds=[(1, mode_cases.WARP_OP, 1, 0, 131072, 0, 0, 0, 4000)])
-    with TemporaryDirectory() as build:
-        run = subprocess.run([sys.executable, root / "conformance/build_modes.py", repo, build],
+    with TemporaryDirectory() as temp:
+        source, build = Path(temp) / "source", Path(temp) / "build"
+        checkout_destiny(repo, pin, source)
+        run = subprocess.run([sys.executable, root / "conformance/build_modes.py", source, build],
                              capture_output=True, encoding="utf-8")
         if run.returncode:
             raise SystemExit(f"Could not build the pinned Destiny flight oracle: {run.stderr.strip()}")
@@ -222,7 +225,7 @@ def upstream_warp(repo, pin, rows):
         for path, digest in manifest["source_sha256"].items():
             original = subprocess.check_output(["git", "-C", repo, "show", f"{pin}:{path}"])
             equal(f"Destiny flight source {path}", digest, hashlib.sha256(original).hexdigest())
-        with patch.object(mode_cases, "HARNESS", Path(build) / "harness"):
+        with patch.object(mode_cases, "HARNESS", build / "harness"):
             states, events = mode_cases.oracle([case])
     states = [dict(zip(mode_cases.FIELDS, row, strict=True)) for row in states]
     equal("compiled Destiny warp commits", [[s["step"], s["mode"], word(s["px"]), word(s["vx"])]

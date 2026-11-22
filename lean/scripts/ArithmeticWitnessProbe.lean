@@ -2,6 +2,7 @@
 -- Copyright (c) 2026 Eidosoma
 import ExactBallparkProofs.Collision.ReplayTick
 import ExactBallparkProofs.Collision.ReboundCutoff
+import ExactBallparkProofs.Collision.SearchWindow
 import ExactBallparkProofs.Combat.Execution
 
 open ExactBallpark.Collision.ReplayTick
@@ -15,6 +16,11 @@ def main : IO Unit := do
   emit "control-endpoint" (expectedEndpoint true)
   emit "return-times" expectedReturnTimes
   emit "radial-inputs" ExactBallpark.Combat.radialInputWords
+  for ms in [250,500,1000,2000,4000] do
+    for (label,seconds) in [("engine",false),("control",true)] do
+      let hits := ExactBallpark.Collision.SearchWindow.fixedPairOrders 0 (ms.toFloat / 1000) seconds
+      for ((id,time),order) in hits.zipIdx do
+        emit s!"fixed-{ms}-{label}-{order}" (id.toUInt64,time)
   for (run, control) in [("engine",false),("control",true)] do
     let (hits,endpoint) := ExactBallpark.Collision.ReboundCutoff.expected control
     emit s!"detected-{run}-endpoint" endpoint

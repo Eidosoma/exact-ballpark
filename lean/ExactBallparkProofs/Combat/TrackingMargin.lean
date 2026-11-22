@@ -11,6 +11,60 @@ set_option exponentiation.threshold 2048
 
 def dotQ (a b : RatPoint) := a 0*b 0+a 1*b 1+a 2*b 2
 
+/-- Evaluate each component of v × r with the supplied difference of products. -/
+def crossWith {α : Type} (det : α → α → α → α → α) (v r : Fin 3 → α) : Fin 3 → α :=
+  ![det (v 1) (r 2) (v 2) (r 1), det (v 2) (r 0) (v 0) (r 2), det (v 0) (r 1) (v 1) (r 0)]
+
+/-- Angular speed squared from the exact coordinates decoded from finite words. -/
+def crossAngularSq (v r : RatPoint) :=
+  let c := crossWith (fun a b x y => a*b-x*y) v r
+  dotQ c c / (dotQ r r)^2
+
+/-- On a nonzero sightline the exact projection formula agrees with the squared cross
+product, and vanishes precisely when every component of the cross product vanishes. -/
+theorem cross_angular_sq (v r : RatPoint) (sight : dotQ r r ≠ 0) :
+    let c := crossWith (fun a b x y => a*b-x*y) v r
+    (dotQ v v - (dotQ v r)^2 / dotQ r r) / dotQ r r = crossAngularSq v r ∧
+      (crossAngularSq v r = 0 ↔ c 0 = 0 ∧ c 1 = 0 ∧ c 2 = 0) := by
+  let c := crossWith (fun a b x y => a*b-x*y) v r
+  have identity : dotQ c c = dotQ v v * dotQ r r - (dotQ v r)^2 := by
+    simp [c,crossWith,dotQ]
+    ring
+  change _ = dotQ c c / (dotQ r r)^2 ∧ (dotQ c c / (dotQ r r)^2 = 0 ↔ _)
+  constructor
+  · rw [identity]
+    field_simp [sight]
+  · rw [div_eq_zero_iff, or_iff_left (pow_ne_zero 2 sight)]
+    change dotQ c c = 0 ↔ c 0 = 0 ∧ c 1 = 0 ∧ c 2 = 0
+    simp only [dotQ, ← sq,
+      add_eq_zero_iff_of_nonneg (add_nonneg (sq_nonneg (c 0)) (sq_nonneg (c 1))) (sq_nonneg (c 2)),
+      add_eq_zero_iff_of_nonneg (sq_nonneg (c 0)) (sq_nonneg (c 1)),
+      sq_eq_zero_iff, and_assoc]
+
+/-- Candidate binary64 control. Each fused operation rounds once in Lean's Float model. -/
+def compensatedDet (a b c d : Float) : Float :=
+  let cd := c*d
+  let main := a.toModel.fma b.toModel (-cd).toModel
+  let residual := (-c).toModel.fma d.toModel cd.toModel
+  Float.ofBits (main + residual).toBits
+
+set_option maxRecDepth 16384 in
+/-- Separately rounded products erase all three cross components in the recorded replay.
+The fused control recovers the exact components and the decoded geometry gives positive speed squared. -/
+theorem radial_cross_words :
+    let v := radialVelocity
+    let r := radialSightline
+    let plain := crossWith (fun a b x y => a*b-x*y) v r
+    let fused := crossWith compensatedDet v r
+    let components := fun (p : FloatPoint) => ((p 0).toBits, (p 1).toBits, (p 2).toBits)
+    components plain = (0,0,0) ∧
+    (do let vq ← decodePoint v
+        let rq ← decodePoint r
+        let recovered ← decodePoint fused
+        let c := crossWith (fun a b x y => a*b-x*y) vq rq
+        return (decide (∀ i, recovered i = c i), c 0, c 1, c 2, crossAngularSq vq rq)) =
+      some (true, 1/2^55, 0, -(1/2^57), 17/(2^114*169^2)) := by decide +kernel
+
 structure Margin where
   sidewaysSq : ℚ
   threshold : ℚ

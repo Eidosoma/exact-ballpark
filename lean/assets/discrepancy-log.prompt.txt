@@ -1,5 +1,7 @@
 Published artwork, discrepancy-log.webp. Generated with the built-in image_gen tool.
 
+Tolerance-boundary revision. Edit the high-severity “Missed rebound” panel of the thirteen-case artwork at commit 31aa2de. In the 100 ms three-ball replay the Engine finishes on the left moving left and the Control on the right moving right. Label them “Engine” and “Control” respectively and set the dimension to “1.325268 m apart”. Use the three revised text regions in the existing illustration.
+
 Thirteen-case edition. The edit target was the nine-case WebP at Exact Ballpark commit fd34ffc.
 
 Update the supplied Exact Ballpark discrepancy-log poster to document all thirteen current cases. Use the attached raster as the edit target and art direction. Make a crisp, wide, professional retro spacecraft engineering infographic, black background, yellow italic outline title and amber section frames, off-white condensed labels, spare cyan wireframe diagrams and magenta markers. Give the title and four bands room; let the moderate band use two rows. Exact title "EXACT BALLPARK" and "DISCREPANCY LOG". Main goal is that a reader can read all 13 distinct, correctly spelled case captions in order. No extra case captions, arbitrary numbers, counters or decorative text. Use exact group headings and exact case text listed below. Cases run left to right, then next row.

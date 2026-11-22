@@ -317,9 +317,14 @@ def claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows, 
         if "ExactBallpark.Time.MixedHistory.merged_payload" in claim["theorems"]:
             lines += [f"Lean and the scalar client agree on the complete ordered payloads and wait flags for {mixed_rows} mixed-stamp histories. [CPU probe](scripts/mixed_history_checks.py)", ""]
         if "ExactBallpark.Time.MixedHistory.waiting_tail" in claim["theorems"]:
-            lines += ["The pinned Destiny Python client reproduces the extra wait and the reset-order trace. [Packet replays](DISCREPANCIES.md#time-715-extra-wait)", ""]
+            lines += ["Both public client updates report one fatal desync before the admission decision on a mixed-stamp packet. "
+                      "With a returning handler the replays reproduce the extra wait and the reset-order queues. "
+                      "[Packet replays](DISCREPANCIES.md#time-715-extra-wait)", ""]
         if "ExactBallpark.Collision.Capsule.shallow_crossing_missed" in claim["theorems"]:
-            lines += ["Scalar Python and the pinned Destiny C++ capsule check miss the shallow crossing and return half a tick on the faster control. [Capsule replay](DISCREPANCIES.md#col-712-shallow-crossing)", ""]
+            lines += ["Scalar Python and pinned Destiny C++ miss the shallow crossing and return half a tick on "
+                      "the faster control. At 9.9 µm of travel they miss, at 10.1 µm they hit, and starting inside "
+                      "at the missed endpoint returns contact at time zero. "
+                      "[Capsule replay](DISCREPANCIES.md#col-712-shallow-crossing)", ""]
         if "ExactBallpark.Collision.ReplayTick.four_ball_endpoint" in claim["theorems"]:
             lines += ["The scalar replay matches the certified x and vx words for the engine and the earliest-hit control, and both words for the free-ball return. [Witness comparison](scripts/arithmetic_checks.py)", ""]
         if "ExactBallpark.Numerics.ExpReduction.table_address" in claim["theorems"]:
@@ -331,7 +336,8 @@ def claim_page(registry, catalogue, audit, probes, coordinates, candidate_rows, 
         if "ExactBallpark.Combat.accuracy_overflow_input" in claim["theorems"]:
             lines += [f"The scalar and PyTorch CPU checks cover {combat_lanes} combat lanes, including the same-ball guard. "
                       "For the radial case, the scalar and pinned C++ square-root and power inputs match the certified words. "
-                      "The engine returns infinite accuracy, 11 m and NaN angular speed. "
+                      "At tracking ratio 200 the chance is 1.0000000000000007. At 10³⁰ it is infinite and the "
+                      "exact chance on the stored inputs rounds to zero. Both queries return NaN angular speed. "
                       "[Lane checks](scripts/arithmetic_checks.py) · [Pinned C++ replay](DISCREPANCIES.md#cmb-702-tracking)", ""]
         if "ExactBallpark.Collision.SearchWindow.partial_tick_selection" in claim["theorems"]:
             lines += ["CPU replay — the scalar and pinned C++ selectors choose different obstacles when the same pair is enumerated in the opposite order. [Inputs and full-tick control](DISCREPANCIES.md#col-715-fixed-window)", ""]
@@ -348,7 +354,7 @@ def main():
         raise SystemExit("Python 3.13 or later is required for engine correspondence.")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true", help="regenerate CLAIMS.md after all checks pass")
-    parser.add_argument("--destiny-repo", type=Path, help="also replay flight, collisions and routing against a pinned Destiny checkout")
+    parser.add_argument("--destiny-repo", type=Path, help="also replay flight, collisions and routing using a local clone containing the pinned Destiny commit")
     args = parser.parse_args()
     pin = (LEAN / "lean-toolchain").read_text(encoding="utf-8").strip().removeprefix("leanprover/lean4:v")
     version = run_lake("env", "lean", "--version", capture=True)

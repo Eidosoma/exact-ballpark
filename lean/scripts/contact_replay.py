@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Eidosoma
 """Replay fixed-ball selection and free-ball repeat handling through the scalar engine and the pinned space harness."""
-from contextlib import redirect_stdout
+from contextlib import nullcontext, redirect_stdout
+from dataclasses import dataclass
 from fractions import Fraction
 from io import StringIO
 from pathlib import Path
@@ -10,6 +11,7 @@ import subprocess
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+from discrepancy_sources import checkout_destiny
 from exact_ballpark.full import Capsule, FullBallpark
 from exact_ballpark.space import CollisionBallProperties, CollisionImpact, CollisionItem, FUZZY_DELTA, SpaceBallpark
 
@@ -33,16 +35,23 @@ class EarliestFixed(FullBallpark):
                     break
 
 
-def fixed_pair(*, compare_seconds=False):
+def fixed_pair(*, compare_seconds=False, initial_sweep=False):
+    return fixed_window(0. if initial_sweep else .5, 500 if initial_sweep else 1000,
+                        compare_seconds=compare_seconds)
+
+
+def fixed_window(start, tick_ms, *, compare_seconds):
+    """Keep the chord eight metres long while varying the collision window in seconds."""
     park_type = EarliestFixed if compare_seconds else FullBallpark
-    park = park_type(friction=1, iterative=True)
-    ship = park.add_ball(1, 1, .5, 16, True, is_massive=True, agility=1, vx=16)
-    ship.last_g = [16., 0., 0.]
+    park = park_type(friction=1, iterative=True, tick_interval_ms=tick_ms)
+    speed = 8. / (park.dt - start)
+    ship = park.add_ball(1, 1, .5, speed, True, is_massive=True, agility=1, vx=speed)
+    ship.last_g = [speed, 0., 0.]
     path = park._properties(ship)
-    path.t_start = path.locations[0].time = .5
+    path.t_start = path.locations[0].time = start
     near, far = [park.add_ball(i, 1, .5, 0, x=x, is_massive=True) for i, x in [(3, 3), (4, 5)]]
-    if path.position(.5)[0][0] != 0 or path.position(1.)[0][0] != 8:
-        raise SystemExit("Supplied half-tick chord changed")
+    if path.position(start)[0][0] != 0 or path.position(park.dt)[0][0] != 8:
+        raise SystemExit("The supplied collision window no longer sweeps eight metres")
     results = []
     for candidates in ([near, far], [far, near]):
         item = CollisionItem()
@@ -65,7 +74,20 @@ def rebound():
     return results
 
 
-def detected_rebound(control=False):
+REBOUND_SHIP_X = float.fromhex("-0x1.9821b123583d1p+9")
+REBOUND_THIRD_X = float.fromhex("-0x1.738a574389bfdp-2")
+
+
+@dataclass
+class ReboundRun:
+    contacts: list[tuple[int, str, int, str]]
+    endpoint: tuple[str, str]
+    history: list[tuple[int, str, str]]
+    stored_end: tuple[str, str]
+    endpoint_index: int
+
+
+def rebound_history(control=False, *, ship_x=REBOUND_SHIP_X, third_x=REBOUND_THIRD_X):
     """Start three balls and observe their actual contacts during one 100 ms tick."""
     trace = []
 
@@ -82,19 +104,30 @@ def detected_rebound(control=False):
         return len(path.locations) - 1
 
     park = ObservedPark(friction=1, iterative=True, tick_interval_ms=100)
-    xs = ("-0x1.9821b123583d1p+9", "-0x1.6cffb2ca84a00p+0", "-0x1.738a574389bfdp-2")
+    xs = (ship_x, float.fromhex("-0x1.6cffb2ca84a00p+0"), third_x)
     for i, x in enumerate(xs, 1):
         park.add_ball(i, 0.0625, 0.015625, 32768, i == 1, is_massive=True, agility=1,
-                      x=float.fromhex(x), y=100, z=100, vx=16384 if i == 1 else 0)
-    if control:
-        with patch.object(CollisionBallProperties, "find_index", exact_index):
-            park.evolve()
-    else:
+                      x=x, y=100, z=100, vx=16384 if i == 1 else 0)
+    lookup = patch.object(CollisionBallProperties, "find_index", exact_index) if control else nullcontext()
+    with lookup:
         park.evolve()
+        path = park.collision_locations[1]
+        endpoint_index = path.find_index(park.dt)
+        end_p, end_v = path.position(park.dt)
     ship = park.balls[1]
+    endpoint = (word(ship.pos[0]), word(ship.vel[0]))
+    if (word(end_p[0]), word(end_v[0])) != endpoint:
+        raise SystemExit("The final history lookup differs from the committed three-ball state")
+    last = path.locations[-1]
     history = [(loc.collider, word(loc.time), word(loc.v[0]))
-               for loc in park.collision_locations[1].locations[1:-1]]
-    return trace, (word(ship.pos[0]), word(ship.vel[0])), history
+               for loc in path.locations[1:-1]]
+    return ReboundRun(trace, endpoint, history, (word(last.p[0]), word(last.v[0])), endpoint_index)
+
+
+def detected_rebound(control=False):
+    """The contact trace, committed endpoint and impact words used by the Lean witness."""
+    run = rebound_history(control)
+    return run.contacts, run.endpoint, run.history
 
 
 def free_repeat():
@@ -244,26 +277,31 @@ int main() {
                 low.x,low.y,low.z,high.x,high.y,high.z);
     std::printf("TWO_TURNS %a %a %a %a\n", movingEnd.x,movingEnd.y,movingEnd.z,
                 CollideTwoSpheres(start,end,crossing,movingEnd,0.5));
-    Ballpark half;
-    half.mFriction = half.dt = 1;
     auto body = [](Ballpark& p, int id, double x, double vx, double m, bool free, double yz) {
         return p.AddBall(id, m, 0.5f, 16, free, false, true, false, false,
                          x,yz,yz,vx,0,0,1,0);
     };
-    Ball* ship = body(half,1,0,16,1,true,0);
-    Ball* near = body(half,3,3,0,1,false,0);
-    Ball* far = body(half,4,5,0,1,false,0);
-    ship->mLastG = Vector3d(16,0,0);
-    CollisionBallProperties path;
-    path.Initialize(ship,1);
-    path.m_tStart = path.m_locations[0].time = 0.5;
-    VectorOfStaticCollidables statics;
-    VectorOfBalls candidates{near,far};
-    for (int i=0; i<2; ++i) {
-        CollisionItem item;
-        half.GetNextCollisionStatic(path,item,candidates,statics);
-        std::printf("W pair %lld %a\n",(long long)item.collider->mId,item.timeOfImpact);
-        std::reverse(candidates.begin(),candidates.end());
+    for (bool initialSweep : {false, true}) {
+        Ballpark park;
+        park.mFriction = 1;
+        park.mTickInterval = initialSweep ? 500 : 1000;
+        park.dt = 0.001 * park.mTickInterval;
+        Ball* ship = body(park,1,0,16,1,true,0);
+        Ball* near = body(park,3,3,0,1,false,0);
+        Ball* far = body(park,4,5,0,1,false,0);
+        ship->mLastG = Vector3d(16,0,0);
+        CollisionBallProperties path;
+        path.Initialize(ship,park.dt);
+        path.m_tStart = path.m_locations[0].time = initialSweep ? 0.0 : 0.5;
+        VectorOfStaticCollidables statics;
+        VectorOfBalls candidates{near,far};
+        for (int i=0; i<2; ++i) {
+            CollisionItem item;
+            park.GetNextCollisionStatic(path,item,candidates,statics);
+            std::printf("%s %lld %a\n",initialSweep ? "FIRST_SWEEP" : "W pair",
+                        (long long)item.collider->mId,item.timeOfImpact);
+            std::reverse(candidates.begin(),candidates.end());
+        }
     }
     Ballpark freePair;
     freePair.mFriction = freePair.dt = 1;
@@ -308,6 +346,8 @@ int main() {
     cutoff.Evolve(0);
     std::printf("W cutoff %a %a\n", moving->mNewPos.x, moving->mNewVel.x);
     const auto& locs = cutoff.mCollisionLocations[1].m_locations;
+    std::printf("CUTOFF_END %a %a %zu\n", locs.back().p.x, locs.back().v.x,
+                cutoff.mCollisionLocations[1].FindLocationsIndex(cutoff.dt));
     for (size_t j=1; j+1<locs.size(); ++j)
         std::printf("W record %lld %a %a\n", (long long)locs[j].collider, locs[j].time, locs[j].v.x);
 }
@@ -325,11 +365,8 @@ def upstream(repo):
     driver = build_space.DRIVER.replace("int main() {", "int space_driver() {") + DRIVER
     with TemporaryDirectory() as temp, patch.object(build_space, "PRELUDE_A", prelude), patch.object(
             build_space, "DRIVER", driver), redirect_stdout(StringIO()):
-        # Isolate the pinned checkout from the supplied clone, including any edits or a different HEAD.
         source, build = Path(temp) / "source", Path(temp) / "build"
-        subprocess.run(["git", "clone", "--quiet", "--local", "--shared", "--no-checkout", "--",
-                        repo.resolve(), source], check=True)
-        subprocess.run(["git", "-C", source, "checkout", "--quiet", "--detach", build_space.PINNED], check=True)
+        checkout_destiny(repo, build_space.PINNED, source)
         build_space.main(source, build)
         lines = subprocess.check_output([build / "harness"], encoding="utf-8").splitlines()
     rebound_checks.compare_cpp(lines)
@@ -350,11 +387,19 @@ def upstream(repo):
         raise SystemExit("Two turning bodies differ between scalar and pinned C++")
     actual = [row.split()[2:] for row in lines if row.startswith("W ")]
     near_first, far_first, free, final, cutoff, *records = actual
-    _, endpoint, history = detected_rebound()
-    if (tuple(word(float.fromhex(v)) for v in cutoff) != endpoint or
-            [(int(i), word(float.fromhex(t)), word(float.fromhex(v))) for i, t, v in records] != history):
+    run = rebound_history()
+    stored = [row.split()[1:] for row in lines if row.startswith("CUTOFF_END ")]
+    if len(stored) != 1 or (tuple(word(float.fromhex(v)) for v in stored[0][:2]), int(stored[0][2])) != (
+            run.stored_end, run.endpoint_index):
+        raise SystemExit("Three-ball stored endpoint or final lookup index differs from pinned C++")
+    if (tuple(word(float.fromhex(v)) for v in cutoff) != run.endpoint or
+            [(int(i), word(float.fromhex(t)), word(float.fromhex(v))) for i, t, v in records] != run.history):
         raise SystemExit("Detected rebound differs between the scalar and pinned C++ histories or endpoints")
     pairs = [(int(i), word(float.fromhex(t))) for i, t in [near_first, far_first]]
+    initial = [(int(i), word(float.fromhex(t))) for _, i, t in
+               (row.split() for row in lines if row.startswith("FIRST_SWEEP "))]
+    if initial != fixed_pair(initial_sweep=True):
+        raise SystemExit(f"Non-unit first-sweep results differ from pinned C++: {initial}")
     tick = [word(float.fromhex(v)) for v in final]
     if pairs != fixed_pair() or tick != [word(v) for v in rebound()[0]]:
         raise SystemExit(f"Fixed-ball CPU mismatch: Destiny {pairs}, {tick}")

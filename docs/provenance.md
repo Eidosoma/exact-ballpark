@@ -164,7 +164,7 @@ error, and scenarios that reach it are counted apart. Examples:
 - a formation slot freed out of range (a `std::bitset<16>` reset past its end).
 
 **Destiny’s Python server and client layers** were transcribed from source with each loop and call in its original order.
-Later CPU replays execute five original server methods for routing and sending and three original client methods for packet history against fixture dependencies. The production services are outside those replays. [Server replay](../lean/scripts/law_trace_checks.py) · [Client replay](../lean/scripts/mixed_history_checks.py)
+The CPU replays execute five original server methods for routing and sending. On the client, six pinned functions cover the public update entry point, action expansion, fatal reporting, admission, history merge and pre-tick dispatch. The fixture supplies the clock, action handlers and a fatal-desync callback that records the report and returns. [Server replay](../lean/scripts/law_trace_checks.py) · [Client replay](../lean/scripts/mixed_history_checks.py)
 
 The dictionaries' and sets' iteration orders are CPython's, as in destiny. The C++ functions they
 depend on are transcribed with them: the bubble additions and deletions, and the streams that write and read balls. The

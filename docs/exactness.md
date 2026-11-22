@@ -25,6 +25,8 @@ Some tests also skip a link: kernels run directly against destiny's compiled cod
 
 The Lean claim register records mathematical and floating-point proofs by engine rule. Each entry identifies the model, its assumptions and the evidence connecting it to the source. For COL-705, the CPU replay compares the engine's straight-sweep result with a proved first-contact interval along the continuous drag path. [Claim register](../lean/CLAIMS.md#catalogue-coverage) · [Turning-ship replay](../lean/DISCREPANCIES.md#col-705-turning-path)
 
+Four discrepancy reports also have proofs tied to CPU comparisons. The gate checks which obstacle wins across five tick lengths, which grazing sweeps need a closer calculation, which payloads remain queued after a late reply, and which cross-product components survive rounding on the radial tracking replay. [Proof statements and comparison scope](../lean/README.md#ten-proofs-behind-four-discrepancy-reports)
+
 Link 2 on the CPU for the flight-mode, combat and composed parks, a check of the GPU paths against the CPU path, and
 the space layer's two host compilers are in `devices.md`, section 4.
 

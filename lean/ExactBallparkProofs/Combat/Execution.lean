@@ -20,12 +20,14 @@ def trackingTerms (v radial : FloatPoint) (resolution tracking signature : Float
 /-- Binary64 inputs to sqrt and pow in the radial replay. -/
 def radialInputWords : UInt64 × UInt64 := (0xbbd83c977ab2bedd, 0x484e2a40f9945fd6)
 
+def radialSightline : FloatPoint := ![3, 4, 12]
+
+def radialVelocity : FloatPoint := ![Float.ofBits 0x3f9eb851eb851eb8, Float.ofBits 0x3fa47ae147ae147b,
+                                     Float.ofBits 0x3fbeb851eb851eb8]
+
 set_option maxRecDepth 16384 in
 theorem accuracy_overflow_input :
-    let p : FloatPoint := ![3, 4, 12]
-    let v : FloatPoint := ![Float.ofBits 0x3f9eb851eb851eb8, Float.ofBits 0x3fa47ae147ae147b,
-                             Float.ofBits 0x3fbeb851eb851eb8]
-    let (speedSq, e) := trackingTerms v p (Float.ofBits 0x46293e5939a08cea) 1 1
+    let (speedSq, e) := trackingTerms radialVelocity radialSightline (Float.ofBits 0x46293e5939a08cea) 1 1
     speedSq.toBits = radialInputWords.1 ∧ speedSq.sqrt.isNaN = true ∧
       e.toBits = radialInputWords.2 ∧ 1024 ≤ e := by decide +kernel
 

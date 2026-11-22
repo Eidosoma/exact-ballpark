@@ -2364,7 +2364,7 @@
       ],
       "source": "src/exact_ballpark/client.py",
       "symbols": "merge_state_into_history, Ticker._flush_state, Ticker.do_pre_tick",
-      "scope": "The append case starts with empty history. One equal-stamp reply clears its group and later groups keep waiting. Tick dispatch assumes handlers return, represents time after each dispatch by a supplied clock function and advances a successful extra parent evolve by one. Reset is recognized by the first raw event. Admission of an ordinary packet depends on that first stamp before grouping.",
+      "scope": "The queue model begins at admission. For a mixed-stamp packet this requires the application's fatal-desync handler to return. The append case starts with empty history. One equal-stamp reply clears its group and later groups keep waiting. Tick dispatch assumes handlers return, represents time after each dispatch by a supplied clock function and advances a successful extra parent evolve by one. Reset is recognized by the first raw event. Admission of an ordinary packet depends on that first stamp before grouping.",
       "theorems": [
         "ExactBallpark.Time.MixedHistory.waiting_tail",
         "ExactBallpark.Time.MixedHistory.drain_frontier",
@@ -2499,7 +2499,7 @@
       ],
       "symbols": "SpaceBallpark._next_collision_static, SpaceBallpark._impact_static, CollisionBallProperties.find_index, FullBallpark.evolve",
       "scope": "One free ball and two fixed spheres on a line, zero thrust, a 100 ms tick, eight supplied exponential words and the fixture\u2019s scalar candidate order. Starting with an empty impact history, Lean checks each detected obstacle, time, selected record, impulse and final x and vx. The control changes only the cutoff comparison to exact arithmetic on the stored words.",
-      "hostEvidence": "Both scalar runs match the certified traces and endpoints. A separately compiled pinned Destiny run matches the unmodified engine\u2019s stored contact history and endpoint words. [Replay and measurements](DISCREPANCIES.md#col-715-history-lookup)",
+      "hostEvidence": "Both scalar runs match the certified traces and endpoints. Pinned Destiny C++ matches the stored rightward end record, the lookup index at tick end and the committed leftward state. Two of 33 neighboring starting positions distinguish the two cutoffs in the scalar scan. [Replay and measurements](DISCREPANCIES.md#col-715-history-lookup)",
       "theorems": [
         "ExactBallpark.Collision.ReboundCutoff.detected_rebound"
       ]
@@ -3833,6 +3833,72 @@
         "ExactBallpark.Combat.Falloff.range_order",
         "ExactBallpark.Combat.Falloff.half_chance_iff",
         "ExactBallpark.Combat.Falloff.falloff_landmarks"
+      ]
+    },
+    {
+      "title": "When both visiting orders select the nearer fixed obstacle",
+      "moduleName": "ExactBallparkProofs.Collision.SearchWindow",
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._next_collision_static, SpaceBallpark.collide_two_spheres",
+      "model": "Real contact fractions and absolute times, with a binary64 eight-metre sweep",
+      "rules": [
+        "COL-715"
+      ],
+      "scope": "Two eligible fixed hits, an empty incumbent and distinct positive fractions in a positive-length tick window starting at or after zero. Both orders choose the nearer hit exactly when its fraction is less than the farther timestamp and its timestamp is at most the farther fraction. From time zero, one second is the unique duration with this property for every such pair in [0,1]. The binary64 theorem evaluates both orders and both comparisons on the first half-second sweep.",
+      "hostEvidence": "The scalar engine and earliest-time control supply the collider ID and timestamp word for both visiting orders at five first-sweep durations. Pinned C++ also replays the engine's half-second case. [Word comparisons](scripts/arithmetic_checks.py) · [Compiled replay](scripts/contact_replay.py)",
+      "theorems": [
+        "ExactBallpark.Collision.SearchWindow.fixed_window_order_iff",
+        "ExactBallpark.Collision.SearchWindow.unit_first_sweep_iff",
+        "ExactBallpark.Collision.SearchWindow.first_half_second_words"
+      ]
+    },
+    {
+      "title": "When an exact grazing contact requires a closer calculation",
+      "moduleName": "ExactBallparkProofs.Collision.SweepCertificate",
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark.collide_two_spheres",
+      "model": "Decoded dyadic endpoints, exact rational coefficients and ordered binary64 operations",
+      "rules": [
+        "COL-705"
+      ],
+      "scope": "For any decoded chord whose exact discriminant is zero, the endpoint-based strict-sign certificate returns inconclusive. On the radius-2²⁸ graze, Lean checks the exact and rounded coefficients, the rounded discriminant −1008 and the negative certificate obtained by assuming the rounded coefficients are exact.",
+      "hostEvidence": "Python supplies the actual hit-time words for crossing, grazing and separated horizontal sweeps. The Lean probe evaluates the coefficient-only and endpoint-based sign checks on the same inputs. [Geometry probes](scripts/geometry_checks.py)",
+      "theorems": [
+        "ExactBallpark.Collision.zero_discriminant_uncertified",
+        "ExactBallpark.Collision.graze_coefficient_loss"
+      ]
+    },
+    {
+      "title": "Which private updates a later bubble reply can release",
+      "moduleName": "ExactBallparkProofs.Time.MixedHistory",
+      "source": "src/exact_ballpark/client.py",
+      "symbols": "merge_state_into_history, Ticker.do_pre_tick",
+      "model": "Admitted timestamp groups, ordered event tokens and integer client clocks",
+      "rules": [
+        "TIME-715"
+      ],
+      "scope": "Starting from an empty history, a reply at the final stamp releases its group and leaves every earlier private group waiting. Waiting only for the first of two stamps blocks a late companion at any clock. With every group due and ready, a successful flush that never moves the clock backwards dispatches the complete history in order.",
+      "hostEvidence": "Public client updates with a returning desync handler check both companion stamps. Two-, three- and five-stamp histories compare applied and pending payloads, flags and the reached clock across Lean, scalar Python and the pinned client. The harness records flushed groups and advances its fixture clock once per parent evolve. [Queue probes](scripts/mixed_history_checks.py)",
+      "theorems": [
+        "ExactBallpark.Time.MixedHistory.later_reply_keeps_prefix",
+        "ExactBallpark.Time.MixedHistory.earliest_only_reply",
+        "ExactBallpark.Time.MixedHistory.complete_history_drains"
+      ]
+    },
+    {
+      "title": "Recovering sideways motion on the radial tracking replay",
+      "moduleName": "ExactBallparkProofs.Combat.TrackingMargin",
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.get_accuracy",
+      "model": "Exact rational coordinates and Lean's binary64 fused multiply-add model",
+      "rules": [
+        "CMB-702"
+      ],
+      "scope": "For a nonzero sightline, exact projection and squared cross product divided by distance to the fourth give the same squared angular speed. It vanishes precisely when all three cross components vanish. On the stored radial witness, ordinary binary64 products erase all three components, while the two-FMA difference of products recovers each exactly. The finite result covers these specific input words.",
+      "hostEvidence": "CPython math.fma and Fraction check the ordinary and compensated components and exact angular speed alongside the scalar GetAccuracy square-root input. A compiled C++ control checks the logged witness. [Tracking probes](scripts/geometry_checks.py) · [C++ control](scripts/replay_discrepancies.py)",
+      "theorems": [
+        "ExactBallpark.Combat.TrackingMargin.cross_angular_sq",
+        "ExactBallpark.Combat.TrackingMargin.radial_cross_words"
       ]
     }
   ]

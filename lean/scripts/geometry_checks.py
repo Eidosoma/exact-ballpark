@@ -77,11 +77,27 @@ def compare(run_lake):
         result = sweep(p, q, origin, origin, radius)
         submit(("hit", depth), (*p, *q, radius), ("hit", bits(result), entry, depth))
 
+    # Only the endpoint-based certificate accounts for lost clearance in the quadratic coefficients.
+    extent = 2.**28
+    for x, u, y, radius, last_only, from_inputs in [
+        (-3., 3., extent, extent, "negative", "uncertain"),
+        (-extent, extent, 2., 1., "uncertain", "uncertain"),
+        (-extent, extent, 5., 1., "negative", "negative"),
+        (-3., 3., .5, 1., "positive", "positive"),
+        (-3., 3., 1., 1., "uncertain", "uncertain"),
+        (-3., 3., 2., 1., "negative", "negative"),
+    ]:
+        result = sweep((x, y, 0.), (u, y, 0.), origin, origin, radius)
+        submit(("disc",), (x, u, y, radius), ("disc", bits(result), last_only, from_inputs))
+
     for v, r, safe in [
         ((0., 1., 0.), (1., 0., 0.), True),
         ((1., 2.**-12, 0.), (1., 0., 0.), True),
         ((1., 2.**-30, 0.), (1., 0., 0.), False),
         ((.03, .04, .12), (3., 4., 12.), False),
+        ((-.12, .03, .04), (-12., 3., 4.), False),
+        ((.12, -.04, .03), (12., -4., 3.), False),
+        ((3., 4., 12.), (3., 4., 12.), False),
     ]:
         park = full.FullBallpark()
         park.add_ball(1, 1e6, 1, 100, True)
@@ -94,15 +110,26 @@ def compare(run_lake):
         speed = sqrt.call_args.args[0]
         vq, rq = tuple(map(Fraction, v)), tuple(map(Fraction, r))
         dot = sum(x*y for x, y in zip(vq, rq, strict=True))
-        lateral = sum(x*x for x in vq) - dot*dot/sum(x*x for x in rq)
+        distance_sq = sum(x*x for x in rq)
+        lateral = sum(x*x for x in vq) - dot*dot/distance_sq
         submit(("track",), (*v, *r), ("track", bits(speed), lateral, safe))
+        plain, fused = [], []
+        for i, j in ((1, 2), (2, 0), (0, 1)):
+            rounded = v[j]*r[i]
+            plain.append(bits(v[i]*r[j] - rounded))
+            fused.append(bits(math.fma(v[i], r[j], -rounded) + math.fma(-v[j], r[i], rounded)))
+        submit(("cross",), (*v, *r), ("cross", bits(speed), plain + fused, lateral / distance_sq))
 
     rows = run_lake("env", "lean", "--run", "scripts/GeometryProbe.lean", *jobs, capture=True).splitlines()
     for row, (kind, actual, exact, condition) in zip(rows, expected, strict=True):
         label, encoded, *bounds = row.split()
         if (label, int(encoded)) != (kind, actual):
             raise SystemExit(f"Geometric model differs from the scalar engine on {row}")
-        if kind == "hit" and exact is None:
+        if kind == "disc":
+            valid = bounds == [exact, condition]
+        elif kind == "cross":
+            valid = len(bounds) == 7 and list(map(int, bounds[:6])) == exact and Fraction(bounds[6]) == condition
+        elif kind == "hit" and exact is None:
             valid = bounds == ["uncertain"]
         elif len(bounds) == 2:
             a, b = map(Fraction, bounds)

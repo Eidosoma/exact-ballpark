@@ -1,6 +1,6 @@
 # Lean claim register
 
-420 kernel-checked theorems have claims linked to 105 of the 105 catalogue rules. A link covers the scope stated below.
+430 kernel-checked theorems have claims linked to 105 of the 105 catalogue rules. A link covers the scope stated below.
 
 Engine revision `098653233eb0f9910a3f02564e36b0641cbd4e0f`. The register identifies manually transcribed models and source-extracted definitions. The Python-to-Lean extractors are trusted. The Lean kernel checks the resulting theorems. The full.py digest includes a docstring correction to the pinned formation source.
 
@@ -82,7 +82,7 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | COL-702 | Only free, massive, live balls respond; non-massive balls pass through | [gradient_iff](#claim-43) |
 | COL-703 | Collision candidates exclude cloaked, non-massive, missile and other-bubble balls | [missile_target, ordinary_candidate](#claim-43), [related_iff](#claim-95), [first_visit_once](#claim-96), [ordered_candidates](#claim-97), [sweep_candidate](#claim-129) |
 | COL-704 | Missiles ignore owners; non-junk balls ignore space junk | [owner_junk_skip](#claim-43) |
-| COL-705 | Time of impact assumes straight paths over the tick | [gap_quadratic, contact_correct](#claim-9), [long_chord_clear, long_chord_real_miss, long_chord_rounded_hit](#claim-57), [finite_negative_iff, discriminant_error, certified_sign, certified_miss](#claim-58), [decoded_gap, certified_chord_miss, horizontal_margin_examples, positive_outside_tick](#claim-59), [entry_comparisons, timing_sound, tick_boundary_examples, late_root_rounded_hit](#claim-60), [tangent_contact_iff, tangent_rounded_miss, tangent_tick_boundaries](#claim-61), [detected_rebound](#claim-127), [certified_chord_hit](#claim-131), [chord_deviation, flight_chord_deviation](#claim-147), [pair_no_contact, pair_clearance](#claim-148), [certified_clearance](#claim-149), [turning_overlap, turning_words, turning_clearance](#claim-150), [exists_first, initial_contact, first_unique, first_on_surface, first_in_window](#claim-151), [squared_distance_enclosed, prefix_clear, whole_interval_margin, verified_result, classify_sound](#claim-153), [turning_window, clear_control, two_turning_bodies, moving_pair_window, late_window_rejected](#claim-154), [incoming_distance, exact_first_contact](#claim-155), [no_recontact, only_contact](#claim-157), [replay_words](#claim-158), [excluded_solid](#claim-174) |
+| COL-705 | Time of impact assumes straight paths over the tick | [gap_quadratic, contact_correct](#claim-9), [long_chord_clear, long_chord_real_miss, long_chord_rounded_hit](#claim-57), [finite_negative_iff, discriminant_error, certified_sign, certified_miss](#claim-58), [decoded_gap, certified_chord_miss, horizontal_margin_examples, positive_outside_tick](#claim-59), [entry_comparisons, timing_sound, tick_boundary_examples, late_root_rounded_hit](#claim-60), [tangent_contact_iff, tangent_rounded_miss, tangent_tick_boundaries](#claim-61), [detected_rebound](#claim-127), [certified_chord_hit](#claim-131), [chord_deviation, flight_chord_deviation](#claim-147), [pair_no_contact, pair_clearance](#claim-148), [certified_clearance](#claim-149), [turning_overlap, turning_words, turning_clearance](#claim-150), [exists_first, initial_contact, first_unique, first_on_surface, first_in_window](#claim-151), [squared_distance_enclosed, prefix_clear, whole_interval_margin, verified_result, classify_sound](#claim-153), [turning_window, clear_control, two_turning_bodies, moving_pair_window, late_window_rejected](#claim-154), [incoming_distance, exact_first_contact](#claim-155), [no_recontact, only_contact](#claim-157), [replay_words](#claim-158), [excluded_solid](#claim-174), [zero_discriminant_uncertified, graze_coefficient_loss](#claim-179) |
 | COL-706 | Collision inertia is mass x agility, fixed balls 1e34, velocity exchange base mass | [elastic_exchange](#claim-17), [raw_impulse](#claim-156) |
 | COL-707 | Hitting a fixed ball reflects the normal velocity elastically | [reflection](#claim-17), [scaled_reflection](#claim-51) |
 | COL-708 | Two free balls exchange normal velocity as a 1-D elastic collision | [elastic_exchange](#claim-17) |
@@ -92,7 +92,7 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | COL-712 | Static capsules and boxes reflect or eject balls with the same 0.85 response | [excluded_chord](#claim-10), [scaled_reflection, static_branches](#claim-51), [support_geometry, crossing_iff, parallel_sweep, face_membership](#claim-71), [axis_distance, bounding_rejection, cylinder_quadratic, first_barrel_contact](#claim-116), [shallow_crossing_missed](#claim-117), [grown_bounds, axis_extents, solid_enclosed, excluded_solid](#claim-174) |
 | COL-713 | Fixed balls carry axis-aligned miniballs, minicapsules and miniboxes | [fixed_capsule](#claim-47), [axis_extents, solid_enclosed, diagonal_radius](#claim-174) |
 | COL-714 | Iterative collisions re-examine colliding balls for up to 20 passes | [iteration_cap](#claim-44), [remove_first_matching_impact, remove_reset_at_zero, finish_window](#claim-68) |
-| COL-715 | Iterative search order is static, then fixed, then higher-ID free balls | [unique_pair](#claim-45), [ignore_recent_colliders, index_prefix, position_from_prefix](#claim-69), [rounded_history_lookup](#claim-70), [full_tick_first_min, partial_tick_selection](#claim-90), [static_priority](#claim-91), [free_subintervals, ignored_segment](#claim-92), [four_ball_endpoint, returning_ball_words](#claim-102), [compensated_history_cutoff](#claim-104), [detected_rebound](#claim-127), [contact_time_value, contact_time_lt_iff, half_tick_absolute_selection](#claim-144), [earlier64_eq, half_tick_selection_words](#claim-145), [disjoint_first_contacts](#claim-151), [obstacle_order](#claim-154), [replay_words](#claim-158) |
+| COL-715 | Iterative search order is static, then fixed, then higher-ID free balls | [unique_pair](#claim-45), [ignore_recent_colliders, index_prefix, position_from_prefix](#claim-69), [rounded_history_lookup](#claim-70), [full_tick_first_min, partial_tick_selection](#claim-90), [static_priority](#claim-91), [free_subintervals, ignored_segment](#claim-92), [four_ball_endpoint, returning_ball_words](#claim-102), [compensated_history_cutoff](#claim-104), [detected_rebound](#claim-127), [contact_time_value, contact_time_lt_iff, half_tick_absolute_selection](#claim-144), [earlier64_eq, half_tick_selection_words](#claim-145), [disjoint_first_contacts](#claim-151), [obstacle_order](#claim-154), [replay_words](#claim-158), [fixed_window_order_iff, unit_first_sweep_iff, first_half_second_words](#claim-178) |
 | COL-716 | Iterative impacts on static objects are perfectly elastic impulses | [reflection](#claim-17), [static_velocity_components, start_contact_acceleration](#claim-62) |
 | COL-717 | Iterative impacts between free balls are elastic with base masses | [iterative_exchange](#claim-17), [start_contact_acceleration](#claim-62), [pair_separates, pair_preserves_tangent, pair_momentum, pair_kinetic_energy](#claim-63), [raw_impulse, restart_state, momentum_change](#claim-156), [replay_words](#claim-158), [endpoint_error](#claim-159), [from_pair_velocity, momentum_iff, separates_iff, common_fraction_loss](#claim-173) |
 | COL-718 | Iterative velocity changes above 5 x maxVel are scaled by the squared ratio | [limitImpact_norm](#claim-18), [limited_speed_bound](#claim-65), [rounded_limiter_exceeds_bound](#claim-66), [insert_cutoff_and_retry, insert_after_predecessor, insert_before_all](#claim-67), [promoted_limiter_exact](#claim-106), [detected_rebound](#claim-127), [applied_impulse, momentum_change](#claim-156), [limited_closing_at_end](#claim-157), [replay_words](#claim-158), [endpoint_error](#claim-159), [limit_normal, from_pair_velocity, momentum_iff, separates_iff, common_fraction_loss, asymmetric_witness](#claim-173) |
@@ -123,9 +123,9 @@ The rule descriptions, upstream locations and per-rule test files are in the [en
 | TIME-712 | Pre-tick order is follower cleanup, stamp, flush, apply, bubbles, cloaks | [pretick_calls](#claim-41), [remote_pending_stops](#claim-107), [stopped_before_bubbles](#claim-132) |
 | TIME-713 | Removed balls linger as moribund and are cleaned up between ticks | [cleanup_budget](#claim-40), [removal_prefix_masks](#claim-109), [row_decision, early_ids, removal_count, cohort_deadline, repeat_early_poll](#claim-176) |
 | TIME-714 | Balls in dead bubbles are not evolved on the server | [dead_iff](#claim-40) |
-| TIME-715 | A client applies each server update at its stamp, waiting, running ahead or rewinding to it | [sync_reaches_stamp, wait_iff](#claim-30), [eleventh_store, stores_bounded, post_deadline](#claim-84), [rebase_contents](#claim-85), [rewind_stream, sync_failure](#claim-86), [private_bubble_history](#claim-110), [merged_stamps, merged_payload](#claim-118), [waiting_tail, drain_frontier, reset_packet_order](#claim-119), [delayed_private_flush](#claim-133), [rewind_goto_same_stamp](#claim-166) |
+| TIME-715 | A client applies each server update at its stamp, waiting, running ahead or rewinding to it | [sync_reaches_stamp, wait_iff](#claim-30), [eleventh_store, stores_bounded, post_deadline](#claim-84), [rebase_contents](#claim-85), [rewind_stream, sync_failure](#claim-86), [private_bubble_history](#claim-110), [merged_stamps, merged_payload](#claim-118), [waiting_tail, drain_frontier, reset_packet_order](#claim-119), [delayed_private_flush](#claim-133), [rewind_goto_same_stamp](#claim-166), [later_reply_keeps_prefix, earliest_only_reply, complete_history_drains](#claim-180) |
 | CMB-701 | Angular velocity is transversal speed over centre distance | [angular_agrees](#claim-19), [rotating_observer](#claim-99), [radial_invariance](#claim-177) |
-| CMB-702 | Destiny's accuracy helper is 2 to the power of tracking and falloff terms | [accuracy_bounds, optimal_stationary](#claim-19), [accuracy_overflow_input, accuracy_early_lanes](#claim-98), [sideways_margin](#claim-135), [tracking_input_nonnegative, tracking_margin_controls](#claim-167), [chance_factors, range_order, half_chance_iff, falloff_landmarks](#claim-177) |
+| CMB-702 | Destiny's accuracy helper is 2 to the power of tracking and falloff terms | [accuracy_bounds, optimal_stationary](#claim-19), [accuracy_overflow_input, accuracy_early_lanes](#claim-98), [sideways_margin](#claim-135), [tracking_input_nonnegative, tracking_margin_controls](#claim-167), [chance_factors, range_order, half_chance_iff, falloff_landmarks](#claim-177), [cross_angular_sq, radial_cross_words](#claim-181) |
 
 <a id="claim-1"></a>
 
@@ -1650,7 +1650,7 @@ Engine symbols `FullBallpark.get_accuracy, vec_accuracy.get_accuracy`. [Source](
 
 Recorded upstream evidence — CMB-702 passing (compiled code).
 
-The scalar and PyTorch CPU checks cover 8 combat lanes, including the same-ball guard. For the radial case, the scalar and pinned C++ square-root and power inputs match the certified words. The engine returns infinite accuracy, 11 m and NaN angular speed. [Lane checks](scripts/arithmetic_checks.py) · [Pinned C++ replay](DISCREPANCIES.md#cmb-702-tracking)
+The scalar and PyTorch CPU checks cover 8 combat lanes, including the same-ball guard. For the radial case, the scalar and pinned C++ square-root and power inputs match the certified words. At tracking ratio 200 the chance is 1.0000000000000007. At 10³⁰ it is infinite and the exact chance on the stored inputs rounds to zero. Both queries return NaN angular speed. [Lane checks](scripts/arithmetic_checks.py) · [Pinned C++ replay](DISCREPANCIES.md#cmb-702-tracking)
 
 | [Theorems](ExactBallparkProofs/Combat/Execution.lean) | Transitive axioms |
 | --- | --- |
@@ -1927,7 +1927,7 @@ Engine symbols `FullBallpark._capsule_check`. [Source](../src/exact_ballpark/ful
 
 Recorded upstream evidence — COL-712 passing (compiled code).
 
-Scalar Python and the pinned Destiny C++ capsule check miss the shallow crossing and return half a tick on the faster control. [Capsule replay](DISCREPANCIES.md#col-712-shallow-crossing)
+Scalar Python and pinned Destiny C++ miss the shallow crossing and return half a tick on the faster control. At 9.9 µm of travel they miss, at 10.1 µm they hit, and starting inside at the missed endpoint returns contact at time zero. [Capsule replay](DISCREPANCIES.md#col-712-shallow-crossing)
 
 | [Theorems](ExactBallparkProofs/Collision/Capsule.lean) | Transitive axioms |
 | --- | --- |
@@ -1954,13 +1954,13 @@ Lean and the scalar client agree on the complete ordered payloads and wait flags
 
 ## Waiting, dispatch and reset for mixed-stamp packets
 
-**Discrete packet and clock transitions.** The append case starts with empty history. One equal-stamp reply clears its group and later groups keep waiting. Tick dispatch assumes handlers return, represents time after each dispatch by a supplied clock function and advances a successful extra parent evolve by one. Reset is recognized by the first raw event. Admission of an ordinary packet depends on that first stamp before grouping.
+**Discrete packet and clock transitions.** The queue model begins at admission. For a mixed-stamp packet this requires the application's fatal-desync handler to return. The append case starts with empty history. One equal-stamp reply clears its group and later groups keep waiting. Tick dispatch assumes handlers return, represents time after each dispatch by a supplied clock function and advances a successful extra parent evolve by one. Reset is recognized by the first raw event. Admission of an ordinary packet depends on that first stamp before grouping.
 
 Engine symbols `merge_state_into_history, Ticker._flush_state, Ticker.do_pre_tick`. [Source](../src/exact_ballpark/client.py)
 
 Recorded upstream evidence — TIME-715 passing (test vectors).
 
-The pinned Destiny Python client reproduces the extra wait and the reset-order trace. [Packet replays](DISCREPANCIES.md#time-715-extra-wait)
+Both public client updates report one fatal desync before the admission decision on a mixed-stamp packet. With a returning handler the replays reproduce the extra wait and the reset-order queues. [Packet replays](DISCREPANCIES.md#time-715-extra-wait)
 
 | [Theorems](ExactBallparkProofs/Time/MixedHistory.lean) | Transitive axioms |
 | --- | --- |
@@ -2084,7 +2084,7 @@ Engine symbols `SpaceBallpark._next_collision_static, SpaceBallpark._impact_stat
 
 Recorded upstream evidence — COL-705 passing (compiled code), COL-715 passing (compiled code), COL-718 passing (compiled code).
 
-Both scalar runs match the certified traces and endpoints. A separately compiled pinned Destiny run matches the unmodified engine’s stored contact history and endpoint words. [Replay and measurements](DISCREPANCIES.md#col-715-history-lookup)
+Both scalar runs match the certified traces and endpoints. Pinned Destiny C++ matches the stored rightward end record, the lookup index at tick end and the committed leftward state. Two of 33 neighboring starting positions distinguish the two cutoffs in the scalar scan. [Replay and measurements](DISCREPANCIES.md#col-715-history-lookup)
 
 | [Theorems](ExactBallparkProofs/Collision/ReboundCutoff.lean) | Transitive axioms |
 | --- | --- |
@@ -2947,3 +2947,73 @@ Thirty scalar queries vary centre distance, transversal speed and added radial d
 | `ExactBallpark.Combat.Falloff.range_order` | propext, Classical.choice, Quot.sound |
 | `ExactBallpark.Combat.Falloff.half_chance_iff` | propext, Classical.choice, Quot.sound |
 | `ExactBallpark.Combat.Falloff.falloff_landmarks` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-178"></a>
+
+## When both visiting orders select the nearer fixed obstacle
+
+**Real contact fractions and absolute times, with a binary64 eight-metre sweep.** Two eligible fixed hits, an empty incumbent and distinct positive fractions in a positive-length tick window starting at or after zero. Both orders choose the nearer hit exactly when its fraction is less than the farther timestamp and its timestamp is at most the farther fraction. From time zero, one second is the unique duration with this property for every such pair in [0,1]. The binary64 theorem evaluates both orders and both comparisons on the first half-second sweep.
+
+Engine symbols `SpaceBallpark._next_collision_static, SpaceBallpark.collide_two_spheres`. [Source](../src/exact_ballpark/space.py)
+
+Recorded upstream evidence — COL-715 passing (compiled code).
+
+The scalar engine and earliest-time control supply the collider ID and timestamp word for both visiting orders at five first-sweep durations. Pinned C++ also replays the engine's half-second case. [Word comparisons](scripts/arithmetic_checks.py) · [Compiled replay](scripts/contact_replay.py)
+
+| [Theorems](ExactBallparkProofs/Collision/SearchWindow.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Collision.SearchWindow.fixed_window_order_iff` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Collision.SearchWindow.unit_first_sweep_iff` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Collision.SearchWindow.first_half_second_words` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-179"></a>
+
+## When an exact grazing contact requires a closer calculation
+
+**Decoded dyadic endpoints, exact rational coefficients and ordered binary64 operations.** For any decoded chord whose exact discriminant is zero, the endpoint-based strict-sign certificate returns inconclusive. On the radius-2²⁸ graze, Lean checks the exact and rounded coefficients, the rounded discriminant −1008 and the negative certificate obtained by assuming the rounded coefficients are exact.
+
+Engine symbols `SpaceBallpark.collide_two_spheres`. [Source](../src/exact_ballpark/space.py)
+
+Recorded upstream evidence — COL-705 passing (compiled code).
+
+Python supplies the actual hit-time words for crossing, grazing and separated horizontal sweeps. The Lean probe evaluates the coefficient-only and endpoint-based sign checks on the same inputs. [Geometry probes](scripts/geometry_checks.py)
+
+| [Theorems](ExactBallparkProofs/Collision/SweepCertificate.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Collision.zero_discriminant_uncertified` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Collision.graze_coefficient_loss` | propext, Classical.choice, Quot.sound |
+
+<a id="claim-180"></a>
+
+## Which private updates a later bubble reply can release
+
+**Admitted timestamp groups, ordered event tokens and integer client clocks.** Starting from an empty history, a reply at the final stamp releases its group and leaves every earlier private group waiting. Waiting only for the first of two stamps blocks a late companion at any clock. With every group due and ready, a successful flush that never moves the clock backwards dispatches the complete history in order.
+
+Engine symbols `merge_state_into_history, Ticker.do_pre_tick`. [Source](../src/exact_ballpark/client.py)
+
+Recorded upstream evidence — TIME-715 passing (test vectors).
+
+Public client updates with a returning desync handler check both companion stamps. Two-, three- and five-stamp histories compare applied and pending payloads, flags and the reached clock across Lean, scalar Python and the pinned client. The harness records flushed groups and advances its fixture clock once per parent evolve. [Queue probes](scripts/mixed_history_checks.py)
+
+| [Theorems](ExactBallparkProofs/Time/MixedHistory.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Time.MixedHistory.later_reply_keeps_prefix` | propext, Quot.sound |
+| `ExactBallpark.Time.MixedHistory.earliest_only_reply` | propext, Quot.sound |
+| `ExactBallpark.Time.MixedHistory.complete_history_drains` | propext, Quot.sound |
+
+<a id="claim-181"></a>
+
+## Recovering sideways motion on the radial tracking replay
+
+**Exact rational coordinates and Lean's binary64 fused multiply-add model.** For a nonzero sightline, exact projection and squared cross product divided by distance to the fourth give the same squared angular speed. It vanishes precisely when all three cross components vanish. On the stored radial witness, ordinary binary64 products erase all three components, while the two-FMA difference of products recovers each exactly. The finite result covers these specific input words.
+
+Engine symbols `FullBallpark.get_accuracy`. [Source](../src/exact_ballpark/full.py)
+
+Recorded upstream evidence — CMB-702 passing (compiled code).
+
+CPython math.fma and Fraction check the ordinary and compensated components and exact angular speed alongside the scalar GetAccuracy square-root input. A compiled C++ control checks the logged witness. [Tracking probes](scripts/geometry_checks.py) · [C++ control](scripts/replay_discrepancies.py)
+
+| [Theorems](ExactBallparkProofs/Combat/TrackingMargin.lean) | Transitive axioms |
+| --- | --- |
+| `ExactBallpark.Combat.TrackingMargin.cross_angular_sq` | propext, Classical.choice, Quot.sound |
+| `ExactBallpark.Combat.TrackingMargin.radial_cross_words` | propext, Classical.choice, Quot.sound |

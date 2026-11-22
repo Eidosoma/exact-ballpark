@@ -151,6 +151,63 @@ theorem drain_frontier (flush : Int → Entry → Int) (now : Int) (history : Li
     · simp only [drain,block,Bool.false_eq_true,ite_false,List.cons_append,List.cons.injEq,true_and]
       apply ih
 
+/-- A bubble reply at the final stamp releases that group and leaves every earlier private
+group waiting, with each group's payload intact. -/
+theorem later_reply_keeps_prefix (prefixRows : List Entry) (last : Entry) (reply : List Nat)
+    (earlierStamps : ∀ row ∈ prefixRows, row.stamp < last.stamp) :
+    merge (merge [] (prefixRows ++ [last]) true) [⟨last.stamp,reply,false⟩] false =
+      prefixRows.map (fun row => {row with waits := true}) ++
+        [{last with events := last.events ++ reply, waits := false}] := by
+  induction prefixRows with
+  | nil => simp [merge]
+  | cons row rows ih =>
+    have head := earlierStamps row List.mem_cons_self
+    have tail := ih (fun r mem => earlierStamps r (List.mem_cons_of_mem _ mem))
+    simpa [merge,head] using congrArg (List.cons {row with waits := true}) tail
+
+/-- Splitting the two private groups and waiting only on the first stamp succeeds for
+an early companion. A late companion leaves the first group blocking at every clock. -/
+theorem earliest_only_reply (s t now : Int) (ordered : s < t) (due : t ≤ now)
+    (early late reply : List Nat) :
+    let held := merge (merge [] [⟨s,early,false⟩] true) [⟨t,late,false⟩] false
+    let onReply := fun stamp => merge held [⟨stamp,reply,false⟩] false
+    let flush := fun (clock : Int) (_ : Entry) => clock
+    drain flush now (onReply s) = ([⟨s,early++reply,false⟩,⟨t,late,false⟩], now, []) ∧
+    ∀ clock, drain flush clock (onReply t) =
+      ([], clock, [⟨s,early,true⟩,⟨t,late++reply,false⟩]) := by
+  simp [merge, drain, waitForUpdate, ordered, not_lt.mpr due, not_lt.mpr (ordered.le.trans due)]
+
+/-- Once all groups have complete payloads and their stamps are due, a flush that never
+moves the clock backwards dispatches the entire history in order and leaves an empty queue. -/
+theorem complete_history_drains (flush : Int → Entry → Int) (forward : ∀ c e, c ≤ flush c e)
+    (now : Int) (history : List Entry) (ready : ∀ row ∈ history, row.waits = false ∧ row.stamp ≤ now) :
+    ∃ finish, now ≤ finish ∧ drain flush now history = (history,finish,[]) := by
+  induction history generalizing now with
+  | nil => exact ⟨now,le_rfl,rfl⟩
+  | cons row rows ih =>
+    obtain ⟨complete, due⟩ := ready row List.mem_cons_self
+    have runHead : waitForUpdate row.waits row.stamp now = false := by
+      simp [waitForUpdate,complete,not_lt.mpr due]
+    let after := flush now row
+    let next := match rows with
+      | n::_::_ => if n.waits then after else after+1
+      | _ => after
+    have advances : now ≤ next := by
+      have step : now ≤ after := forward now row
+      cases rows with
+      | nil => exact step
+      | cons n rest =>
+        cases rest with
+        | nil => exact step
+        | cons _ _ => dsimp [next]; split <;> omega
+    obtain ⟨finish, horizon, runs⟩ := ih next fun entry mem =>
+      let h := ready entry (List.mem_cons_of_mem _ mem)
+      ⟨h.1, h.2.trans advances⟩
+    refine ⟨finish,advances.trans horizon,?_⟩
+    simp only [drain,runHead,Bool.false_eq_true,ite_false]
+    change (row :: (drain flush next rows).1, (drain flush next rows).2) = _
+    rw [runs]
+
 def admitPacket (reset : Bool) (headStamp lastReset : Int) (history : List Entry) : Option (Int × List Entry) :=
   if reset then some (headStamp,history.filter (fun e => headStamp ≤ e.stamp))
   else if headStamp < lastReset then none else some (lastReset,history)

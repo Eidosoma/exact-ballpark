@@ -94,6 +94,45 @@ theorem certified_chord_miss (p₀ p₁ q₀ q₁ : FloatPoint) (r : Float)
 
 def horizontalPoint (x y : Float) : FloatPoint := fun i => if i = 0 then x else if i = 1 then y else 0
 
+/-- Every decoded chord with exactly zero discriminant gets an inconclusive strict-sign
+certificate, including when the rounded coefficients suggest a definite miss. -/
+theorem zero_discriminant_uncertified (p₀ p₁ q₀ q₁ : FloatPoint) (r : Float) (s : ExactChord)
+    (decoded : decodeChord p₀ p₁ q₀ q₁ r = some s)
+    (zero : let (a,b,c) := exactCoefficients s; b*b - 4*a*c = 0) :
+    certifySweep p₀ p₁ q₀ q₁ r = none := by
+  cases cert : certifySweep p₀ p₁ q₀ q₁ r with
+  | none => rfl
+  | some sign =>
+    unfold certifySweep at cert
+    obtain ⟨⟨af,bf,cf⟩, _, cert⟩ := Option.bind_eq_some_iff.mp cert
+    obtain ⟨s', ds, cert⟩ := Option.bind_eq_some_iff.mp cert
+    rw [decoded] at ds
+    cases ds
+    generalize coeffs : exactCoefficients s = abc at zero cert
+    obtain ⟨a,b,c⟩ := abc
+    obtain ⟨a₀, da, cert⟩ := Option.bind_eq_some_iff.mp cert
+    obtain ⟨b₀, db, cert⟩ := Option.bind_eq_some_iff.mp cert
+    obtain ⟨c₀, dc, cert⟩ := Option.bind_eq_some_iff.mp cert
+    have strict := certified_sign da db dc (le_refl _) (le_refl _) (le_refl _) cert
+    change b*b - 4*a*c = 0 at zero
+    cases sign <;> simp_all
+
+set_option maxRecDepth 8192 in
+/-- Radius 2²⁸, x from −3 to 3. The decoded quadratic has c=9, the engine uses c=16,
+and a check limited to the final arithmetic certifies a negative for the rounded coefficients. -/
+theorem graze_coefficient_loss :
+    let radius := Float.ofBits 0x41b0000000000000
+    let p := horizontalPoint (-3) radius
+    let q := horizontalPoint 3 radius
+    let origin : FloatPoint := fun _ => 0
+    let rounded := sweepQuadratic64 p q origin origin radius
+    (decodeChord p q origin origin radius).map exactCoefficients = some (36,-36,9) ∧
+    (rounded.bind fun (a,b,c) => do
+      return (← finiteValue a, ← finiteValue b, ← finiteValue c, ← finiteValue (discriminant64 a b c)))
+        = some (36,-36,16,-1008) ∧
+    (rounded.bind fun (a,b,c) => certifyDiscriminant a b c 0 0 0) = some .negative ∧
+    certifySweep p q origin origin radius = none := by decide +kernel
+
 set_option maxRecDepth 8192 in
 theorem horizontal_margin_examples :
     let inspect := fun y => certifySweep (horizontalPoint (Float.ofBits 0xc1b0000000000000) y)

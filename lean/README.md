@@ -1,6 +1,6 @@
 # Exact Ballpark laws in Lean
 
-What happens when a ship stops thrusting, two swept spheres touch, or a server tick arrives late? Exact Ballpark gives each behavior a rule ID. This project links **105 engine laws** to **420 kernel-checked theorems**. Each entry records the part of the law covered, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
+What happens when a ship stops thrusting, two swept spheres touch, or a server tick arrives late? Exact Ballpark gives each behavior a rule ID. This project links **105 engine laws** to **430 kernel-checked theorems**. Each entry records the part of the law covered, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
 
 [![Exact Ballpark law map. Movement has 41 laws, warp 16, collisions 19, space and sensors 12, time and events 15, and combat 2.](assets/law-map.webp)](assets/law-map.webp)
 
@@ -14,6 +14,17 @@ What happens when a ship stops thrusting, two swept spheres touch, or a server t
 | **Space and sensors** · 12 · SEN-701–712 | Partition levels, connected bubbles, proximity events, visibility, cloaking and which clients receive an update. | Starting from a seed box, the bubble traversal labels exactly the initially unassigned boxes reachable through adjacent cells. [Bubble traversal](ExactBallparkProofs/Space/Bubbles.lean) |
 | **Time, server and clients** · 15 · TIME-701–715 | Tick duration, backlog, update order, command queues, removal and client synchronization. | In the modeled tick, every ball’s thrust calculation precedes collision responses, and every new state is calculated before the first commit. [Tick schedule](ExactBallparkProofs/Time/Schedule.lean) |
 | **Combat** · 2 · CMB-701–702 | How relative motion across the line of sight, tracking and range determine hit probability. | In real arithmetic, distinct positions on the ordinary branch give a hit probability in (0, 1]. With zero transversal speed inside optimal range it equals one. A binary64 radial replay produces +∞. [Real-valued accuracy](ExactBallparkProofs/Combat/Accuracy.lean) · [Finite-arithmetic replay](DISCREPANCIES.md#cmb-702-tracking) |
+
+## Ten proofs behind four discrepancy reports
+
+| Rule | Theorems | What the proofs establish |
+| --- | ---: | --- |
+| COL-715 · fixed obstacles | 3 | On the first sweep, one second is the only positive duration that picks the nearer obstacle for every pair of distinct positive hit fractions in either order over the reals. For the recorded fractions ¼ and ½, both orders succeed exactly when the duration is greater than 0.5 s and at most 2 s. The binary64 half-second replay checks the failed tie. [Fixed-obstacle proofs](ExactBallparkProofs/Collision/SearchWindow.lean) |
+| COL-705 · grazing contact | 2 | An exact zero discriminant always makes the endpoint-based sign check request closer evaluation. On the radius-2²⁸ m graze, the engine rounds one coefficient from 9 to 16. Treating that 16 as exact gives a negative sign for a path that touches halfway through the tick. [Sweep certificates](ExactBallparkProofs/Collision/SweepCertificate.lean) |
+| TIME-715 · client queues | 3 | A reply for the final stamp leaves every earlier private group waiting. Waiting only on the first group still blocks a late reply. Once all groups are ready and due, a successful flush that preserves or advances the clock dispatches every payload in order. [Client queue proofs](ExactBallparkProofs/Time/MixedHistory.lean) |
+| CMB-702 · sideways motion | 2 | The cross product gives the exact squared angular speed for a nonzero sightline. On the stored radial replay, ordinary binary64 products erase every cross component. The fused multiply-add control recovers all three, including the two nonzero components. [Tracking proofs](ExactBallparkProofs/Combat/TrackingMargin.lean) |
+
+The CPU gate compares collision IDs and timestamp bits at five tick lengths, queue payloads and clocks for histories of two, three and five stamps, and tracking components against CPython’s fused multiply-add and an exact rational reference. The register links each comparison to its theorem. [Claims and CPU evidence](CLAIMS.md#claim-178) · [Gameplay impact](DISCREPANCIES.md#what-a-player-might-notice)
 
 ## What the 420-theorem milestone adds
 
@@ -205,11 +216,13 @@ The server and client proofs follow an update from server batching to client rew
 
 ## Observed engine discrepancies
 
-The log ranks 13 behaviors by their gameplay consequences and describes the likelihood of each trigger. The latest replays show a shallow crossing missed at a capsule wall, an extra bubble wait after a mixed-stamp update, and an obsolete event admitted or a fresh event discarded depending on packet order after reset. [Gameplay impact review](DISCREPANCIES.md#what-a-player-might-notice) · [Capsule crossing](DISCREPANCIES.md#col-712-shallow-crossing) · [Extra wait](DISCREPANCIES.md#time-715-extra-wait) · [Reset order](DISCREPANCIES.md#time-715-reset-order)
+The log ranks 13 behaviors by their consequence on the replayed inputs. A 9.9 µm step through a capsule wall misses, and the next query from inside detects contact at time zero. Both mixed-stamp client cases report a fatal desync before admission. If the handler returns, a delayed server send can leave a command waiting. In a separate crafted packet spanning a reset, event order decides which commands survive. [Gameplay impact review](DISCREPANCIES.md#what-a-player-might-notice) · [Capsule crossing](DISCREPANCIES.md#col-712-shallow-crossing) · [Extra wait](DISCREPANCIES.md#time-715-extra-wait) · [Reset order](DISCREPANCIES.md#time-715-reset-order)
 
-**COL-715 · A farther obstacle can win after a rebound.** In a one-second encounter with three fixed obstacles, changing just the time comparison reversed the ship’s final direction. The original scalar and pinned C++ engines agreed on the final position and velocity bits. [Four-ball replay](DISCREPANCIES.md#col-715-fixed-window)
+**COL-715 · A farther fixed obstacle can win.** On the first sweep of a 0.5 s tick, visiting the farther obstacle first can retain the 0.25 s contact over the 0.125 s one. In a separate one-second encounter with three fixed obstacles, correcting the comparison after a rebound reversed the ship’s final direction. [First sweep and four-ball replay](DISCREPANCIES.md#col-715-fixed-window)
 
-**COL-715 · A lookup can select the pre-impact velocity.** The first scalar replay supplied a second contact and measured 1.22 m of separation. A three-ball replay now reaches the cutoff through the engine’s sphere sweeps. In 100 ms, the ship finishes 1.325268 m from the exact-cutoff control and moving in the opposite direction. Pinned Destiny C++ reproduces the unmodified trajectory. [History proofs](ExactBallparkProofs/Collision/ImpactHistory.lean) · [Lookup discrepancy and replay](DISCREPANCIES.md#col-715-history-lookup)
+**COL-715 · A lookup can select the pre-impact velocity.** The supplied-contact replay measured 1.22 m of separation. The separate three-ball tick reaches a rounding boundary at two adjacent starting positions in a scan of 33. At the logged position the engine misses the second rebound, stores a rightward third rebound, then commits from an older leftward record. It finishes 1.325268 m from the exact-cutoff control. At a contact gap one nanosecond shorter, both runs miss the second rebound. [History proofs](ExactBallparkProofs/Collision/ImpactHistory.lean) · [Lookup discrepancy and replay](DISCREPANCIES.md#col-715-history-lookup)
+
+**CMB-702 · Nearly radial motion can yield undefined angular speed.** A seeded CPU sample reproduced this in 36.2% of 20,000 constructed radial targets. On the documented target the chance at tracking ratio 200 still accepts every binary64 uniform hit draw. At 10³⁰ the engine returns infinity and the exact probability on the stored inputs rounds to zero. [Tracking ratios and exact reference](DISCREPANCIES.md#cmb-702-tracking)
 
 **COL-715 · A second free-ball hit can disappear.** With a supplied turn in the other ball’s history, the engine kept the old start positions after suppressing a repeat. The two-chord search missed a hit that the final chord alone reported at 0.708901778 s. [Repeat-contact replay](DISCREPANCIES.md#col-715-free-repeat)
 
@@ -253,6 +266,8 @@ taskset -c 0-7 python3 scripts/check.py
 The project pins Lean 4.36.0, mathlib, FloatLib and Physlib. The units proofs import Physlib’s `WithDim.Basic` module. [Pinned dependencies](lake-manifest.json) · [Physlib quantity types](https://github.com/leanprover-community/physlib/blob/56430c65b76f73c7c25fc03eed46be1d888520bb/Physlib/Units/WithDim/Basic.lean)
 
 The checker prefers `.lake/toolchain/bin/lake`, falls back to Lake on PATH, and checks the selected Lean version against `lean-toolchain`. It runs the incremental build with warnings treated as errors, checks reviewed source hashes, regenerates the source models in memory, validates the theorem registry, audits transitive axioms, runs small scalar comparisons and checks the generated page. Use `python3 scripts/check.py --write` to refresh the page after changing a proof or claim.
+
+Add `--destiny-repo /path/to/destiny` to run the upstream checks against a local clone containing commit `114e89fa`. The flight and collision compilers each use a temporary checkout of the pin. Other source comparisons read the pinned Git blobs directly. The supplied clone can be on another branch or contain local edits.
 
 To replay the five-second coast with the pinned C++ movement harness, run these commands from the repository root with a Destiny checkout at `114e89fa`. The first command builds the four extracted movement functions. The second compares all six motion words at every tick. [Harness builder](../conformance/build.py) · [Trace replay](scripts/scalar_trace_checks.py)
 

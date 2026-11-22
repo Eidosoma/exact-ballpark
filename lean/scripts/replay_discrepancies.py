@@ -7,6 +7,7 @@ from fractions import Fraction
 from unittest.mock import patch
 import math
 import platform
+import random
 import re
 import struct
 import subprocess
@@ -178,13 +179,19 @@ def special_error_scales():
     return round(lower)
 
 
-def radial_accuracy():
+RADIAL_POSITION = (3, 4, 12)
+RADIAL_VELOCITY = (0.03, 0.04, 0.12)
+TRACKING_RATIOS = (200., 1e9, 1e10, 2.2e11, 2.3e11)
+
+
+def radial_accuracy(ratio=1e30):
     """CMB-702 at the fixed binary64 inputs used by Combat.Execution."""
     park = FullBallpark()
     park.add_ball(1, 1e6, 1, 100, is_free=True)
-    park.add_ball(2, 1e6, 1, 100, is_free=True, x=3, y=4, z=12)
-    park.set_velocity(2, 0.03, 0.04, 0.12)
-    return park.get_accuracy(1, 2, 1e30, 1.0, 1.0, 1.0, 1e30)
+    x, y, z = RADIAL_POSITION
+    park.add_ball(2, 1e6, 1, 100, is_free=True, x=x, y=y, z=z)
+    park.set_velocity(2, *RADIAL_VELOCITY)
+    return park.get_accuracy(1, 2, 1e30, 1.0, 1.0, 1.0, ratio)
 
 
 def radial_intermediates():
@@ -196,6 +203,53 @@ def radial_intermediates():
     return sqrt.call_args.args[0], power.call_args.args[1]
 
 
+def radial_measurements():
+    velocity = list(map(Fraction, RADIAL_VELOCITY))
+    distance2 = sum(x*x for x in RADIAL_POSITION)
+    projection = sum(v*x for v, x in zip(velocity, RADIAL_POSITION, strict=True))
+    exact = (sum(v*v for v in velocity) * distance2 - projection**2) / distance2**2
+    # On this stored input, rounding each product before subtraction erases every cross component.
+    compensated = []
+    for i, j in ((1, 2), (2, 0), (0, 1)):
+        a, b, c, d = RADIAL_VELOCITY[i], RADIAL_POSITION[j], RADIAL_VELOCITY[j], RADIAL_POSITION[i]
+        cd = c*d
+        component = math.fma(a, b, -cd) + math.fma(-c, d, cd)
+        if a*b - cd != 0 or Fraction(component) != velocity[i]*b - velocity[j]*d:
+            raise SystemExit("CMB-702 cross-product control differs from the exact component")
+        compensated.append(component)
+    corrected = sum(x*x for x in compensated) / distance2**2
+    if (compensated != [2.**-55, 0., -2.**-57] or corrected != float(exact) or
+            [2.**(-(r*r)*corrected) for r in (200., 1e30)] != [1., 0.]):
+        raise SystemExit("CMB-702 compensated product did not recover the two reference chances")
+    # For e > 0, 1 - 2^(-e) < e. Half the spacing immediately below one is 2^-54.
+    ordinary_penalty = exact * 200**2
+    stress_penalty = exact * Fraction(1e30)**2
+    if not (0 < ordinary_penalty < Fraction(1, 2**54) and stress_penalty > 1075):
+        raise SystemExit("The exact CMB-702 probabilities no longer round to one and zero")
+    ordinary, billion, ten_billion, below, above = [radial_accuracy(r)[0] for r in TRACKING_RATIOS]
+    if not (math.isfinite(below) and above == math.inf):
+        raise SystemExit("CMB-702 overflow bracket changed")
+    squared_speed, _ = radial_intermediates()
+    overflow_scale = math.sqrt(1024 / -squared_speed)
+
+    rng = random.Random(702)
+    park = FullBallpark()
+    park.add_ball(1, 1e6, 1, 100, is_free=True)
+    target = park.add_ball(2, 1e6, 1, 100, is_free=True)
+    samples, undefined = 20_000, 0
+    for _ in range(samples):
+        target.pos = [rng.uniform(-1000, 1000) for _ in range(3)]
+        rate = rng.uniform(-1, 1)
+        target.vel = [rate*x for x in target.pos]
+        undefined += math.isnan(park.get_accuracy(1, 2, 1e30, 1., 1., 1., 200.)[2])
+    return [f"{undefined:,} of {samples:,} ({100*undefined/samples:.1f}%)",
+            f"At ratio 200 the query returns **{ordinary!r}**",
+            f"{billion:.6f} at 10⁹ and {ten_billion:.6f} at 10¹⁰",
+            f"{float(exact * 10**38):.3f} × 10⁻³⁸",
+            f"−{float(stress_penalty / 10**22):.3f} × 10²²",
+            f"around a tracking ratio of {overflow_scale/1e11:.2f} × 10¹¹"]
+
+
 CAPSULE_OFFSETS = (2.0**-20, 2.0**-16)
 
 
@@ -203,9 +257,12 @@ def capsule_contacts():
     park = FullBallpark()
     capsule = Capsule()
     capsule.initialize(1, 0, (0, 0, -1), (0, 0, 1), 0.5)
-    for offset in CAPSULE_OFFSETS:
-        found, normal, toi = park._capsule_check(capsule, (1+offset, 0, 0), (1-offset, 0, 0), 0.5)
-        if found and normal != [1.0, 0.0, 0.0]:
+    below, above = 4.95e-6, 5.05e-6
+    sweeps = [(1+d, 1-d) for d in (*CAPSULE_OFFSETS, below, above)]
+    sweeps.append((1-below, 1-3*below))
+    for start, stop in sweeps:
+        found, normal, toi = park._capsule_check(capsule, (start, 0, 0), (stop, 0, 0), 0.5)
+        if found and (normal[1:] != [0., 0.] or not math.isclose(normal[0], 1., rel_tol=0., abs_tol=math.ulp(1.))):
             raise SystemExit(f"Unexpected barrel contact normal {normal}")
         yield toi if found else -1.0
 
@@ -237,14 +294,18 @@ def scalar_cases():
     accuracy, distance, angular = radial_accuracy()
     if not math.isnan(angular):
         raise SystemExit("CMB-702 radial angular speed changed")
+    shallow, fast, below, above, inside = capsule_contacts()
     return cases + [
         ("MOV-703 · GOTO positions", stored, float.fromhex(expected))
         for stored, expected in zip(special_goto_positions(),
                                     ("0x1.8ffffffffffd7p+6", "0x1.16a5d2d67ffffp+37"), strict=True)
     ] + [("CMB-702 · radial accuracy and surface distance", accuracy, math.inf),
-         ("CMB-702 · radial accuracy and surface distance", distance, 11.0)] + [
-        ("COL-712 · shallow capsule crossing and control", value, expected)
-        for value, expected in zip(capsule_contacts(), (-1.0, 0.5), strict=True)
+         ("CMB-702 · radial accuracy and surface distance", distance, 11.0),
+         ("COL-712 · shallow capsule crossing and control", shallow, -1.0),
+         ("COL-712 · shallow capsule crossing and control", fast, 0.5),
+         ("COL-712 · cutoff and next query", below, -1.0),
+         ("COL-712 · cutoff and next query", above, float.fromhex("0x1.0000000008bdcp-1")),
+         ("COL-712 · cutoff and next query", inside, 0.0)
     ]
 
 
@@ -267,6 +328,57 @@ def check_rankings(log):
     fixes = re.findall(r"^\| \*\*(\w+) · ([A-Z]+-\d+) · ", log, re.MULTILINE)
     if fixes != expected + expected:
         raise SystemExit("The two candidate-fix tables must follow the gameplay ranking")
+
+
+def rebound_measurements():
+    def decode(word):
+        return struct.unpack(">d", bytes.fromhex(word))[0]
+
+    engine = contact_replay.rebound_history()
+    control = contact_replay.rebound_history(True)
+    rows = []
+    for label, run in [("Engine lookup", engine), ("Exact-cutoff control", control)]:
+        x, v = map(decode, run.endpoint)
+        values = f"{x:+.6f} m, {v:+.6f} m/s".replace("-", "−")
+        rows.append(f"| {label} | {len(run.contacts)} | {values} | `{run.endpoint[0]}`, `{run.endpoint[1]}` |")
+    a, b, c = [decode(hit[1]) for hit in engine.contacts]
+    if Fraction(b)-Fraction(a)-Fraction(FUZZY_DELTA) != Fraction(211, 2**66):
+        raise SystemExit("The two detected contacts no longer straddle the documented exact cutoff")
+    if not (0 < 0.1-c < FUZZY_DELTA and engine.endpoint_index == 2 and control.endpoint == control.stored_end):
+        raise SystemExit("The final lookup no longer steps back past the engine's third contact")
+    stored_x, stored_v = map(decode, engine.stored_end)
+    control_x = decode(control.endpoint[0])
+    rows += [f"first contact at {a:.17f} s", f"second at {b:.17f} s",
+             f"positions differ by **{abs(control_x-decode(engine.endpoint[0])):.6f} m**",
+             f"+{decode(engine.contacts[2][3]):.2f} m/s", f"{(0.1-c)*1e6:.3f} µs before tick end",
+             f"x = −{abs(stored_x):.6f} m and vx = +{stored_v:.2f} m/s",
+             f"{abs(control_x-stored_x):.6f} m from the control"]
+
+    ship_x = contact_replay.REBOUND_SHIP_X
+    differing = []
+    for offset in range(-16, 17):
+        x = math.nextafter(ship_x, -math.inf if offset < 0 else math.inf, steps=abs(offset))
+        if contact_replay.rebound_history(ship_x=x) != contact_replay.rebound_history(True, ship_x=x):
+            differing.append(offset)
+    if differing != [0, 1]:
+        raise SystemExit(f"Three-ball cutoff changed across neighboring ship positions: {differing}")
+    rows.append(f"{math.ulp(ship_x)*1e12:.3f} pm apart")
+
+    # Move only the third ball. These positions give the specified first-to-second contact gaps in µs.
+    for gap_us, third_x in [(40, "-0x1.4fa1df6558bfap-3"), (70, "-0x1.0dada37b1adfcp-2"),
+                            (99.999, "-0x1.738978be1cdfcp-2"), (100.001, "-0x1.738b35c8f69fcp-2"),
+                            (130, "-0x1.d9670b0bf85fcp-2")]:
+        x = float.fromhex(third_x)
+        run = contact_replay.rebound_history(third_x=x)
+        t0, t1 = [decode(hit[1]) for hit in run.contacts[:2]]
+        if (abs((t1-t0)*1e6 - gap_us) > 1e-8 or run != contact_replay.rebound_history(True, third_x=x)):
+            raise SystemExit(f"Three-ball cutoff control differed at a {gap_us} µs gap")
+        if gap_us == 99.999:
+            if decode(run.contacts[1][3]) != 0:
+                raise SystemExit("The second contact acquired an impulse just inside the tolerance")
+            x_end, v_end = map(decode, run.endpoint)
+            rows.append(f"both finish at {x_end:.6f} m and {v_end:.2f} m/s".replace("-", "−"))
+    return rows
 
 
 def check_log(destiny_repo=None):
@@ -303,25 +415,15 @@ def check_log(destiny_repo=None):
     pairs = contact_replay.fixed_pair()
     for label, (collider, bits) in zip(("near first", "far first"), pairs, strict=True):
         rendered.append(f"| Fixed balls, {label} | {collider} | `{bits}` |")
+    first = contact_replay.fixed_pair(initial_sweep=True)
+    first_control = contact_replay.fixed_pair(compare_seconds=True, initial_sweep=True)
+    if first != [(3, contact_replay.word(.125)), (4, contact_replay.word(.25))] or first_control != [first[0]] * 2:
+        raise SystemExit("The first sweep of a half-second tick no longer distinguishes the fixed-ball guard")
     engine, earliest = contact_replay.rebound()
     for label, (x, v) in [("Engine comparison", engine), ("Earliest-time control", earliest)]:
         rendered.append(f"| {label} | {x:.6f} m | {v:+.6f} m/s |".replace(" | -", " | −"))
     rendered.append(f"{abs(engine[0]-earliest[0]):.6f} m apart")
-    def decode(word):
-        return struct.unpack(">d", bytes.fromhex(word))[0]
-    positions = []
-    for label, use_control in [("Engine lookup", False), ("Exact-cutoff control", True)]:
-        contacts, (xword, vword), _ = contact_replay.detected_rebound(use_control)
-        x, v = decode(xword), decode(vword)
-        positions.append(x)
-        values = f"{x:+.6f} m, {v:+.6f} m/s".replace("-", "−")
-        rendered.append(f"| {label} | {len(contacts)} | {values} | `{xword}`, `{vword}` |")
-        if not use_control:
-            a, b = (decode(hit[1]) for hit in contacts[:2])
-            if Fraction(b)-Fraction(a)-Fraction(FUZZY_DELTA) != Fraction(211, 2**66):
-                raise SystemExit("The two detected contacts no longer straddle the documented exact cutoff")
-            rendered.extend([f"first contact at {a:.17f} s", f"second at {b:.17f} s"])
-    rendered.append(f"positions differ by **{abs(positions[1]-positions[0]):.6f} m**")
+    rendered += rebound_measurements() + radial_measurements()
     whole, leg = contact_replay.free_repeat()
     for label, value in [("Both free-ball subintervals", whole), ("Final subinterval alone", leg)]:
         rendered.append(f"| {label} | `{contact_replay.word(value)}` |")
@@ -367,6 +469,12 @@ def replay(repo):
 
     collision = source("Collision.cpp")
     capsule = source("Capsule.cpp")
+    capsule_check = extract(capsule, "bool Capsule::CheckCollision(")
+    guard = "if (a < 1e-10)"
+    if capsule_check.count(guard) != 1:
+        raise SystemExit("Could not isolate the pinned capsule motion guard")
+    capsule_control = capsule_check.replace("Capsule::CheckCollision(", "Capsule::CheckZeroTravel(").replace(
+        guard, "if (a == 0.0)")
     ballpark = source("Ballpark.cpp")
     add_impact = extract(ballpark, "void Ballpark::AddImpact(")
     # Only the velocity limiter is replayed here. Keep the expression and field types upstream.
@@ -405,10 +513,12 @@ struct Capsule {
     float GetBoundingRadius();
     Vector3d GetCenter();
     bool CheckCollision(const Vector3d&, const Vector3d&, float, Vector3d&, double&);
+    bool CheckZeroTravel(const Vector3d&, const Vector3d&, float, Vector3d&, double&);
 };""",
         *(extract(capsule, signature) for signature in (
             "void Capsule::Initialize(", "float Capsule::GetBoundingRadius(",
-            "Vector3d Capsule::GetCenter(", "bool Capsule::CheckCollision(")),
+            "Vector3d Capsule::GetCenter(")),
+        capsule_check, capsule_control,
         "}",
         "struct ProbeImpact { Vector3d velocityChange; };",
         "void limitVelocity(ProbeImpact& impact, Ball* ball) {", limiter, "}",
@@ -479,18 +589,68 @@ int main() {
     std::printf("%a\n%a\n", chance, optimal);
     CapsuleProbe::Capsule capsule;
     capsule.Initialize(1, 0, 0, 0, -1, 0, 0, 1, 0.5f);
-    for (double offset : {0x1p-20, 0x1p-16}) {
+    const double below = 4.95e-6, above = 5.05e-6;
+    const double sweeps[][2] = {{1+0x1p-20,1-0x1p-20}, {1+0x1p-16,1-0x1p-16},
+                                {1+below,1-below}, {1+above,1-above}, {1-below,1-3*below}};
+    for (const auto& sweep : sweeps) {
         Vector3d normal;
         double toi;
-        const bool found = capsule.CheckCollision(Vector3d(1+offset,0,0), Vector3d(1-offset,0,0), 0.5f, normal, toi);
-        if (found && (normal.x != 1 || normal.y != 0 || normal.z != 0)) {
-            std::fprintf(stderr, "COL-712 capsule at offset %a: expected normal (1, 0, 0), got (%a, %a, %a)\n",
-                         offset, normal.x, normal.y, normal.z);
+        const bool found = capsule.CheckCollision(Vector3d(sweep[0],0,0), Vector3d(sweep[1],0,0), 0.5f, normal, toi);
+        if (found && (std::fabs(normal.x-1) > 0x1p-52 || normal.y != 0 || normal.z != 0)) {
+            std::fprintf(stderr, "COL-712 capsule starting at %a: expected +x normal, got (%a, %a, %a)\n",
+                         sweep[0], normal.x, normal.y, normal.z);
             return 1;
         }
         std::printf("%a\n", found ? toi : -1.0);
+        double controlTime;
+        const bool controlHit = capsule.CheckZeroTravel(Vector3d(sweep[0],0,0), Vector3d(sweep[1],0,0),
+                                                       0.5f, normal, controlTime);
+        const double entry = sweep[0] < 1 ? 0. : (sweep[0]-1)/(sweep[0]-sweep[1]);
+        if (!controlHit || !std::isfinite(controlTime) || std::fabs(controlTime-entry) > 1e-9 ||
+            ((sweep[0] == 1+0x1p-20 || sweep[0] == 1+0x1p-16) && controlTime != 0.5)) {
+            std::fprintf(stderr, "COL-712 zero-cutoff control failed for sweep from %a to %a\n", sweep[0], sweep[1]);
+            return 1;
+        }
+    }
+    Vector3d parallelNormal;
+    double parallelTime;
+    if (capsule.CheckZeroTravel(Vector3d(1+below,0,-0.25), Vector3d(1+below,0,0.25),
+                                0.5f, parallelNormal, parallelTime)) {
+        std::fprintf(stderr, "COL-712 zero-cutoff control reported a hit on a parallel exterior sweep\n");
+        return 1;
+    }
+    const double v[] = {dst.mNewVel.x, dst.mNewVel.y, dst.mNewVel.z};
+    const double r[] = {dst.mNewPos.x, dst.mNewPos.y, dst.mNewPos.z};
+    const double crossReference[] = {0x1p-55, 0., -0x1p-57};
+    double cross2 = 0.;
+    for (int i=0; i<3; ++i) {
+        const int j = (i+1)%3, k = (i+2)%3;
+        const double cd = v[k]*r[j];
+        const double compensated = std::fma(v[j], r[k], -cd) + std::fma(-v[k], r[j], cd);
+        if (v[j]*r[k]-cd != 0 || compensated != crossReference[i]) {
+            std::fprintf(stderr, "CMB-702 compensated cross component %d disagrees with the dyadic reference\n", i);
+            return 1;
+        }
+        cross2 += compensated*compensated;
+    }
+    const double distance2 = dst.mNewPos.LengthSq();
+    const double angular2 = cross2/(distance2*distance2);
+    if (std::pow(2., -(200.*200.)*angular2) != 1. || std::pow(2., -(1e30*1e30)*angular2) != 0.) {
+        std::fprintf(stderr, "CMB-702 compensated probability disagrees with the stored-input reference\n");
+        return 1;
     }
     std::printf("%a %a\n", CombatProbe::squaredAngularSpeed, CombatProbe::powerExponent);
+    for (double ratio : {200., 1e9, 1e10, 2.2e11, 2.3e11}) {
+        optimal = 1e30;
+        tracking = 1.;
+        chance = combat.GetAccuracy(1, 2, optimal, 1., tracking, 1., ratio);
+        if (!std::isnan(tracking)) {
+            std::fprintf(stderr, "CMB-702 at ratio %a: expected NaN angular speed\n", ratio);
+            return 1;
+        }
+        std::printf("%a ", chance);
+    }
+    std::printf("\n");
     std::printf("%zu %zu\n", path.FindLocationsIndex(0x1.0068db8bac711p-4),
                 path.FindLocationsIndex(0x1.0068db8bac712p-4));
 }
@@ -509,6 +669,9 @@ int main() {
     cpp_indices = tuple(map(int, upstream.pop().split()))
     if cpp_indices != (0, 1):
         raise SystemExit(f"Destiny fuzzy lookup changed: {cpp_indices}")
+    ratio_words = [contact_replay.word(float.fromhex(x)) for x in upstream.pop().split()]
+    if ratio_words != [contact_replay.word(radial_accuracy(r)[0]) for r in TRACKING_RATIOS]:
+        raise SystemExit(f"Tracking ratio controls differ from pinned C++: {ratio_words}")
     cpp_radial = [contact_replay.word(float.fromhex(x)) for x in upstream.pop().split()]
     if cpp_radial != list(map(contact_replay.word, radial_intermediates())):
         raise SystemExit(f"CMB-702 Destiny square-root and power inputs differ from the scalar replay: {cpp_radial}")
@@ -517,6 +680,7 @@ int main() {
     print(f"Destiny {PINNED}, {platform.python_implementation()} {platform.python_version()}, "
           f"{platform.system()} {platform.machine()}, GCC {gcc}, -O2 -ffp-contract=off -fno-fast-math")
     print("Pinned Destiny Python and scalar client matched both mixed-stamp packet traces in the log.")
+    print("Candidate controls matched for both companion stamps, the zero-only capsule cutoff and the compensated cross product.")
     print(f"CMB-702 squared angular speed and power exponent matched pinned C++: {' '.join(cpp_radial)}")
     for (name, scalar, expected), raw in zip(cases, upstream, strict=True):
         words = [struct.pack(">d", v).hex() for v in (scalar, float.fromhex(raw), expected)]
