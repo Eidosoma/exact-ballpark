@@ -348,7 +348,7 @@ def main():
         raise SystemExit("Python 3.13 or later is required for engine correspondence.")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true", help="regenerate CLAIMS.md after all checks pass")
-    parser.add_argument("--destiny-repo", type=Path, help="also replay flight and routing against a pinned Destiny checkout")
+    parser.add_argument("--destiny-repo", type=Path, help="also replay flight, collisions and routing against a pinned Destiny checkout")
     args = parser.parse_args()
     pin = (LEAN / "lean-toolchain").read_text(encoding="utf-8").strip().removeprefix("leanprover/lean4:v")
     version = run_lake("env", "lean", "--version", capture=True)
@@ -366,6 +366,7 @@ def main():
         raise SystemExit("The audit did not return exactly one result per registered theorem")
     sys.path.insert(0, str(ROOT / "src"))
     import arithmetic_checks
+    import boundary_checks
     import candidate_checks
     import curve_checks
     import contact_replay
@@ -377,6 +378,7 @@ def main():
     import sampling_checks
     import scalar_trace_checks
     law_trace_checks.compare(run_lake, args.destiny_repo.resolve() if args.destiny_repo else None)
+    boundary_checks.compare(run_lake)
     movement_prefixes, rejected_suffixes = scalar_trace_checks.compare(run_lake)
     formation_cases = formation_checks.compare(run_lake)
     probes = compare_setters()
@@ -404,6 +406,8 @@ def main():
             raise SystemExit(f"Short warp at {distance} m differs from the Lean witness")
     from replay_discrepancies import check_log
     check_log(args.destiny_repo)
+    if args.destiny_repo:
+        contact_replay.upstream(args.destiny_repo.resolve())
     overview = (LEAN / "README.md").read_text(encoding="utf-8")
     linked = {rule for claim in registry["claims"] for rule in claim["rules"]}
     headline = f"**{len(linked)} engine laws** to **{len(audit)} kernel-checked theorems**"
@@ -434,6 +438,9 @@ def main():
     if args.destiny_repo:
         print("Matched all 11 warp commits against compiled Destiny C++ and the recipient fixtures "
               "against five pinned Destiny Python server methods.")
+        print("Matched the stored velocities of the independently limited pair against compiled Destiny C++.")
+    print("Matched STOP and orbit trajectories, capped impulses, solid boxes, range callbacks, cleanup polls "
+          "and tracking and falloff controls on the CPU.")
     print(f"Passed {contact_cases} first-contact checks on the CPU.")
     print(f"Matched {rebound_cases} one-impact ticks on both balls through the committed endpoints.")
     print(f"Matched {movement_prefixes} scalar movement trace prefixes, {rejected_suffixes} rejected suffixes "

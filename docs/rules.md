@@ -14,6 +14,8 @@ Where a batched park or a CUDA kernel implements a rule, the listed tests also h
 
 The status column reports conformance tests. To find the properties Lean proves for a rule, look up the same ID in the claim register. Each claim gives its arithmetic model, assumptions and theorem names. [Proofs by rule](../lean/CLAIMS.md#catalogue-coverage)
 
+For examples spanning rules, the milestone overview follows a STOP command to its limiting position, an elastic collision through two separate impulse limits, and a delayed removal through repeated polls at one stamp. [Proofs and CPU controls](../lean/README.md#what-the-420-theorem-milestone-adds)
+
 **105 rules:** 93 passing (compiled code), 6 passing (test vectors), 4 implemented, not passing (compiled code), 2 implemented, not passing (test vectors).
 
 ## Movement and flight (MOV)

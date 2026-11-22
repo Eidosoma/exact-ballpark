@@ -213,6 +213,8 @@ Set the binary32 maximum speed to 4097 and the incoming velocity change to (2048
 
 For an ordinary activation of the same limiter, the head-on replay uses a maximum speed of 0.5 m/s on the left ship. The proposed −4 m/s impulse becomes −1.5625 m/s while the other ship receives +4 m/s. Both engines agree on these words. Lean proves the spheres stay clear for the rest of the tick even though they finish moving closer together. [One-sided limiter control](README.md#one-impact-through-the-end-of-a-tick)
 
+A second control isolates the effect of giving each ship its own limit. Two 1 kg ships enter contact at −100 and −90 m/s. Their raw changes are +10 and −10 m/s. Limits of 1 and 2 m/s on the ships’ maximum-speed fields yield applied changes of +2.5 and −10 m/s. The pair loses 7.5 kg·m/s of momentum and gains 703.125 J of kinetic energy in this frame. Both threshold numerators are exact. This behaviour follows from the documented per-body limiter even in real arithmetic. [Pair proof](ExactBallparkProofs/Collision/LimitedPair.lean) · [Scalar replay](scripts/boundary_checks.py) · [Destiny replay](scripts/contact_replay.py)
+
 <a id="mov-703-position"></a>
 
 ## MOV-703 · position rounding in the near-zero-friction branch

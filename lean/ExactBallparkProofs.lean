@@ -88,3 +88,10 @@ public import ExactBallparkProofs.Time.CommandFlight
 public import ExactBallparkProofs.Combat.InputMargin
 public import ExactBallparkProofs.Movement.WorldMask
 public import ExactBallparkProofs.Movement.Manoeuvre
+public import ExactBallparkProofs.Movement.StopDistance
+public import ExactBallparkProofs.Movement.OrbitSteering
+public import ExactBallparkProofs.Collision.LimitedPair
+public import ExactBallparkProofs.Collision.SolidBox
+public import ExactBallparkProofs.Space.RangeAlerts
+public import ExactBallparkProofs.Time.CleanupWindow
+public import ExactBallparkProofs.Combat.Falloff

@@ -3568,6 +3568,272 @@
       "theorems": [
         "ExactBallpark.Movement.manoeuvre_work_energy"
       ]
+    },
+    {
+      "title": "How far STOP carries each axis before coming to rest",
+      "moduleName": "ExactBallparkProofs.Movement.StopDistance",
+      "source": "src/exact_ballpark/ref.py",
+      "symbols": "Ballpark.evolve, Ballpark.integrate",
+      "model": "Real coordinate updates with the two exact binary64 STOP constants",
+      "rules": [
+        "MOV-702",
+        "MOV-709",
+        "MOV-710"
+      ],
+      "scope": "Collision-free scalar STOP prepares vertical velocity once per tick. The position results use ordinary integration, fixed positive effective mass and drag, positive duration and the matching exponential cache. The closed forms apply to any number of such ticks. Loss in kinetic energy separates into vertical damping and isotropic drag. Splitting a tick changes nonzero vertical velocity.",
+      "hostEvidence": "Scalar STOP runs twelve ticks each at 250, 500 and 1000 ms. Every coordinate is compared with a 70-digit geometric sum and decay, including the two half-ticks against one whole tick. [CPU controls](scripts/boundary_checks.py)",
+      "ruleTheorems": {
+        "MOV-702": [
+          "axis_position",
+          "rest_point"
+        ],
+        "MOV-709": [
+          "axis_velocity",
+          "axis_position",
+          "rest_point",
+          "stop_loss_budget"
+        ],
+        "MOV-710": [
+          "axis_velocity",
+          "rest_point",
+          "stop_loss_budget",
+          "split_stop"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Movement.StopDistance.axis_velocity",
+        "ExactBallpark.Movement.StopDistance.axis_position",
+        "ExactBallpark.Movement.StopDistance.rest_point",
+        "ExactBallpark.Movement.StopDistance.stop_loss_budget",
+        "ExactBallpark.Movement.StopDistance.split_stop"
+      ]
+    },
+    {
+      "title": "How the old orbit law truncates and combines its steering directions",
+      "moduleName": "ExactBallparkProofs.Movement.OrbitSteering",
+      "source": "src/exact_ballpark/modes.py",
+      "symbols": "ModeBallpark._evolve_old_orbit, _trunc7",
+      "model": "Real Gaussian, seven-place truncation and normalized steering vectors",
+      "rules": [
+        "MOV-718"
+      ],
+      "scope": "The truncated radial weight decreases weakly with absolute radius error. It becomes zero precisely when the squared error exceeds 40000 log(10⁷). On the outer branch, when both normalized steering directions have unit length, their blend has unit length, including the zero-radicand case. The result does not assume a unit direction at a degenerate tangent.",
+      "hostEvidence": "Six offsets exercise the engine’s outer tangent branch. The gate reads its actual truncation result on both sides of the cutoff and measures the returned thrust norm. [CPU controls](scripts/boundary_checks.py)",
+      "theorems": [
+        "ExactBallpark.Movement.OrbitSteering.weight_order",
+        "ExactBallpark.Movement.OrbitSteering.weight_cutoff",
+        "ExactBallpark.Movement.OrbitSteering.outer_thrust_norm"
+      ]
+    },
+    {
+      "title": "How new orbit trades position error for velocity error",
+      "moduleName": "ExactBallparkProofs.Movement.OrbitSteering",
+      "source": "src/exact_ballpark/modes.py",
+      "relatedSources": [
+        "src/exact_ballpark/ref.py"
+      ],
+      "symbols": "ModeBallpark._goto_thrust_follow, Ballpark.integrate",
+      "model": "Real inverse controllers, blending and magnitude clipping",
+      "rules": [
+        "MOV-721",
+        "MOV-705"
+      ],
+      "scope": "For positive friction divided by effective mass and positive duration, exact decay makes both inverses defined. Before clipping, the residual in position and the residual in velocity are the two explicitly weighted errors from the other controller. A nonnegative speed and the magnitude cap preserve the conditional drag speed envelope. The low-target-speed fallback and finite rounding have separate behavior.",
+      "hostEvidence": "Four controller calls cover three uncapped weights and one clipped approach. The gate compares acceleration components and feeds the uncapped outputs back into the scalar integrator. [CPU controls](scripts/boundary_checks.py)",
+      "ruleTheorems": {
+        "MOV-721": [
+          "guidance_denominators",
+          "blend_residuals",
+          "clipped_orbit_speed"
+        ],
+        "MOV-705": [
+          "clipped_orbit_speed"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Movement.OrbitSteering.guidance_denominators",
+        "ExactBallpark.Movement.OrbitSteering.blend_residuals",
+        "ExactBallpark.Movement.OrbitSteering.clipped_orbit_speed"
+      ]
+    },
+    {
+      "title": "Conservation and separation after independently limited normal impulses",
+      "moduleName": "ExactBallparkProofs.Collision.LimitedPair",
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._impact_free, SpaceBallpark._add_impact, CollisionBallProperties.add_impact",
+      "model": "Real normal impulses with individual speed limits and an exact rational witness",
+      "rules": [
+        "COL-717",
+        "COL-718"
+      ],
+      "scope": "An approaching axial pair uses positive base masses and a unit normal. Each body has its own retained fraction of the elastic impulse. The theorems give the exact momentum condition, the relative-velocity threshold for rebound, and the work lost with a common fraction from zero to one. The example measures kinetic energy in the stated reference frame immediately after the impulse. The real cap omits intermediate binary32 rounding, which is exact on the example.",
+      "hostEvidence": "At initial contact the scalar engine stores −97.5 and −100 m/s. The normal changes and the derived momentum and energy match the rational Lean witness. The optional pinned run compiles Destiny’s selector, impact, limiter and history methods. [Compiled replay](scripts/contact_replay.py) [CPU controls](scripts/boundary_checks.py)",
+      "ruleTheorems": {
+        "COL-717": [
+          "from_pair_velocity",
+          "momentum_iff",
+          "separates_iff",
+          "common_fraction_loss"
+        ],
+        "COL-718": [
+          "limit_normal",
+          "from_pair_velocity",
+          "momentum_iff",
+          "separates_iff",
+          "common_fraction_loss",
+          "asymmetric_witness"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Collision.LimitedPair.limit_normal",
+        "ExactBallpark.Collision.LimitedPair.from_pair_velocity",
+        "ExactBallpark.Collision.LimitedPair.momentum_iff",
+        "ExactBallpark.Collision.LimitedPair.separates_iff",
+        "ExactBallpark.Collision.LimitedPair.common_fraction_loss",
+        "ExactBallpark.Collision.LimitedPair.asymmetric_witness"
+      ]
+    },
+    {
+      "title": "A straight sphere sweep excluded by a box misses its entire solid",
+      "moduleName": "ExactBallparkProofs.Collision.SolidBox",
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "BoxShape.__init__, BoxShape.center, BoxShape.bounding_radius, OrientedBox.initialize, AABB.update, AABB.can_exclude, FullBallpark._add_actual_minibox",
+      "model": "Real three-dimensional geometry and the source corner enumeration",
+      "rules": [
+        "COL-705",
+        "COL-712",
+        "COL-713"
+      ],
+      "scope": "Growing the box from its eight corners gives tight per-axis extrema. Every point in the solid spanned by the three arms is inside those extrema. Strict broad-phase rejection keeps a sphere of nonnegative radius clear of that entire solid throughout its straight sweep. The half-diagonal radius result requires pairwise perpendicular arms and precedes the binary32 cast.",
+      "hostEvidence": "A rotated rectangular box and a skew box exercise corner growth, 27 solid points per shape, and tangency and one-word-outside controls on each of the six faces. The rectangular control also checks the unrounded bounding radius. [CPU controls](scripts/boundary_checks.py)",
+      "ruleTheorems": {
+        "COL-705": [
+          "excluded_solid"
+        ],
+        "COL-712": [
+          "grown_bounds",
+          "axis_extents",
+          "solid_enclosed",
+          "excluded_solid"
+        ],
+        "COL-713": [
+          "axis_extents",
+          "solid_enclosed",
+          "diagonal_radius"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Collision.SolidBox.grown_bounds",
+        "ExactBallpark.Collision.SolidBox.axis_extents",
+        "ExactBallpark.Collision.SolidBox.solid_enclosed",
+        "ExactBallpark.Collision.SolidBox.excluded_solid",
+        "ExactBallpark.Collision.SolidBox.diagonal_radius"
+      ]
+    },
+    {
+      "title": "Range and target-tracking events across polls, resets and mode changes",
+      "moduleName": "ExactBallparkProofs.Space.RangeAlerts",
+      "source": "src/exact_ballpark/space.py",
+      "symbols": "SpaceBallpark._check_for_proximity, _check_notification_range, _check_target_tracking, set_notification_range",
+      "model": "Binary64 comparisons and ordered state transitions",
+      "rules": [
+        "SEN-703",
+        "SEN-704"
+      ],
+      "scope": "For an eligible ball with supplied squared distances and widened stored fields, each channel follows successive changes in its own active samples. Between resets, odd event count is exactly a membership change. Writing the same accepted range re-arms entry. STOP leaves an active notification range once. The finite trace covers strict GOTO and follow boundaries, the clamped inner radius and the tracking-enable threshold.",
+      "hostEvidence": "Through the real spatial proximity dispatcher the eight-poll trace matches both flags and the order and payload of every callback. The same scene tests a setter re-arm and repeated STOP polls. [CPU controls](scripts/boundary_checks.py)",
+      "ruleTheorems": {
+        "SEN-703": [
+          "trace_channels",
+          "edge_parity",
+          "boundary_words"
+        ],
+        "SEN-704": [
+          "trace_channels",
+          "edge_parity",
+          "notification_rearms",
+          "stop_exit_once",
+          "boundary_words"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Space.RangeAlerts.trace_channels",
+        "ExactBallpark.Space.RangeAlerts.edge_parity",
+        "ExactBallpark.Space.RangeAlerts.notification_rearms",
+        "ExactBallpark.Space.RangeAlerts.stop_exit_once",
+        "ExactBallpark.Space.RangeAlerts.boundary_words"
+      ]
+    },
+    {
+      "title": "Which delayed removals occur before a tick advances",
+      "moduleName": "ExactBallparkProofs.Time.CleanupWindow",
+      "source": "src/exact_ballpark/space.py",
+      "relatedSources": [
+        "src/exact_ballpark/full.py",
+        "src/exact_ballpark/vec_space_removal.py"
+      ],
+      "symbols": "SpaceBallpark.bring_out_the_deads, FullBallpark.on_tick, DelayedRemoval.due",
+      "model": "Integer deadlines, ordered scalar removals and per-row masks",
+      "rules": [
+        "TIME-713",
+        "TIME-705",
+        "TIME-702"
+      ],
+      "scope": "Outside Evolve, the first seven eligible early IDs in the supplied traversal are selected in addition to all overdue rows. Stale rows clear only their pending marker. A group with a shared deadline and no competing entries survives according to the derived prefix rule. Repeated early polls can clear the group at one game stamp. Exact Ballpark supplies ascending IDs. Destiny’s heap traversal can choose other identities under the same quota.",
+      "hostEvidence": "Nineteen mixed rows check both clear and remove flags. Seventeen delayed balls check all four deadline regions and three actual on_tick calls at the same wall time. [CPU controls](scripts/boundary_checks.py)",
+      "ruleTheorems": {
+        "TIME-713": [
+          "row_decision",
+          "early_ids",
+          "removal_count",
+          "cohort_deadline",
+          "repeat_early_poll"
+        ],
+        "TIME-705": [
+          "repeat_early_poll"
+        ],
+        "TIME-702": [
+          "repeat_early_poll"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Time.CleanupWindow.row_decision",
+        "ExactBallpark.Time.CleanupWindow.early_ids",
+        "ExactBallpark.Time.CleanupWindow.removal_count",
+        "ExactBallpark.Time.CleanupWindow.cohort_deadline",
+        "ExactBallpark.Time.CleanupWindow.repeat_early_poll"
+      ]
+    },
+    {
+      "title": "Surface range, radial drift and the half-chance boundary",
+      "moduleName": "ExactBallparkProofs.Combat.Falloff",
+      "source": "src/exact_ballpark/full.py",
+      "symbols": "FullBallpark.get_accuracy",
+      "model": "Real nondegenerate tracking and range calculation",
+      "rules": [
+        "CMB-701",
+        "CMB-702"
+      ],
+      "scope": "On the ordinary branch, range is measured between the surfaces and clamped at zero. A change in relative velocity parallel to a nonzero line of sight preserves angular speed squared. Range and tracking multiply as probability factors. At fixed angular penalty the probability decreases strictly for a larger surface range above optimal. With positive falloff and radial motion, one and two falloff lengths beyond optimal give one half and one sixteenth. The binary64 cancellation case remains separately recorded.",
+      "hostEvidence": "Thirty scalar queries vary centre distance, transversal speed and added radial drift. They include overlap, exact optimal, the half-chance boundary and both falloff landmarks. [CPU controls](scripts/boundary_checks.py)",
+      "ruleTheorems": {
+        "CMB-701": [
+          "radial_invariance"
+        ],
+        "CMB-702": [
+          "chance_factors",
+          "range_order",
+          "half_chance_iff",
+          "falloff_landmarks"
+        ]
+      },
+      "theorems": [
+        "ExactBallpark.Combat.Falloff.radial_invariance",
+        "ExactBallpark.Combat.Falloff.chance_factors",
+        "ExactBallpark.Combat.Falloff.range_order",
+        "ExactBallpark.Combat.Falloff.half_chance_iff",
+        "ExactBallpark.Combat.Falloff.falloff_landmarks"
+      ]
     }
   ]
 }

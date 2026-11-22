@@ -197,6 +197,29 @@ int main() {
         std::fprintf(stderr,"Pinned one-impact tick produced an unexpected contact or history\n");
         return 1;
     }
+    Ballpark limited;
+    limited.mFriction = limited.dt = 1;
+    Ball* right = limited.AddBall(1,1,0.5f,1,true,false,true,false,false,1,0,0,-100,0,0,1,0);
+    Ball* left = limited.AddBall(2,1,0.5f,2,true,false,true,false,false,0,0,0,-90,0,0,1,0);
+    auto& rp = limited.mCollisionLocations[right->mId];
+    auto& lp = limited.mCollisionLocations[left->mId];
+    rp.Initialize(right,1);
+    lp.Initialize(left,1);
+    CollisionItem touch;
+    VectorOfBalls touching{left};
+    limited.GetNextCollisionFree(rp,touch,touching,0);
+    if (touch.collider != left || touch.timeOfImpact != 0) {
+        std::fprintf(stderr,"Expected contact at the start of the unequal-cap replay\n");
+        return 1;
+    }
+    auto secondImpact = limited.CalculateCollisionImpactFree(rp,lp,touch);
+    if (!secondImpact.impact || !touch.impact) {
+        std::fprintf(stderr,"Missing one of the two approaching impulses\n");
+        return 1;
+    }
+    limited.AddImpact(*secondImpact.impact,0,left);
+    limited.AddImpact(*touch.impact,0,right);
+    std::printf("CAPPED_PAIR %a %a\n",rp.m_locations.back().v.x,lp.m_locations.back().v.x);
     Ballpark turn;
     turn.mFriction = turn.dt = 1;
     Ball* pilot = turn.AddBall(1,1,0.25f,10,true,false,true,false,false,
@@ -294,6 +317,7 @@ int main() {
 def upstream(repo):
     import build_space
     import rebound_checks
+    from boundary_checks import limited_contact
     from curve_checks import second_turn, turning_edges, turning_sweep
 
     # GCC 11's libstdc++ exposes asinf in the global namespace on this host.
@@ -309,6 +333,10 @@ def upstream(repo):
         build_space.main(source, build)
         lines = subprocess.check_output([build / "harness"], encoding="utf-8").splitlines()
     rebound_checks.compare_cpp(lines)
+    capped = [line.split()[1:] for line in lines if line.startswith("CAPPED_PAIR ")]
+    velocities = limited_contact()[:2]
+    if len(capped) != 1 or [float.fromhex(x) for x in capped[0]] != velocities:
+        raise SystemExit(f"Independently limited pair differs from the pinned C++ contact: {capped}")
     cache, thrust, mid, end, times = turning_sweep()
     low, high = turning_edges()
     expected = [word(v) for v in [cache, *thrust, *mid, *end, *times, *low, *high]]

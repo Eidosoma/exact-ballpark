@@ -5,6 +5,8 @@ upstream commits it is checked against (destiny, carbonengine/math, DirectXMath)
 
 ## [Unreleased]
 
+- Added 37 registered Lean theorems in eight claims, bringing the register to 420. New CPU controls cover STOP, orbit steering, limited pair impacts, solid boxes, range callbacks, early cleanup and tracking falloff. A pinned C++ replay checks the unequal-cap collision. [Milestone overview](lean/README.md#what-the-420-theorem-milestone-adds)
+
 - Added 16 Lean theorems in ten claims covering sensor callbacks and network delivery, warp dropout, formation geometry, force-field access, GOTO timing and rewind, tracking arithmetic, mixed-world CPU ticks and piecewise thrust work. A pinned replay checks the warp against compiled Destiny C++ and routing against five original Python methods. [Proofs and evidence](lean/README.md#ten-claims-across-engine-systems)
 - Proved exact contact at half a second, both impulses, and separation through the end of three head-on collision ticks. CPU replays cover equal masses, unequal base masses and a one-sided limiter. Lean bounds the final axial position and velocity errors against ordinary drag. [Rebound results](lean/README.md#one-impact-through-the-end-of-a-tick)
 - Added an offline CPU checker for first contact of two spheres following ordinary drag. Lean certifies the turning GOTO fixture to one microsecond, a 3.5 m clearance control, a moving pair and the order of two eligible obstacles. The checker reports the engine’s straight-sweep decision alongside each result. [Proofs and usage](lean/README.md#first-contact-along-a-turn)

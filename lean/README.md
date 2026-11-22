@@ -1,6 +1,6 @@
 # Exact Ballpark laws in Lean
 
-What happens when a ship stops thrusting, two swept spheres touch, or a server tick arrives late? Exact Ballpark gives each behavior a rule ID. This project links **105 engine laws** to **383 kernel-checked theorems**. Each entry records the part of the law covered, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
+What happens when a ship stops thrusting, two swept spheres touch, or a server tick arrives late? Exact Ballpark gives each behavior a rule ID. This project links **105 engine laws** to **420 kernel-checked theorems**. Each entry records the part of the law covered, its assumptions and the evidence from the engine. [Claim register](CLAIMS.md) · [Engine rule catalogue](../docs/rules.md)
 
 [![Exact Ballpark law map. Movement has 41 laws, warp 16, collisions 19, space and sensors 12, time and events 15, and combat 2.](assets/law-map.webp)](assets/law-map.webp)
 
@@ -14,6 +14,22 @@ What happens when a ship stops thrusting, two swept spheres touch, or a server t
 | **Space and sensors** · 12 · SEN-701–712 | Partition levels, connected bubbles, proximity events, visibility, cloaking and which clients receive an update. | Starting from a seed box, the bubble traversal labels exactly the initially unassigned boxes reachable through adjacent cells. [Bubble traversal](ExactBallparkProofs/Space/Bubbles.lean) |
 | **Time, server and clients** · 15 · TIME-701–715 | Tick duration, backlog, update order, command queues, removal and client synchronization. | In the modeled tick, every ball’s thrust calculation precedes collision responses, and every new state is calculated before the first commit. [Tick schedule](ExactBallparkProofs/Time/Schedule.lean) |
 | **Combat** · 2 · CMB-701–702 | How relative motion across the line of sight, tracking and range determine hit probability. | In real arithmetic, distinct positions on the ordinary branch give a hit probability in (0, 1]. With zero transversal speed inside optimal range it equals one. A binary64 radial replay produces +∞. [Real-valued accuracy](ExactBallparkProofs/Combat/Accuracy.lean) · [Finite-arithmetic replay](DISCREPANCIES.md#cmb-702-tracking) |
+
+## What the 420-theorem milestone adds
+
+These 37 theorems follow seven engine behaviours beyond a single formula or tick. The register gives the assumptions and engine symbols for each claim. [Claim register](CLAIMS.md#claim-170)
+
+| Area | Theorems | What the proofs establish |
+| --- | ---: | --- |
+| STOP | 5 | Over any number of ordinary, collision-free ticks, position and velocity on each axis have closed forms. From the same positive initial speed, vertical damping shortens the stopping distance. Two half-ticks apply that damping twice. [Stopping distance and energy](ExactBallparkProofs/Movement/StopDistance.lean) |
+| Orbit steering | 6 | The old orbit’s seven-place Gaussian weight reaches zero once the squared radius error exceeds 40000 log(10⁷). For new orbit, the blend gives explicit position and velocity errors before clipping. The acceleration cap preserves a conditional speed bound. [Orbit steering](ExactBallparkProofs/Movement/OrbitSteering.lean) |
+| Iterative collision response | 6 | In a closing head-on pair, momentum survives the two per-ship limits exactly when both retain the same fraction of the raw impulse. In one equal-mass example the ships’ velocities change from −100 and −90 m/s to −97.5 and −100 m/s. Their combined kinetic energy increases by 703.125 J in that frame. [Limited pair](ExactBallparkProofs/Collision/LimitedPair.lean) |
+| Static collision boxes | 5 | The eight corners determine exact coordinate bounds for the whole solid. If the real broad phase rejects a sphere’s straight sweep, it misses every point of the box throughout the interval. The half-diagonal bounds the solid for perpendicular box edges. [Solid boxes](ExactBallparkProofs/Collision/SolidBox.lean) |
+| Range and target tracking | 5 | Each channel emits membership changes in order. Setting the same notification range again can produce a second enter without any movement. The binary64 trace exercises strict boundaries and the minimum active tracking range. [Range callbacks](ExactBallparkProofs/Space/RangeAlerts.lean) |
+| Delayed removal | 5 | Each cleanup removes all overdue entries and the first seven eligible early entries. Repeated polls at the same wall time can drain 17 early entries in groups of 7, 7 and 3 while the simulation clock stays fixed. The identity of the first seven depends on traversal order. [Cleanup window](ExactBallparkProofs/Time/CleanupWindow.lean) |
+| Combat accuracy | 5 | In the real ordinary calculation, motion along the line of sight leaves the angular penalty unchanged. For radial motion, one falloff length beyond optimal gives a hit probability of ½, and two give ¹⁄₁₆. Distances are measured from the surfaces. [Tracking and falloff](ExactBallparkProofs/Combat/Falloff.lean) |
+
+The CPU gate compares the new laws with scalar entry points. It reads callback and cleanup traces and the exact collision witness from Lean. With `--destiny-repo`, the collision replay also checks the velocities stored by the pinned C++ engine. Closed-form distance, energy, orbit and box results use real arithmetic. The register records finite-arithmetic evidence separately. [CPU controls](scripts/boundary_checks.py) · [Compiled collision replay](scripts/contact_replay.py)
 
 ## Ten claims across engine systems
 
@@ -32,7 +48,7 @@ A ship touching a sensor at 12 m produces a callback on the fourth poll in this 
 | 9. Mixed-world ticking | In the row-local GOTO/STOP model, each ship uses the same tick arithmetic and cached factor as its solo run. With any sequence of per-world masks, its movement state and clock match the solo run after exactly its due updates. | Five polls compare both PyTorch CPU worlds with solo parks and Lean, including alternating deadlines, a shared tick and a stored negative zero. [World masks](ExactBallparkProofs/Movement/WorldMask.lean) |
 | 10. Energy over a manoeuvre | Across any finite sequence of constant-thrust intervals with fixed positive effective mass and drag, kinetic energy changes by total thrust work minus total drag loss. Drag loss is nonnegative. | A turn followed by a coast is checked using independent 70-digit integrals and the three scalar velocity components. The physical claim covers continuous flight between instantaneous velocity changes. [Work account](ExactBallparkProofs/Movement/Manoeuvre.lean) |
 
-The standard gate runs the Lean and host comparisons. Adding `--destiny-repo /path/to/destiny` uses a checkout at the pinned revision to compile the flight-mode oracle and exercise the original Python server methods with fixture parks and transports. [CPU checks](scripts/law_trace_checks.py) · [Run the gate](#verify-locally)
+The standard gate runs the Lean and host comparisons. Adding `--destiny-repo /path/to/destiny` compiles the original flight and collision methods and exercises five original Python server methods with fixture parks and transports. [CPU checks](scripts/law_trace_checks.py) · [Run the gate](#verify-locally)
 
 ## Scalar movement across ticks
 

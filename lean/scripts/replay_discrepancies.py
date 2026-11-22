@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "conformance"))
 sys.path.insert(0, str(ROOT / "src"))
 import contact_replay
+from boundary_checks import limited_contact
 import curve_checks
 import discrepancy_sources
 import mixed_history_checks
@@ -348,6 +349,10 @@ def check_log(destiny_repo=None):
                  f"exceeds five times the configured maximum speed by {stored_limiter_velocity()-5*4097}"]
     if exit_a != exit_b or counts[0] or sum(counts.values()) != 1000:
         raise SystemExit("Short-warp grid or exit comparison changed")
+    u, v, momentum_change, energy_change = limited_contact()
+    signed = lambda x: f"{float(x):+g}".replace("-", "−")
+    rendered += [f"applied changes of {signed(u+100)} and {signed(v+90)} m/s",
+                 f"loses {float(-momentum_change):g} kg·m/s of momentum and gains {float(energy_change):g} J"]
     for statement in rendered + curve_checks.log_measurements():
         if statement not in log:
             raise SystemExit(f"Discrepancy measurement differs from the log: {statement}")
